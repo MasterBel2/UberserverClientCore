@@ -1,0 +1,43 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "CountryCode",
+        "repositoryURL": "https://github.com/MasterBel2/CountryCode",
+        "state": {
+          "branch": "master",
+          "revision": "432180c3c33c8ef7effe359d47436763452c1399",
+          "version": null
+        }
+      },
+      {
+        "package": "ServerAddress",
+        "repositoryURL": "https://github.com/MasterBel2/ServerAddress",
+        "state": {
+          "branch": "master",
+          "revision": "9289307e9d3c50f9f6333fe9c5336df8775f2532",
+          "version": null
+        }
+      },
+      {
+        "package": "SpringRTSReplayHandling",
+        "repositoryURL": "https://github.com/MasterBel2/SpringRTSReplayHandling",
+        "state": {
+          "branch": "master",
+          "revision": "8be932ed51caa3f20fd6640214aa6e3cf6521a01",
+          "version": null
+        }
+      },
+      {
+        "package": "SpringRTSStartScriptHandling",
+        "repositoryURL": "https://github.com/MasterBel2/SpringRTSStartScriptHandling",
+        "state": {
+          "branch": "master",
+          "revision": "5808973973bc00e435bae727c0a37e35a7c11ea9",
+          "version": null
+        }
+      }
+    ]
+  },
+  "version": 1
+}
