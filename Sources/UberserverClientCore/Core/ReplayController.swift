@@ -30,7 +30,7 @@ public final class ReplayController {
     public func loadReplays() throws {
         let urls = try fileManager.contentsOfDirectory(at: demoDir, includingPropertiesForKeys: [kCFURLCreationDateKey as URLResourceKey])
         for replayURL in urls {
-            if replays.items.contains(where: {$0.value.fileURL == replayURL }) { break }
+            if replays.items.contains(where: {$0.value.fileURL == replayURL }) { continue }
             loadQueue.async { [weak self] in
                 do {
                 if let self = self,
