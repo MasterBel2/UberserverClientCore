@@ -57,8 +57,8 @@ public final class TASServer: NSObject, SocketDelegate {
         self.client = client
         super.init()
 
-        setProtocol(defaultProtocol)
         socket.delegate = self
+        setProtocol(defaultProtocol)
     }
 
     // MARK: - TASServing
@@ -90,6 +90,7 @@ public final class TASServer: NSObject, SocketDelegate {
     ///
     /// Command handlers should not contain any strong references to objects in the case a command is never responded to.
     public func send(_ command: CSCommand, specificHandler: ((SCCommand) -> ())? = nil) {
+        Logger.log("Sending: " + command.description, tag: .General)
         NSObject.cancelPreviousPerformRequests(withTarget: self, selector: #selector(TASServer.sendPing), object: nil)
 
         specificCommandHandlers[count] = specificHandler
@@ -107,6 +108,7 @@ public final class TASServer: NSObject, SocketDelegate {
         let messages = message.components(separatedBy: "\n")
 
         for message in messages {
+            Logger.log("Received: " + message, tag: .General)
             let components = message.components(separatedBy: " ")
             let messageID = components.first.flatMap({ (id: String) -> Int? in
                 if id.first == "#" {
@@ -115,11 +117,13 @@ public final class TASServer: NSObject, SocketDelegate {
                     return nil
                 }
             })
-            let description = components.dropFirst().joined(separator: " ")
-            guard let _command = components.first?.uppercased(),
-                  let recognisedCommand = incomingCommands[_command],
+            let commandIndex = (messageID != nil) ? 1 : 0
+            let description = components.dropFirst(1 + commandIndex).joined(separator: " ")
+            guard components.count > (commandIndex + 1),
+                  let recognisedCommand = incomingCommands[components[commandIndex].uppercased()],
                   let command = recognisedCommand.init(description: description) else {
-                return
+                Logger.log("Failed to decode command", tag: .ServerError)
+                continue
             }
             if let messageID = messageID {
                 specificCommandHandlers[messageID]?(command)
