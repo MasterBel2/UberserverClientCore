@@ -38,14 +38,16 @@ public final class UserAuthenticationController: LoginDelegate {
     // MARK: - Dependencies
 
     /// The controller's interface with the keychain.
-    let credentialsManager: CredentialsManager
+    private let credentialsManager: CredentialsManager
     /// The controller's interface with user defaults.
-    let preferencesController: PreferencesController
-    weak var client: Client?
+    private let preferencesController: PreferencesController
+
+    // MARK: - Associated Objects
+    unowned var client: Client!
 
     /// A string that uniquely identifies the server
     private var serverDescription: String? {
-        if let server = client?.server {
+        if let server = client.server {
             return "\(server.socket.address):\(server.socket.port)"
         }
         return nil
@@ -86,7 +88,7 @@ public final class UserAuthenticationController: LoginDelegate {
     ///
     /// The completion handler's argument is the username of the account logged in, or an error.
     public func submitLogin(username: String, password: String, completionHandler: @escaping (Result<String, LoginError>) -> Void) {
-        client?.server?.send(
+        client.server?.send(
             CSLoginCommand(
                 username: username,
                 password: password,
@@ -116,7 +118,7 @@ public final class UserAuthenticationController: LoginDelegate {
     ///
     /// The completion handler's argument is an error, or nil.
     public func submitRegister(username: String, email: String, password: String, completionHandler: @escaping (String?) -> Void) {
-        client?.server?.send(
+        client.server?.send(
             CSRegisterCommand(
                 username: username,
                 password: password

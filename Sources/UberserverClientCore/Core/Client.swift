@@ -27,8 +27,6 @@ public final class Client: ServerSelectionDelegate {
     // MARK: - Server
 
     public private(set) var server: TASServer?
-    /// Processes incoming commands and updates the model and UI appropriately.
-    let commandHandler = CommandHandler()
     var featureAvailability: ProtocolFeatureAvailability?
     /// Processes chat-related information directed back towards the server
 
@@ -76,10 +74,6 @@ public final class Client: ServerSelectionDelegate {
 
         windowManager.configure(for: self)
 
-        // Configure the command handler
-        commandHandler.client = self
-        commandHandler.setProtocol(.unknown)
-
         accountInfoController.client = self
         userAuthenticationController.client = self
 
@@ -112,7 +106,6 @@ public final class Client: ServerSelectionDelegate {
 
     /// Disconnects from the current server and connects to a new one.
 	func redirect(to address: ServerAddress) {
-		commandHandler.setProtocol(.unknown)
         if let server = server {
             server.redirect(to: address)
         } else {
@@ -122,8 +115,7 @@ public final class Client: ServerSelectionDelegate {
 	}
 	
 	public func initialiseServer(_ address: ServerAddress) {
-		let server = TASServer(address: address)
-		server.delegate = commandHandler
+        let server = TASServer(address: address, client: self)
 		
         chatController.server = server
         battleController.server = server

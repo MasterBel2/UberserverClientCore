@@ -12,7 +12,7 @@ import Foundation
 
 /// Describes whether certain features are supported by the current protocol.
 struct ProtocolFeatureAvailability {
-    let serverProtocol: CommandHandler.ServerProtocol
+    let serverProtocol: TASServer.ServerProtocol
 
     var requiresVerificationCodeForChangeEmail: Bool {
         switch serverProtocol {
