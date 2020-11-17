@@ -10,6 +10,6 @@ import Foundation
 
 /// Returns the URL to either the user’s or application’s home directory, depending on the platform.
 public func NSHomeDirectoryURL() -> URL {
-    return URL(string: NSHomeDirectory())!
+    return URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
 }
 

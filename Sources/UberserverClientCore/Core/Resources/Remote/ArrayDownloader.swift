@@ -158,7 +158,7 @@ final class ArrayDownloader: NSObject, Downloader, URLSessionDelegate, URLSessio
 
 
     private func downloadsFailed(at index: Int, error: Error) {
-        if successCondition == .all {
+        if successCondition == .all || (index + 1) >= resources.count {
             try? FileManager.default.removeItem(at: tempDirectory)
             self.delegate?.downloader(self, downloadDidFailWithError: error)
         } else {
@@ -210,7 +210,7 @@ final class ArrayDownloader: NSObject, Downloader, URLSessionDelegate, URLSessio
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
                     didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
         if successCondition == .one {
-            delegate?.downloader(self, downloadHasProgressedTo: Int(totalBytesWritten), outOf: Int(totalBytesWritten))
+            delegate?.downloader(self, downloadHasProgressedTo: Int(totalBytesWritten), outOf: Int(totalBytesExpectedToWrite))
         }
     }
 }
