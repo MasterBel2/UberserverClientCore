@@ -331,6 +331,7 @@ public final class Battleroom: BattleDelegate, ListDelegate {
                     // Because this is async, check the map hasn't changed yet.
                     map == self.battle.map {
                     self.displayMinimap(for: map)
+                    self.hasMap = true
                 } else {
                     print("Unsuccessful download of map \(map.name)")
                 }
