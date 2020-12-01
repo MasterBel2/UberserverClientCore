@@ -10,7 +10,7 @@ import Foundation
 
 protocol Downloader: AnyObject {
     var downloadName: String { get }
-    var targetDirectory: URL { get }
+    var targetURL: URL { get }
     /// Cleans up all temporary directories, and if successful, moves the downloaded files to their intended destination.
     func finalizeDownload(_ successful: Bool)
     // Pauses the download.

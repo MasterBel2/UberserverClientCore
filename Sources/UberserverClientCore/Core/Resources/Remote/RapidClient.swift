@@ -190,7 +190,7 @@ final class RapidClient: Downloader, DownloaderDelegate {
     // MARK: - Downloader
 
     var downloadName: String = ""
-    var targetDirectory: URL {
+    var targetURL: URL {
         return RapidClient.poolDirectory
     }
 

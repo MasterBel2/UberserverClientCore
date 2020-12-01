@@ -47,7 +47,7 @@ public final class DownloadController: DownloaderDelegate, DownloadItemViewDeleg
     func downloaderDidBeginDownload(_ downloader: Downloader) {
         let downloadInfo = DownloadInfo(
             name: downloader.downloadName,
-            location: downloader.targetDirectory
+            location: downloader.targetURL
         )
 
         downloadList.addItem(downloadInfo, with: nextID)
@@ -91,8 +91,7 @@ public final class DownloadController: DownloaderDelegate, DownloadItemViewDeleg
     // MARK: - DownloadItemViewDelegate
 
     public func showDownload(_ id: Int) {
-        let targetDirectory = downloaders[id].targetDirectory
-        print(targetDirectory)
+        let targetDirectory = downloaders[id].targetURL
         system.showFile(targetDirectory.lastPathComponent, at: targetDirectory.deletingLastPathComponent())
     }
 

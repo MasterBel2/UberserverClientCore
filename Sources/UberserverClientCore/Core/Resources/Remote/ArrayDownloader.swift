@@ -45,7 +45,7 @@ final class ArrayDownloader: NSObject, Downloader, URLSessionDelegate, URLSessio
         return resources[indexOfCurrentDownload].fileName
     }
 
-    var targetDirectory: URL {
+    var targetURL: URL {
         return rootDirectory.appendingPathComponent(downloadName)
     }
 
@@ -157,7 +157,7 @@ final class ArrayDownloader: NSObject, Downloader, URLSessionDelegate, URLSessio
     }
 
 
-    private func downloadsFailed(at index: Int, error: Error) {
+    private func downloadsFailed(at index: Int, error: Error?) {
         if successCondition == .all || (index + 1) >= resources.count {
             try? FileManager.default.removeItem(at: tempDirectory)
             self.delegate?.downloader(self, downloadDidFailWithError: error)
@@ -200,11 +200,7 @@ final class ArrayDownloader: NSObject, Downloader, URLSessionDelegate, URLSessio
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        if successCondition == .all {
-            delegate?.downloader(self, downloadDidFailWithError: error)
-        } else {
-
-        }
+        downloadsFailed(at: indexOfCurrentDownload, error: error)
     }
 
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,

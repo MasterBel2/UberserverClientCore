@@ -73,12 +73,7 @@ final class RemoteResourceFetcher: DownloaderDelegate {
             #warning("Dependencies may not have been downloaded")
 
             // 2. For each mirror, one at a time until successful, attempt to download the file
-            let downloader = ArrayDownloader(
-                fileName: target.filename,
-                rootDirectory: springDataDirectory.appendingPathComponent(resource.directory, isDirectory: true),
-                remoteURLs: target.mirrors,
-                successCondition: .one
-            )
+            let downloader = SpringArchiveDownloadTask(archiveInfo: target, rootDirectory: springDataDirectory.appendingPathComponent(resource.directory, isDirectory: true))
 
             downloader.delegate = self
             downloader.attemptFileDownloads()
