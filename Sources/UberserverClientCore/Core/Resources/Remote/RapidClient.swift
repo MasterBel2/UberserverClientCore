@@ -125,7 +125,7 @@ final class RapidClient: Downloader, DownloaderDelegate {
     }
 
     /// Parses a package and retrieves the resources it specifies.
-    private func downloadResourceData(_ packageURL: URL) {
+    private func downloadResourceData(_ packageURL: URL) throws {
         guard let data = FileManager.default.contents(atPath: packageURL.path) else {
             print("Failed to retrieve data from downloaded file")
 			delegate?.downloader(self, downloadDidFailWithError: nil)
@@ -136,7 +136,7 @@ final class RapidClient: Downloader, DownloaderDelegate {
 			delegate?.downloader(self, downloadDidFailWithError: nil)
             return
         }
-        let resourceNames = self.poolFiles(from: unzippedData).map({ (poolArchive: PoolArchive) -> String in
+        let resourceNames = try self.poolFiles(from: unzippedData).map({ (poolArchive: PoolArchive) -> String in
             let folderName = String(poolArchive.md5Digest.dropLast(30))
             let fileName = String(poolArchive.md5Digest.dropFirst(2))
             return "\(folderName)/\(fileName)"
@@ -183,7 +183,12 @@ final class RapidClient: Downloader, DownloaderDelegate {
                 let url = tempUrls.first else {
                     return
             }
-            downloadResourceData(url)
+            do {
+                try downloadResourceData(url)
+            } catch {
+                Logger.log("[Rapid Client] download failed: \(error)", tag: .General)
+                self.downloader(self, downloadDidFailWithError: error)
+            }
         }
     }
 
@@ -207,7 +212,13 @@ final class RapidClient: Downloader, DownloaderDelegate {
 
     // MARK: - Analysing data
 
-    private func poolFiles(from data: Data) -> [PoolArchive] {
+    enum PoolFileDecodeError: Error {
+        case crc32
+        case fileSize
+        case fileName
+    }
+
+    private func poolFiles(from data: Data) throws -> [PoolArchive] {
         if let string = String(data: data, encoding: .utf8) {
             print(string)
         }
@@ -215,12 +226,18 @@ final class RapidClient: Downloader, DownloaderDelegate {
         var archives: [PoolArchive] = []
         while remainingData.count >= 25 {
             let fileNameLength = Int(remainingData[0])
-            let fileName = fileNameLength == 0 ? "" : String(data: remainingData[1...fileNameLength], encoding: .utf8)!
+            let fileName: String
+            if fileNameLength == 0 {
+                fileName = ""
+            } else {
+                guard let decoded = String(data: remainingData[1...fileNameLength], encoding: .utf8) else { throw PoolFileDecodeError.fileName }
+                fileName = decoded
+            }
             let md5Digest = remainingData[(fileNameLength + 1)..<(fileNameLength + 17)].map({
                 return $0 < 16 ? "0" + String($0, radix: 16) : String($0, radix: 16)
             }).joined()
-            let crc32 = Int(data: remainingData[(fileNameLength + 5)..<(fileNameLength + 21)])!
-            let fileSize = Int(data: remainingData[(fileNameLength + 9)..<(fileNameLength + 25)])!
+            guard let crc32 = Int(data: remainingData[(fileNameLength + 5)..<(fileNameLength + 21)]) else { throw PoolFileDecodeError.crc32 }
+            guard let fileSize = Int(data: remainingData[(fileNameLength + 9)..<(fileNameLength + 25)]) else { throw PoolFileDecodeError.fileSize }
             archives.append(PoolArchive(fileName: fileName, md5Digest: md5Digest, crc32: crc32, fileSize: fileSize))
             if remainingData.count > (25 + fileNameLength) {
                 remainingData = remainingData.advanced(by: 25 + fileNameLength)

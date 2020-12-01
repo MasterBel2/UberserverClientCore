@@ -53,7 +53,7 @@ final class DataParser {
     func parseData<T>(ofType type: T.Type, count: Int) throws -> Array<T> {
         var temp = Array<T>()
         for _ in 0..<count {
-            let x = try! parseData(ofType: type)
+            let x = try parseData(ofType: type)
             temp.append(x)
         }
         return temp

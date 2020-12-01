@@ -28,7 +28,7 @@ struct CSLoginCommand: CSCommand {
     let compatabilityFlags: Set<CompatabilityFlag>
 
 	var description: String {
-		let encodedPassword = password.md5()!.base64Encoded() // TODO: Error checking
+		let encodedPassword = password.md5().base64Encoded() // TODO: Error checking
         return "LOGIN \(username) \(encodedPassword) 0 * BelieveAndRise Alpha\t0\t" + (compatabilityFlags.map { $0.rawValue }).joined(separator: " ")
 	}
 }
@@ -48,7 +48,7 @@ struct CSRegisterCommand: CSCommand {
 	let username: String
 	let password: String
 	var description: String {
-		let encodedPassword = password.md5()!.base64Encoded()
+		let encodedPassword = password.md5().base64Encoded()
 		return "REGISTER \(username) \(encodedPassword)"
 	}
 }

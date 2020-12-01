@@ -115,7 +115,7 @@ public final class Battleroom: BattleDelegate, ListDelegate {
     // MARK: - Dependencies
 
     let resourceManager: ResourceManager
-    private weak var battleController: BattleController!
+    private unowned let battleController: BattleController
 
     // MARK: - Displays
 

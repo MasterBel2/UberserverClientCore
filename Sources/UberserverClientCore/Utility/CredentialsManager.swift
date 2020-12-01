@@ -100,7 +100,7 @@ class CredentialsManager {
     /// Writes the credentials associated with the server address to the keychain.
     func writeCredentials(_ credentials: Credentials, forServerWithAddress serverAddress: String) throws {
         let account = credentials.username
-        let password = credentials.password.data(using: .utf8)!
+        let password = Data(credentials.password.utf8)
 
         let query: [String: Any] = [
             kSecClass as String: kSecClassInternetPassword,

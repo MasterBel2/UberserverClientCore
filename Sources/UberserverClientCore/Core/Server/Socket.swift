@@ -26,7 +26,7 @@ final class Socket: NSObject, StreamDelegate {
 	private var inputStream: InputStream?
 	private var outputStream: OutputStream?
 	
-	private var messageBuffer = NSMutableData(capacity: 256)!
+	private let messageBuffer = NSMutableData(capacity: 256)!
 	
 	private var isConnected: Bool { return inputStream != nil && outputStream != nil }
 	

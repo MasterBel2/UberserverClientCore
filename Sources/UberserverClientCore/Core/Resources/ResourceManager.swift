@@ -58,7 +58,8 @@ public final class ResourceManager {
 
     /// 
     public func hasMap(named mapName: String, checksum: Int32, preferredVersion: String) -> (hasNameMatch: Bool, hasChecksumMatch: Bool, usedPreferredVersion: Bool) {
-        let matches = localResourceManager.archiveLoader!.mapArchives.filter({ $0.name == mapName })
+        guard let archiveLoader = localResourceManager.archiveLoader else { return (false, false, false) }
+        let matches = archiveLoader.mapArchives.filter({ $0.name == mapName })
         return (
             hasNameMatch: matches.count > 0,
             hasChecksumMatch: matches.filter({ $0.checksum == checksum }).count == 1,
@@ -67,7 +68,7 @@ public final class ResourceManager {
     }
 
     public func dimensions(forMapNamed name: String) -> (width: Int, height: Int)? {
-        if let match = localResourceManager.archiveLoader!.mapArchives.first(where: { $0.name == name}) {
+        if let match = localResourceManager.archiveLoader?.mapArchives.first(where: { $0.name == name}) {
             return (match.width, match.height)
         }
         return nil
@@ -80,7 +81,8 @@ public final class ResourceManager {
 
     /// Whether unitsync can find a game with the matching name. The name string should include the game's version.
     public func hasGame(name: String) -> Bool {
-        return localResourceManager.archiveLoader!.modArchives.contains(where: { $0.name == name })
+        guard let archiveLoader = localResourceManager.archiveLoader else { return false }
+        return archiveLoader.modArchives.contains(where: { $0.name == name })
     }
 
     // MARK: - Maps
