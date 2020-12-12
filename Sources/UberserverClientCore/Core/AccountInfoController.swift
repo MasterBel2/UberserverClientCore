@@ -25,28 +25,8 @@ public struct AccountData {
     public let registrationDate: Date?
 }
 
-/// Performs operations associated with modifying account information.
-public protocol AccountInfoDelegate: AnyObject {
-    /// Attempts to change the user's email to the new email address.
-    func changeEmail(to newEmailAddress: String, password: String, verificationCode: String, completionBlock: @escaping (String?) -> ())
-    /// Requests a verification code to be sent to the new email address, before changing email address.
-    func requestVerficationCodeForChangingEmail(to newEmailAddress: String, password: String, completionBlock: @escaping (String?) -> ())
-    /// Attempts to change the user's username to the new value..
-    func renameAccount(to newAccountName: String, password: String, completionBlock: @escaping (String?) -> ())
-    /// Attempts to change the user's password to the new value.
-    func changePassword(from oldPassword: String, to newPassword: String, completionBlock: @escaping (String?) -> ())
-}
-
-/// Displays the user's account infromation.
-public protocol AccountInfoDisplay {
-    /// Presents the account name to the user.
-    func display(accountName: String)
-    /// Presents account metadata to the user.
-    func display(accountData: AccountData)
-}
-
 /// Manages information about a user's account.
-public final class AccountInfoController: AccountInfoDelegate {
+public final class AccountInfoController {
 
     // MARK: - Depedencies
 
@@ -119,6 +99,9 @@ public final class AccountInfoController: AccountInfoDelegate {
 
     // MARK: - AccountInfoDelegate
 
+    /// Requests a verification code to be sent to the new email address, before changing email address.
+    ///
+    /// Automatically detects whether a verification code is required, and will call `changeEmailWithoutVerification(to:password:completion:)` with the provided arguments, and return.
     public func requestVerficationCodeForChangingEmail(to newEmailAddress: String, password: String, completionBlock: @escaping (String?) -> ()) {
         guard client?.featureAvailability?.requiresVerificationCodeForChangeEmail == true else {
             changeEmailWithoutVerification(to: newEmailAddress, password: password, completionBlock: completionBlock)
@@ -140,6 +123,9 @@ public final class AccountInfoController: AccountInfoDelegate {
         }
     }
 
+    /// Attempts to change the user's email to the new email address.
+    ///
+    /// Requires the verification code that will be sent after a successful `requestVerificationCodeForChangingEmail(to:password:completionBlock:)`
     public func changeEmail(to newEmailAddress: String, password: String, verificationCode: String, completionBlock: @escaping (String?) -> ()) {
         if password == client?.userAuthenticationController.credentials?.password {
             client?.server?.send(CSChangeEmailWithVerificationCommand(newEmail: newEmailAddress, verificationCode: verificationCode)) { [weak self] response in
@@ -157,6 +143,7 @@ public final class AccountInfoController: AccountInfoDelegate {
         }
     }
 
+    /// Attempts to change email where a verification code is not required.
     public func changeEmailWithoutVerification(to newEmailAddress: String, password: String, completionBlock: @escaping (String?) -> ()) {
         if password == client?.userAuthenticationController.credentials?.password {
             client?.server?.send(CSChangeEmailWithoutVerificationCommand(newEmail: newEmailAddress)) { [weak self] response in
@@ -174,6 +161,7 @@ public final class AccountInfoController: AccountInfoDelegate {
         }
     }
 
+    /// Attempts to change the user's username to the new value..
     public func renameAccount(to newAccountName: String, password: String, completionBlock: @escaping (String?) -> ()) {
         if password == client?.userAuthenticationController.credentials?.password {
             client?.server?.send(CSRenameAccountCommand(newUsername: newAccountName))
@@ -181,6 +169,7 @@ public final class AccountInfoController: AccountInfoDelegate {
         }
     }
 
+    /// Attempts to change the user's password to the new value.
     public func changePassword(from oldPassword: String, to newPassword: String, completionBlock: @escaping (String?) -> ()) {
         if oldPassword == client?.userAuthenticationController.credentials?.password {
             client?.server?.send(CSChangePasswordCommand(oldPassword: oldPassword, newPassword: newPassword))
