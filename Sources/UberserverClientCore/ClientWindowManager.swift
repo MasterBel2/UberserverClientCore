@@ -27,7 +27,13 @@ public protocol ClientWindowManager {
 
     func resetServerWindows()
 
-    func displayBattleroom(_ battleroom: Battleroom)
+    // Battleroom
 
+    func displayBattleroom(_ battleroom: Battleroom)
     func destroyBattleroom()
+
+    // Channels
+
+    func joinedChannel(_ channel: Channel)
+    
 }

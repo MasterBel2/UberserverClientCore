@@ -9,52 +9,53 @@
 import Foundation
 
 /// 
-struct SCJoinCommand: SCCommand {
+public struct SCJoinCommand: SCCommand {
 
-    let channelName: String
+    public let channelName: String
 
     // MARK: - Manual construction
 
-    init(channelName: String) {
+    public init(channelName: String) {
         self.channelName = channelName
     }
 
     // MARK: - SCCommand
 
-    init?(description: String) {
+    public init?(description: String) {
         if description == "" { return nil }
         self.channelName = description
     }
 
-    var description: String {
+    public var description: String {
         return "JOIN \(channelName)"
     }
 
-    func execute(on client: Client) {
+    public func execute(on client: Client) {
 		let channelID = client.id(forChannelnamed: channelName)
 		guard client.channelList.items[channelID] == nil else {
 			return
 		}
         let channel = Channel(title: channelName, rootList: client.userList)
         client.channelList.addItem(channel, with: channelID)
+        client.windowManager.joinedChannel(channel)
     }
 }
 
-struct SCJoinFailedCommand: SCCommand {
+public struct SCJoinFailedCommand: SCCommand {
 
-    let channelName: String
-    let reason: String
+    public let channelName: String
+    public let reason: String
 
     // MARK: - Manual construction
 
-    init(channelName: String, reason: String) {
+    public init(channelName: String, reason: String) {
         self.channelName = channelName
         self.reason = reason
     }
 
     // MARK: - SCCommand
 
-    init?(description: String) {
+    public init?(description: String) {
         guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 1),
               let channelName = words.first,
               let reason = sentences.first else {
@@ -64,30 +65,30 @@ struct SCJoinFailedCommand: SCCommand {
         self.reason = reason
     }
 
-    var description: String {
+    public var description: String {
         return "JOINFAILED \(channelName) \(reason)"
     }
 
-    func execute(on client: Client) {
+    public func execute(on client: Client) {
         client.receivedError(.joinFailed(channel: channelName, reason: reason))
     }
 }
 
-struct CSJoinCommand: CSCommand {
+public struct CSJoinCommand: CSCommand {
 
-    let channelName: String
-    let key: String?
+    public let channelName: String
+    public let key: String?
 
     // MARK: - Manual construction
 
-    init(channelName: String, key: String?) {
+    public init(channelName: String, key: String?) {
         self.channelName = channelName
         self.key = key
     }
 
     // MARK: - CSCommand
 
-    init?(description: String) {
+    public init?(description: String) {
         guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 2, sentenceCount: 0, optionalWords: 1) else {
             return nil
         }
@@ -95,24 +96,24 @@ struct CSJoinCommand: CSCommand {
         self.key = nil
     }
 
-    var description: String {
+    public var description: String {
         return "JOIN \(channelName)"
     }
 
-    func execute(on server: LobbyServer) {
+    public func execute(on server: LobbyServer) {
         
     }
 }
 
-struct SCChannelTopicCommand: SCCommand {
+public struct SCChannelTopicCommand: SCCommand {
 
-    let channelName: String
-    let author: String
-    let topic: String
+    public let channelName: String
+    public let author: String
+    public let topic: String
 
     // MARK: - Manual construction
 
-    init(channelName: String, author: String, topic: String) {
+    public init(channelName: String, author: String, topic: String) {
         self.channelName = channelName
         self.author = author
         self.topic = topic
@@ -120,7 +121,7 @@ struct SCChannelTopicCommand: SCCommand {
 
     // MARK: - SCCommand
 
-    init?(description: String) {
+    public init?(description: String) {
         guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 2, sentenceCount: 1) else {
                 return nil
         }
@@ -129,11 +130,11 @@ struct SCChannelTopicCommand: SCCommand {
         topic = sentences[0]
     }
 
-    var description: String {
+    public var description: String {
         return "CHANNELTOPIC \(channelName) \(author) \(topic)"
     }
 
-    func execute(on client: Client) {
+    public func execute(on client: Client) {
 		let channelID = client.id(forChannelnamed: channelName)
         guard let channel = client.channelList.items[channelID] else {
             return
@@ -143,21 +144,21 @@ struct SCChannelTopicCommand: SCCommand {
 }
 
 /// A request to change a channel's topic, typically sent by a priveleged user.
-struct CSChannelTopicCommand: CSCommand {
+public struct CSChannelTopicCommand: CSCommand {
 
-    let channelName: String
-    let topic: String
+    public let channelName: String
+    public let topic: String
 
     // MARK: - Manual construction
 
-    init(channelName: String, topic: String) {
+    public init(channelName: String, topic: String) {
         self.channelName = channelName
         self.topic = topic
     }
 
     // MARK: - CSCommand
 
-    init?(description: String) {
+    public init?(description: String) {
         guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 1) else {
             return nil
         }
@@ -165,11 +166,11 @@ struct CSChannelTopicCommand: CSCommand {
         topic = sentences[0]
     }
 
-    var description: String {
+    public var description: String {
         return "CHANNELTOPIC \(channelName) \(topic)"
     }
 
-    func execute(on server: LobbyServer) {
+    public func execute(on server: LobbyServer) {
 
     }
 }
@@ -179,30 +180,30 @@ struct CSChannelTopicCommand: CSCommand {
 
  Note that when the client is disconnected, the client is automatically removed from all channels.
  */
-struct CSLeaveCommand: CSCommand {
+public struct CSLeaveCommand: CSCommand {
 
-    let channelName: String
+    public let channelName: String
 
     // MARK: - Manual construction
 
-    init(channelName: String) {
+    public init(channelName: String) {
         self.channelName = channelName
     }
 
     // MARK: - CSCommand
 
-    init?(description: String) {
+    public init?(description: String) {
         guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 0) else {
             return nil
         }
         channelName = words[0]
     }
 
-    var description: String {
+    public var description: String {
         return "LEAVE \(channelName)"
     }
 
-    func execute(on server: LobbyServer) {
+    public func execute(on server: LobbyServer) {
         
     }
 }
@@ -210,21 +211,21 @@ struct CSLeaveCommand: CSCommand {
 /**
  Sent by the server to all clients in a channel. Used to broadcast messages in a channel.
  */
-struct SCChannelMessageCommand: SCCommand {
+public struct SCChannelMessageCommand: SCCommand {
 
-    let channelName: String
-    let message: String
+    public let channelName: String
+    public let message: String
 
     // MARK: - Manual construction
 
-    init(channelName: String, message: String) {
+    public init(channelName: String, message: String) {
         self.channelName = channelName
         self.message = message
     }
 
     // MARK: - SCCommand
 
-    init?(description: String) {
+    public init?(description: String) {
         guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 1) else {
             return nil
         }
@@ -232,11 +233,11 @@ struct SCChannelMessageCommand: SCCommand {
         message = sentences[0]
     }
 
-    var description: String {
+    public var description: String {
         return "CHANNELMESSAGE \(channelName) \(message)"
     }
 
-    func execute(on client: Client) {
+    public func execute(on client: Client) {
         #warning("Incomplete implementation")
     }
 }
@@ -245,21 +246,21 @@ struct SCChannelMessageCommand: SCCommand {
  Send a chat message to a specific channel. The client has to join the channel before it may use
  this command.
  */
-struct CSSayCommand: CSCommand {
+public struct CSSayCommand: CSCommand {
 
-    let channelName: String
-    let message: String
+    public let channelName: String
+    public let message: String
 
     // MARK: - Manual construction
 
-    init(channelName: String, message: String) {
+    public init(channelName: String, message: String) {
         self.channelName = channelName
         self.message = message
     }
 
     // MARK: - CSCommand
 
-    init?(description: String) {
+    public init?(description: String) {
         guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 1) else {
             return nil
         }
@@ -267,20 +268,115 @@ struct CSSayCommand: CSCommand {
         message = sentences[0]
     }
 
-    var description: String {
+    public var description: String {
         return "SAY \(channelName) \(message)"
     }
 
-    func execute(on server: LobbyServer) {
+    public func execute(on server: LobbyServer) {
 
     }
 }
+
+public extension String {
+    func splitLastWord() -> (Substring, Substring)? {
+        guard let splitIndex = self.lastIndex(of: " "),
+              splitIndex < endIndex,
+              splitIndex > startIndex else {
+            return nil
+        }
+        let payload = self[..<splitIndex]
+        let code = self[index(after: splitIndex)...]
+        return (payload, code)
+    }
+}
+
+public protocol SaidEncodableCommand {
+    static var Identifier: String { get }
+
+    var payloadDescription: String { get }
+    var description: String { get }
+
+    func execute(on client: Client)
+
+    init?(payload: String)
+}
+
+public extension SaidEncodableCommand {
+    var description: String {
+        return payloadDescription.appending(" [&\(Self.Identifier)&]")
+    }
+}
+
+public struct RoutedPrivateMessage: SaidEncodableCommand {
+    public static let Identifier: String = "RoutedMessage"
+
+    let senderID: Int
+    let receiverID: Int
+    let message: String
+
+    init(senderID: Int, receiverID: Int, message: String) {
+        self.senderID = senderID
+        self.receiverID = receiverID
+        self.message = message
+    }
+
+    public init?(payload: String) {
+        guard let (_, sentences) = try? wordsAndSentences(for: payload, wordCount: 0, sentenceCount: 3),
+              let senderID = Int(sentences[1]), let receiverID = Int(sentences[2]) else {
+            return nil
+        }
+
+        self.senderID = senderID
+        self.receiverID = receiverID
+        self.message = sentences[0]
+    }
+
+    public var payloadDescription: String {
+        return "\(message)\t\(senderID)\t\(receiverID)"
+    }
+
+    public func execute(on client: Client) {
+        guard let senderName = client.userList.items[senderID]?.profile.fullUsername,
+              let receiverName = client.userList.items[receiverID]?.profile.fullUsername else {
+            return
+        }
+        let channelName = "\(senderName) via \(receiverName)"
+        let channelID = client.id(forChannelnamed: channelName)
+
+        let channel: Channel
+        if let createdChannel = client.channelList.items[channelID] {
+            channel = createdChannel
+        } else {
+            channel = Channel(title: channelName, rootList: client.userList)
+            channel.userlist.addItemFromParent(id: senderID)
+            channel.userlist.addItemFromParent(id: receiverID)
+            channel.userlist.addItemFromParent(id: senderID)
+        }
+
+        print("Received message from \(channelName): \(message)")
+
+        channel.receivedNewMessage(
+            ChatMessage(
+                time: Date(),
+                senderID: senderID,
+                senderName: senderName,
+                content: message,
+                isIRCStyle: false
+            )
+        )
+    }
+}
+
+let saidPrivateEncodableCommands: [String : SaidEncodableCommand.Type] = [
+    RoutedPrivateMessage.Identifier : RoutedPrivateMessage.self,
+]
+let saidEncodableCommands: [String : SaidEncodableCommand.Type] = [:]
 
 /**
  Sent to all clients participating in a specific channel when one of the clients sent a chat message
  to it (including the author of the message).
  */
-struct SCSaidCommand: SCCommand {
+public struct SCSaidCommand: SCCommand {
 
     let channelName: String
     let username: String
@@ -296,7 +392,7 @@ struct SCSaidCommand: SCCommand {
 
     // MARK: - SCCommand
 
-    init?(description: String) {
+    public init?(description: String) {
         guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 2, sentenceCount: 1) else {
             return nil
         }
@@ -305,16 +401,20 @@ struct SCSaidCommand: SCCommand {
         message = sentences[0]
     }
 
-    var description: String {
+    public var description: String {
         return "SAID \(channelName) \(username) \(message)"
     }
 
-    func execute(on client: Client) {
+    public func execute(on client: Client) {
 		let channelID = client.id(forChannelnamed: channelName)
 		guard let channel = client.channelList.items[channelID],
-            let userID = client.id(forPlayerNamed: username) else {
+            let userID = client.id(forPlayerNamed: username),
+            let user = client.userList.items[userID] else {
 				return
 		}
+        
+        if handleSaidEncodedCommand(client: client, user: user, message: message, availableCommands: saidEncodableCommands) { return }
+
         channel.receivedNewMessage(ChatMessage(
             time: Date(),
             senderID: userID,
@@ -325,11 +425,25 @@ struct SCSaidCommand: SCCommand {
     }
 }
 
+func handleSaidEncodedCommand(client: Client, user: User, message: String, availableCommands: [String : SaidEncodableCommand.Type]) -> Bool {
+    if user.profile.lobbyID.hasPrefix("BelieveAndRise"),
+       let (payload, messageCode) = message.splitLastWord(),
+       messageCode.hasPrefix("[&") && messageCode.hasSuffix("&]") {
+        let commandID = String(messageCode.dropFirst(2).dropLast(2))
+        if let commandType = availableCommands[commandID],
+           let command = commandType.init(payload: String(payload)) {
+            command.execute(on: client)
+            return true
+        }
+    }
+    return false
+}
+
 /**
  Sent by any client requesting to say something in a channel in "/me" IRC style. (The SAY command is
  used for normal chat messages.)
  */
-struct CSSayExCommand: CSCommand {
+public struct CSSayExCommand: CSCommand {
 
     let channelName: String
     let message: String
@@ -343,7 +457,7 @@ struct CSSayExCommand: CSCommand {
 
     // MARK: - CSCommand
 
-    init?(description: String) {
+    public init?(description: String) {
         guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 1) else {
             return nil
         }
@@ -351,11 +465,11 @@ struct CSSayExCommand: CSCommand {
         message = sentences[0]
     }
 
-    var description: String {
+    public var description: String {
         return "SAYEX \(channelName) \(message)"
     }
 
-    func execute(on server: LobbyServer) {
+    public func execute(on server: LobbyServer) {
 
     }
 }
@@ -363,7 +477,7 @@ struct CSSayExCommand: CSCommand {
 /**
  Sent by the server when a client said something using the SAYEX command.
  */
-struct SCSaidExCommand: SCCommand {
+public struct SCSaidExCommand: SCCommand {
 
     let channelName: String
     let username: String
@@ -379,7 +493,7 @@ struct SCSaidExCommand: SCCommand {
 
     // MARK: - SCCommand
 
-    init?(description: String) {
+    public init?(description: String) {
         guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 2, sentenceCount: 1) else {
             return nil
         }
@@ -388,11 +502,11 @@ struct SCSaidExCommand: SCCommand {
         message = sentences[0]
     }
 
-    var description: String {
+    public var description: String {
         return "SAIDEX \(channelName) \(username) \(message)"
     }
 
-    func execute(on client: Client) {
+    public func execute(on client: Client) {
 		let channelID = client.id(forChannelnamed: channelName)
         guard let channel = client.channelList.items[channelID],
             let senderID = client.id(forPlayerNamed: username) else {
@@ -408,7 +522,7 @@ struct SCSaidExCommand: SCCommand {
     }
 }
 
-struct SCChannelCommand: SCCommand {
+public struct SCChannelCommand: SCCommand {
 	
 	let channelName: String
 	let userCount: Int
@@ -424,7 +538,7 @@ struct SCChannelCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
+    public init?(description: String) {
 		guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 2, sentenceCount: 0, optionalSentences: 1),
 		let userCount = Int(words[1]) else {
 			return nil
@@ -434,11 +548,11 @@ struct SCChannelCommand: SCCommand {
 		topic = sentences.count == 1 ? sentences[0] : nil
 	}
 	
-	func execute(on client: Client) {
+    public func execute(on client: Client) {
 		#warning("todo")
 	}
 	
-	var description: String {
+    public var description: String {
 		var string = "CHANNEL \(channelName) \(userCount)"
 		if let topic = topic {
 			string += " \(topic)"
@@ -447,7 +561,7 @@ struct SCChannelCommand: SCCommand {
 	}
 }
 
-struct SCEndOfChannelsCommand: SCCommand {
+public struct SCEndOfChannelsCommand: SCCommand {
 	
 	// MARK: - Manual Construction
 	
@@ -455,13 +569,13 @@ struct SCEndOfChannelsCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {}
+    public init?(description: String) {}
 	
-	func execute(on client: Client) {
+    public func execute(on client: Client) {
 		#warning("todo")
 	}
 	
-	var description: String {
+    public var description: String {
 		return "ENDOFCHANNELS"
 	}
 }

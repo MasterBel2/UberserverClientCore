@@ -8,6 +8,39 @@
 
 import Foundation
 
+/// Send a private chat message to an other client.
+public struct CSSayPrivateCommand: CSCommand {
+    let intendedRecipient: String
+    let message: String
+
+    init(intendedRecipient: String, message: String) {
+        self.intendedRecipient = intendedRecipient
+        self.message = message
+    }
+
+    // MARK: CSCommand
+
+    public init?(description: String) {
+        guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 1) else {
+            return nil
+        }
+
+        intendedRecipient = words[0]
+        message = sentences[0]
+    }
+
+    public func execute(on server: LobbyServer) {
+        // TODO
+    }
+
+    public var description: String {
+        return "SAYPRIVATE \(intendedRecipient) \(message)"
+    }
+}
+
+/// Sent to a client that just sent a SAYPRIVATE command.
+///
+/// This notifies the client that the server sent the private message on to its intended recipient.
 public struct SCSayPrivateCommand: SCCommand {
 	
 	let username: String
@@ -31,7 +64,22 @@ public struct SCSayPrivateCommand: SCCommand {
 	}
 	
     public func execute(on client: Client) {
-		#warning("todo")
+        guard let userID = client.id(forPlayerNamed: username),
+            let channel = client.privateMessageChannel(withUserNamed: username, userID: userID),
+              let myID = client.myID,
+              let myUsername = client.userList.items[myID]?.profile.fullUsername else {
+            return
+        }
+
+        channel.receivedNewMessage(
+            ChatMessage(
+                time: Date(),
+                senderID: myID,
+                senderName: myUsername,
+                content: message,
+                isIRCStyle: false
+            )
+        )
 	}
 	
     public var description: String {
@@ -39,6 +87,7 @@ public struct SCSayPrivateCommand: SCCommand {
 	}
 }
 
+/// Sent to a client that just sent a SAYPRIVATE command. This notifies the client that the server sent the private message on to its intended recipient.
 public struct SCSaidPrivateCommand: SCCommand {
 	
 	let username: String
@@ -62,7 +111,26 @@ public struct SCSaidPrivateCommand: SCCommand {
 	}
 	
     public func execute(on client: Client) {
-		#warning("todo")
+        guard let userID = client.id(forPlayerNamed: username),
+              let channel = client.privateMessageChannel(withUserNamed: username, userID: userID),
+              let user = client.userList.items[userID],
+              let myID = client.myID,
+              let myUsername = client.userList.items[myID]?.profile.fullUsername else {
+            return
+        }
+
+        if handleSaidEncodedCommand(client: client, user: user, message: message, availableCommands: saidPrivateEncodableCommands) { return }
+
+
+        channel.receivedNewMessage(
+            ChatMessage(
+                time: Date(),
+                senderID: myID,
+                senderName: myUsername,
+                content: message,
+                isIRCStyle: false
+            )
+        )
 	}
 	
     public var description: String {
@@ -88,12 +156,27 @@ public struct SCSayPrivateEXCommand: SCCommand {
 		guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 1) else {
 			return nil
 		}
-		username = words[0]
-		message = sentences[1]
-	}
-	
+        username = words[0]
+        message = sentences[1]
+    }
+
     public func execute(on client: Client) {
-		#warning("todo")
+        guard let userID = client.id(forPlayerNamed: username),
+              let channel = client.privateMessageChannel(withUserNamed: username, userID: userID),
+              let myID = client.myID,
+              let myUsername = client.userList.items[myID]?.profile.fullUsername else {
+            return
+        }
+
+        channel.receivedNewMessage(
+            ChatMessage(
+                time: Date(),
+                senderID: myID,
+                senderName: myUsername,
+                content: message,
+                isIRCStyle: true
+            )
+        )
 	}
 	
     public var description: String {
@@ -124,7 +207,20 @@ public struct SCSaidPrivateEXCommand: SCCommand {
 	}
 	
     public func execute(on client: Client) {
-		#warning("todo")
+        guard let userID = client.id(forPlayerNamed: username),
+              let channel = client.privateMessageChannel(withUserNamed: username, userID: userID) else {
+            return
+        }
+
+        channel.receivedNewMessage(
+            ChatMessage(
+                time: Date(),
+                senderID: userID,
+                senderName: username,
+                content: message,
+                isIRCStyle: true
+            )
+        )
 	}
 	
     public var description: String {

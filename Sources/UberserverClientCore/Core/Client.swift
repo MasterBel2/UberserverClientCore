@@ -52,6 +52,8 @@ public final class Client: ServerSelectionDelegate {
     }
 
     public let channelList = List<Channel>(title: "All Channels", sortKey: .title)
+    public let privateMessageList = List<Channel>(title: "Private Messages", sortKey: .title)
+    public let forwardedMessageList = List<Channel>(title: "Forwarded Messages", sortKey: .title)
     public let userList = List<User>(title: "All Users", sortKey: .rank)
     public let battleList = List<Battle>(title: "All Battles", sortKey: .playerCount)
 
@@ -215,4 +217,22 @@ public final class Client: ServerSelectionDelegate {
 			return id
 		}
 	}
+
+    func privateMessageChannel(withUserNamed username: String, userID: Int) -> Channel? {
+        guard let myID = myID else { return nil }
+
+        let channelID = id(forChannelnamed: username)
+        
+        let channel: Channel
+        if let cachedChannel = privateMessageList.items[channelID] {
+            channel = cachedChannel
+        } else {
+            channel = Channel(title: username, rootList: userList)
+            channel.userlist.addItemFromParent(id: userID)
+            channel.userlist.addItemFromParent(id: myID)
+
+            privateMessageList.addItem(channel, with: channelID)
+        }
+        return channel
+    }
 }

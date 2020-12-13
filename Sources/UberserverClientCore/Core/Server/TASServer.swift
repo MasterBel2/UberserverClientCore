@@ -206,6 +206,7 @@ public final class TASServer: NSObject, SocketDelegate {
 
                 // Channel commands
                 "JOIN" : SCJoinCommand.self,
+                "JOINED" : SCJoinedCommand.self,
                 "JOINFAILED" : SCJoinFailedCommand.self,
                 "CHANNELTOPIC" : SCChannelTopicCommand.self,
                 "CHANNELMESSAGE" : SCChannelMessageCommand.self,
@@ -213,6 +214,12 @@ public final class TASServer: NSObject, SocketDelegate {
                 "SAIDEX" : SCSaidExCommand.self,
                 "CHANNEL" : SCChannelCommand.self,
                 "ENDOFCHANNELS" : SCEndOfChannelsCommand.self,
+
+                // Private Message Commands
+                "SAYPRIVATE" : SCSayPrivateCommand.self,
+                "SAYPRIVATEEX" : SCSayPrivateEXCommand.self,
+                "SAIDPRIVATE" : SCSaidPrivateCommand.self,
+                "SAIDPRIVATEEX" : SCSaidPrivateEXCommand.self,
 
                 // Battle commands
                 "BATTLEOPENED" : SCBattleOpenedCommand.self,
