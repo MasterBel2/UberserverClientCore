@@ -243,6 +243,39 @@ public struct SCChannelMessageCommand: SCCommand {
 }
 
 /**
+Sent to request that a "ring" sound to be played to other user.
+*/
+public struct CSRingCommand: CSCommand {
+	
+	/// Specifies the user to ring.
+	public let target: String
+	
+	// MARK: - Manual construction
+	
+	public init(target: String) {
+		self.target = target
+	}
+	
+	// MARK: - CSCommand
+	
+	public init?(description: String) {
+		guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 1) else {
+			return nil
+		}
+		
+		target = words[0]
+	}
+	
+	public var description: String {
+		return "RING \(target)"
+	}
+	
+	public func execute(on server: LobbyServer) {
+		// Server TODO
+	}
+}
+
+/**
  Send a chat message to a specific channel. The client has to join the channel before it may use
  this command.
  */

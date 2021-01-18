@@ -76,6 +76,7 @@ public final class Client: ServerSelectionDelegate {
 
         windowManager.configure(for: self)
 
+        chatController.client = self
         accountInfoController.client = self
         userAuthenticationController.client = self
 

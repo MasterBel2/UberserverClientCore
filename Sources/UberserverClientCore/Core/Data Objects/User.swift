@@ -35,8 +35,10 @@ public final class User: Sortable {
 	
 	public struct Profile {
 		public let id: Int
+		/// The full, unmodified username. Use this when describing a user to the server.
         public let fullUsername: String
         public let clans: [String]
+		/// The user's username, with the leading clan tag (if any) removed. Do not use this when communicating with the server; only use this when displaying information to your user.
         public let username: String
         /// A string identifying which lobby client the user is using
         public var lobbyID: String
