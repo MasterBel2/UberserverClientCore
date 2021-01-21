@@ -192,7 +192,7 @@ public final class Battleroom: BattleDelegate, ListDelegate {
 
         battleroomSorter.battleroom = self
         battle.delegate = self
-        battle.userList.delegate = self
+		battle.userList.addObject(object: self)
 
         if !hasEngine {
             resourceManager.download(.engine(name: battle.engineVersion, platform: platform), completionHandler: { [weak self] _ in

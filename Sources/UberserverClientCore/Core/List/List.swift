@@ -23,16 +23,17 @@ public protocol ListDelegate: AnyObject {
 
 /// A wrapper protocol for lists which hides the generic API
 public protocol ListProtocol: AnyObject {
+	func addDelegate<DelegateObject: ListDelegate>(_ delegate: DelegateObject)
+	func removeDelegate<DelegateObject: ListDelegate>(_ delegate: DelegateObject)
     var title: String { get }
     var sortedItemCount: Int { get }
-    var delegate: ListDelegate? { get set }
 	var sortedItemsByID: [Int] { get }
 }
 
 /// A list wraps a set of objects by their ID.
 ///
 /// - warning: This class is **not** thread-safe and must be updated serially from a single thread.
-public final class List<ListItem>: ListProtocol {
+public final class List<ListItem>: ListProtocol, UpdateNotifier {
 
     // MARK: - Behaviour
 
@@ -75,14 +76,21 @@ public final class List<ListItem>: ListProtocol {
     /// sublist of another list allows modifications happen to all sublists automatically.
     private(set) var sublists: [List<ListItem>] = []
 
-    // MARK: - Thread safety
-
-    private let queue: DispatchQueue
-
     // MARK: - Dependencies
 
-    /// The List object's delegate.
-	public weak var delegate: ListDelegate?
+    /// 
+	public var objectsWithLinkedActions: [() -> ListDelegate?] = []
+	
+	///
+	public func addDelegate<DelegateObject: ListDelegate>(_ delegate: DelegateObject) {
+		addObject(object: delegate)
+	}
+	///
+	public func removeDelegate<DelegateObject: ListDelegate>(_ delegate: DelegateObject) {
+		removeObject(object: delegate)
+	}
+	
+	/// Describes how the list should sort its items.
     let sorter: ListSorter
 
     // MARK: - Lifecycle
@@ -92,8 +100,6 @@ public final class List<ListItem>: ListProtocol {
         self.title = title
         self.sorter = sorter
         self.parent = parent
-
-        queue = DispatchQueue(label: title)
 
         parent?.sublists.append(self)
     }
@@ -124,7 +130,7 @@ public final class List<ListItem>: ListProtocol {
     // MARK: - Updating list content
 
     func clear() {
-        delegate?.listWillClear(self)
+		applyActionToChainedObjects({ $0.listWillClear(self) })
         sublists.forEach({ $0.clear() })
         items = [:]
         sortedItemsByID = []
@@ -162,7 +168,7 @@ public final class List<ListItem>: ListProtocol {
     private func placeItem(_ item: ListItem, with id: Int, at index: Int) {
         itemIndicies[id] = index
         sortedItemsByID.insert(id, at: index)
-        delegate?.list(self, didAddItemWithID: id, at: index)
+		applyActionToChainedObjects({ $0.list(self, didAddItemWithID: id, at: index)})
     }
 
     /// Updates the list's sort order and notifies the delegate that the item has been updated.
@@ -192,11 +198,11 @@ public final class List<ListItem>: ListProtocol {
                 // Update the index associated with the updated ID
                 itemIndicies[id] = newIndex
                 sortedItemsByID.moveItem(from: index, to: newIndex)
-                delegate?.list(self, didMoveItemFrom: index, to: newIndex)
+				applyActionToChainedObjects({ $0.list(self, didMoveItemFrom: index, to: newIndex) })
                 break
             }
         }
-        delegate?.list(self, itemWasUpdatedAt: newIndex)
+		applyActionToChainedObjects({ $0.list(self, itemWasUpdatedAt: newIndex)})
         for sublist in sublists {
             sublist.respondToUpdatesOnItem(identifiedBy: id)
         }
@@ -216,7 +222,7 @@ public final class List<ListItem>: ListProtocol {
         sortedItemsByID.remove(at: index)
         sublists.forEach { $0.removeItem(withID: id) }
 
-        delegate?.list(self, didRemoveItemAt: index)
+		applyActionToChainedObjects({ $0.list(self, didRemoveItemAt: index) })
     }
 
     // MARK: - List integrity
