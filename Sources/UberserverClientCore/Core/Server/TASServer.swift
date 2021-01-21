@@ -208,6 +208,7 @@ public final class TASServer: NSObject, SocketDelegate {
                 "JOIN" : SCJoinCommand.self,
                 "JOINED" : SCJoinedCommand.self,
                 "JOINFAILED" : SCJoinFailedCommand.self,
+                "CLIENTS" : SCClientsCommand.self,
                 "CHANNELTOPIC" : SCChannelTopicCommand.self,
                 "CHANNELMESSAGE" : SCChannelMessageCommand.self,
                 "SAID" : SCSaidCommand.self,
