@@ -20,7 +20,7 @@ private func addUsersToChannel(named channelName: String, on client: Client, use
 	
 	for username in usernames {
 		guard let id = client.id(forPlayerNamed: username) else {
-			return
+			continue
 		}
 		channel.userlist.addItemFromParent(id: id)
 	}
