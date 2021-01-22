@@ -11,5 +11,4 @@ import Cocoa
 public protocol ListDisplay: AnyObject {
     func addSection(_ list: ListProtocol)
     func removeSection(_ list: ListProtocol)
-	var selectionHandler: ListSelectionHandler? { get set }
 }
