@@ -87,10 +87,12 @@ public struct SCSayPrivateCommand: SCCommand {
 	}
 }
 
-/// Sent to a client that just sent a SAYPRIVATE command. This notifies the client that the server sent the private message on to its intended recipient.
+/// Sends a private message on to its intended recipient.
 public struct SCSaidPrivateCommand: SCCommand {
 	
+	/// The username of the message's sender.
 	let username: String
+	/// The contents of the message.
 	let message: String
 	
 	// MARK: - Manual Construction
@@ -111,22 +113,20 @@ public struct SCSaidPrivateCommand: SCCommand {
 	}
 	
     public func execute(on client: Client) {
-        guard let userID = client.id(forPlayerNamed: username),
-              let channel = client.privateMessageChannel(withUserNamed: username, userID: userID),
-              let user = client.userList.items[userID],
-              let myID = client.myID,
-              let myUsername = client.userList.items[myID]?.profile.fullUsername else {
+        guard let senderID = client.id(forPlayerNamed: username),
+              let channel = client.privateMessageChannel(withUserNamed: username, userID: senderID),
+              let sender = client.userList.items[senderID] else {
             return
         }
 
-        if handleSaidEncodedCommand(client: client, user: user, message: message, availableCommands: saidPrivateEncodableCommands) { return }
+        if handleSaidEncodedCommand(client: client, user: sender, message: message, availableCommands: saidPrivateEncodableCommands) { return }
 
 
         channel.receivedNewMessage(
             ChatMessage(
                 time: Date(),
-                senderID: myID,
-                senderName: myUsername,
+                senderID: senderID,
+				senderName: sender.profile.fullUsername,
                 content: message,
                 isIRCStyle: false
             )
