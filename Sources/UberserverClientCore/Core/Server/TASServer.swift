@@ -9,15 +9,6 @@
 import Foundation
 import ServerAddress
 
-/// A set of methods the TASServer's delegate may implement.
-public protocol TASServerDelegate: AnyObject {
-    /// Informs the delegate that the server has sent a command.
-    func server(_ server: TASServer, didReceive serverCommand: String)
-    /// Stores the handler and executes it on the command tagged with the given ID.
-    func prepareToDelegateResponseToMessage(identifiedBy id: Int, to handler: ((SCCommand) -> ())?)
-    func serverDidDisconnect(_ server: TASServer)
-}
-
 /// Handles the socket connection to a TASServer.
 ///
 /// Lobbyserver protocol is described at http://springrts.com/dl/LobbyProtocol
