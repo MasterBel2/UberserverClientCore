@@ -112,7 +112,8 @@ public final class BattleController {
             return
         }
         setBattleStatus(battleroom.myBattleStatus.changing(isReady: false))
-        springProcessController.launchSpringAsClient(
+		// TODO: Process Error
+        try? springProcessController.launchSpringAsClient(
             andConnectTo: battleroom.battle.ip,
             at: battleroom.battle.port,
             with: myAccount.profile.fullUsername,
