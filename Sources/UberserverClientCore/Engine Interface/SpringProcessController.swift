@@ -6,7 +6,7 @@
 //  Copyright © 2019 MasterBel2. All rights reserved.
 //
 
-import Cocoa
+import Foundation
 import ServerAddress
 import SpringRTSReplayHandling
 import SpringRTSStartScriptHandling

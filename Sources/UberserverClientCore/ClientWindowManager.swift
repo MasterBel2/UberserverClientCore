@@ -6,7 +6,7 @@
 //  Copyright © 2020 MasterBel2. All rights reserved.
 //
 
-import Cocoa
+import Foundation
 
 /// A set of functions providing a platform-agnostic interface for platform-specific windows associated with a single client.
 public protocol ClientWindowManager {

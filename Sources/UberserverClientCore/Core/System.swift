@@ -6,7 +6,7 @@
 //  Copyright © 2020 MasterBel2. All rights reserved.
 //
 
-import Cocoa
+import Foundation
 
 /// A set of platform-specific system functions.
 public protocol System: AnyObject {
@@ -34,6 +34,10 @@ public protocol System: AnyObject {
     /// Provides platform based interfaces.
     var windowManager: WindowManager { get }
 }
+
+#if os(macOS)
+
+import Cocoa
 
 /// MacOS-specific system functions.
 public final class MacOS: System {
@@ -93,3 +97,4 @@ public final class MacOS: System {
         fileManager.createFile(atPath: directory.path, contents: fileContents, attributes: nil)
     }
 }
+#endif // macOS

@@ -6,7 +6,7 @@
 //  Copyright © 2019 MasterBel2. All rights reserved.
 //
 
-import Cocoa
+import Foundation
 
 /// A set of functions providing a platform-agnostic interface for platform-specific window creation.
 public protocol WindowManager {
