@@ -14,6 +14,7 @@ public enum Platform: String {
     case Windows = "engine_windows"
     case Windows64 = "engine_windows64"
     case macOS = "engine_macosx"
+	case unknown = "unknown"
 }
 
 var platform: Platform {
@@ -31,5 +32,7 @@ var platform: Platform {
     } else {
         return .Windows
     }
+	#else
+	return .unknown
     #endif
 }
