@@ -36,7 +36,7 @@ public protocol BattleroomDisplay: AnyObject {
 
 public protocol MinimapDisplay: AnyObject {
     /// Draws a start rect overlay on the minimap for the specified allyteam.
-    func addStartRect(_ rect: CGRect, for allyTeam: Int)
+    func addStartRect(_ rect: StartRect, for allyTeam: Int)
     /// Removes the start rect coresponding to the specified ally team.
     func removeStartRect(for allyTeam: Int)
     /// Removes all start rects that have been displayed.
@@ -65,7 +65,7 @@ public final class Battleroom: BattleDelegate, ListDelegate {
     public let spectatorList: List<User>
     var bots: [Bot] = []
 
-    private(set) var startRects: [Int : CGRect] = [:]
+    private(set) var startRects: [Int : StartRect] = [:]
 
     /// Indexed by ID.
 	/// Updated by CLIENTBATTLESTATUS command.
@@ -281,7 +281,7 @@ public final class Battleroom: BattleDelegate, ListDelegate {
     }
 
     /// Adds a start rect.
-    func addStartRect(_ rect: CGRect, for allyTeam: Int) {
+    func addStartRect(_ rect: StartRect, for allyTeam: Int) {
         startRects[allyTeam] = rect
         minimapDisplay?.addStartRect(rect, for: allyTeam)
     }

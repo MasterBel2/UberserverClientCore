@@ -425,22 +425,32 @@ struct SCUpdateBotCommand: SCCommand {
 	}
 }
 
+public struct StartRect {
+	public let left: Int
+	public let top: Int
+	public let right: Int
+	public let bottom: Int
+	
+	public func scaled<F: FloatingPoint>() -> (x: F, y: F, width: F, height: F) {
+		let floatLeft = F(left)
+		let floatRight = F(right)
+		let floatTop = F(top)
+		let floatBottom = F(bottom)
+		// y = 0 correlates to bottom = 200.
+		return (x: floatLeft / 200, y: (200 - floatBottom) / 200, width: (floatRight - floatLeft) / 200, height: (floatBottom - floatTop) / 200)
+	}
+}
+
 struct SCAddStartRectCommand: SCCommand {
 	
 	let allyNo: Int
-	let left: Int
-	let top: Int
-	let right: Int
-	let bottom: Int
+	let rect: StartRect
 	
 	// MARK: - Manual Construction
 	
-	init(allyNo: Int, left: Int, top: Int, right: Int, bottom: Int) {
+	init(rect: StartRect, allyNo: Int) {
+		self.rect = rect
 		self.allyNo = allyNo
-		self.left = left
-		self.right = right
-		self.top = top
-		self.bottom = bottom
 	}
 	
 	// MARK: - SCCommand
@@ -453,25 +463,24 @@ struct SCAddStartRectCommand: SCCommand {
 		guard integers.count == 5 else {
 			return nil
 		}
-		
-		allyNo = integers[0]
-		left = integers[1]
-		top = integers[2]
-		right = integers[3]
-		bottom = integers[4]
+		self.allyNo = integers[0]
+		rect = StartRect(
+			left: integers[1],
+			top: integers[2],
+			right: integers[3],
+			bottom: integers[4]
+		)
 	}
 	
 	func execute(on client: Client) {
         guard let battleroom = client.battleController.battleroom else {
             return
         }
-        // y = 0 correlates to bottom = 200.
-        let rect = CGRect(x: left, y: 200 - bottom, width: right - left, height: bottom - top)
-        battleroom.addStartRect(rect, for: allyNo)
+		battleroom.addStartRect(rect, for: allyNo)
 	}
 	
 	var description: String {
-		return "ADDSTARTRECT \(allyNo) \(left) \(top) \(right) \(bottom)"
+		return "ADDSTARTRECT \(allyNo) \(rect.left) \(rect.top) \(rect.right) \(rect.bottom)"
 	}
 }
 
