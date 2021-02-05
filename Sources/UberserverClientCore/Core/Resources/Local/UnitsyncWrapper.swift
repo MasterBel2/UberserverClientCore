@@ -492,7 +492,7 @@ final class UnitsyncWrapper {
      # Return Value
      Zero on error; the checksum on success
      */
-    let GetArchiveChecksum: @convention(c) (CString) -> UInt32
+    let GetArchiveChecksum: @convention(c) (CString) -> Int32
     /**
      Gets the real path to the archive
 
@@ -647,7 +647,7 @@ final class UnitsyncWrapper {
      # See Also
      - `GetMapCount`
      */
-    let GetMapChecksum: @convention(c) (CInt) -> UInt32
+    let GetMapChecksum: @convention(c) (CInt) -> Int32
     /**
      Get map checksum given a map name.
 
@@ -662,7 +662,7 @@ final class UnitsyncWrapper {
      # See Also
      - `GetMapCount`
      */
-    let GetMapChecksumFromName: @convention(c) (CString) -> UInt32
+    let GetMapChecksumFromName: @convention(c) (CString) -> Int32
     /**
      Retrieves a minimap image for a map.
 
@@ -959,7 +959,7 @@ final class UnitsyncWrapper {
      # See Also
      - `GetMapChecksum`
      */
-    let GetPrimaryModChecksum: @convention(c) (CInt) -> UInt32
+    let GetPrimaryModChecksum: @convention(c) (CInt) -> Int32
     /**
      Get checksum of mod given the mod's name
 
@@ -972,7 +972,7 @@ final class UnitsyncWrapper {
      # See Also
      - `GetMapChecksumFromName`
      */
-    let GetPrimaryModChecksumFromName: @convention(c) (CString) -> UInt32
+    let GetPrimaryModChecksumFromName: @convention(c) (CString) -> Int32
 
     // MARK: Factions
 

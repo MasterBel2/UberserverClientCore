@@ -11,11 +11,11 @@ import Foundation
 // MARK: - Archives
 
 public protocol Archive {
-	var checksum: UInt32 { get }
+	var checksum: Int32 { get }
 	var archiveName: String { get }
 	var name: String { get }
 	var path: String { get }
-	var singleArchiveChecksum: UInt32 { get }
+	var singleArchiveChecksum: Int32 { get }
 	
 	var info: [ArchiveInfo] { get }
 	var dependencies: [UnitsyncArchive] { get } // TODO
@@ -65,7 +65,7 @@ public struct ArchiveOption {
 // MARK: - Mods
 
 public protocol ModArchive: Archive {
-	var completeChecksum: UInt32 { get }
+	var completeChecksum: Int32 { get }
 	var factions: [Faction] { get }
 }
 
@@ -88,7 +88,7 @@ public protocol MapArchive: Archive {
 	var typeMap: InfoMap<UInt8> { get }
 	var miniMap: Minimap { get }
 	var fileName: String { get }
-	var completeChecksum: UInt32 { get }
+	var completeChecksum: Int32 { get }
 }
 
 public final class InfoMap<PixelType: UnsignedInteger> {

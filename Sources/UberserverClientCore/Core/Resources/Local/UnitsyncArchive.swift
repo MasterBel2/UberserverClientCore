@@ -23,11 +23,11 @@ final class UnitsyncMapArchive: UnitsyncArchive, MapArchive {
 	private(set) lazy var typeMap: InfoMap = { InfoMap<UInt8>(name: .type, loadSize: loadInfoMapSize(infoMapName:), loadPixels: loadInfoMapPixels(infoMapName:loadDestination:)) }()
 	private(set) lazy var miniMap: Minimap = { Minimap(loadPixels: loadMinimapPixels(mipLevel:count:)) }()
 	private(set) lazy var fileName: String = { String(cString: unitsyncWrapper.GetMapFileName(archiveIndex) )}()
-	private(set) lazy var completeChecksum: UInt32 = { unitsyncWrapper.GetMapChecksum(archiveIndex) }()
+	private(set) lazy var completeChecksum: Int32 = { unitsyncWrapper.GetMapChecksum(archiveIndex) }()
 
 	// MARK: Overrides
 
-	override var checksum: UInt32 {
+	override var checksum: Int32 {
 		return completeChecksum
 	}
 
@@ -75,7 +75,7 @@ final class UnitsyncModArchive: UnitsyncArchive, ModArchive {
 	
 	// MARK: Properties
 
-	private(set) lazy var completeChecksum: UInt32 = { unitsyncWrapper.GetPrimaryModChecksum(archiveIndex) }()
+	private(set) lazy var completeChecksum: Int32 = { unitsyncWrapper.GetPrimaryModChecksum(archiveIndex) }()
 
 	private(set) lazy var factions: [Faction] = {
 		return executeOnVFS {
@@ -161,9 +161,9 @@ public class UnitsyncArchive: Archive {
 	let archiveIndex: CInt
 	public private(set) lazy var name: String = archiveName
 	public private(set) lazy var path: String = { String(cString: unitsyncWrapper.GetArchivePath(name.utf8CStringArray)) }()
-	public private(set) lazy var singleArchiveChecksum: UInt32 = { unitsyncWrapper.GetArchiveChecksum(name.utf8CStringArray) }()
+	public private(set) lazy var singleArchiveChecksum: Int32 = { unitsyncWrapper.GetArchiveChecksum(name.utf8CStringArray) }()
 
-	public var checksum: UInt32 { return singleArchiveChecksum }
+	public var checksum: Int32 { return singleArchiveChecksum }
 
 	public private(set) lazy var info = loadInfo()
 	public private(set) lazy var dependencies = loadDependencies()
