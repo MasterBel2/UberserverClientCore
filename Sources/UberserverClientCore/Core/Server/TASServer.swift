@@ -98,7 +98,7 @@ public final class TASServer: NSObject, SocketDelegate {
     func socket(_ socket: Socket, didReceive message: String) {
         let messages = message.components(separatedBy: "\n")
 
-        for message in messages {
+        for message in messages where message != "" {
             Logger.log("Received: " + message, tag: .General)
             let components = message.components(separatedBy: " ")
             let messageID = components.first.flatMap({ (id: String) -> Int? in
