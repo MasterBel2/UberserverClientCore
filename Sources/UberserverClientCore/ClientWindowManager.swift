@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import ServerAddress
 
 /// A set of functions providing a platform-agnostic interface for platform-specific windows associated with a single client.
 public protocol ClientWindowManager {
@@ -16,8 +17,8 @@ public protocol ClientWindowManager {
     /// Displays an window with information about the logged in user's account
     func presentAccountWindow(_ controller: AccountInfoController)
 
-    /// Presents the server selection interface, with a delegate.
-    func presentServerSelection(delegate: ServerSelectionDelegate)
+    /// Prompts the interface to select a server.
+    func selectServer(completionHandler: @escaping (ServerAddress) -> Void)
     /// Dismisses the server selection interface.
     func dismissServerSelection()
     /// Present a login interface.

@@ -16,7 +16,7 @@ import ServerAddress
 
  Updates received from the server are processed by instances of the SCServerCommand protocol. The Client object simply manages the interactions between its various components as needed.
  */
-public final class Client: ServerSelectionDelegate {
+public final class Client {
 
     // MARK: - Delegating tasks
 
@@ -39,6 +39,12 @@ public final class Client: ServerSelectionDelegate {
     public let accountInfoController = AccountInfoController()
     /// The server.
     public let userAuthenticationController: UserAuthenticationController
+    
+    // MARK: - Actions
+    
+    private lazy var withAddressInitialiseServer: (ServerAddress) -> Void = { [weak self] serverAddress in
+        self?.initialiseServer(serverAddress)
+    }
 
     // MARK: - Data
 
@@ -102,7 +108,7 @@ public final class Client: ServerSelectionDelegate {
         server?.disconnect()
         server = nil
 
-        windowManager.presentServerSelection(delegate: self)
+        windowManager.selectServer(completionHandler: withAddressInitialiseServer)
     }
 
     // MARK: - Interacting with the server client
@@ -134,7 +140,7 @@ public final class Client: ServerSelectionDelegate {
     func createAndShowWindow() {
         windowManager.presentInitialWindow()
         if server == nil {
-            windowManager.presentServerSelection(delegate: self)
+            windowManager.selectServer(completionHandler: withAddressInitialiseServer)
         }
     }
 
@@ -181,13 +187,6 @@ public final class Client: ServerSelectionDelegate {
             guard let ingameTime = Int(ingameTimeString) else { return }
             accountInfoController.setIngameHours(ingameTime)
         }
-    }
-
-    // MARK: - ServerSelectionDelegate
-
-    public func serverSelectionInterface(didSelectServerAt serverAddress: ServerAddress) {
-        // Connect to the selected server.
-        initialiseServer(serverAddress)
     }
 
     // MARK: - Helpers
