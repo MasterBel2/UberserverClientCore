@@ -13,7 +13,7 @@ public struct SCBattleOpenedCommand: SCCommand {
     private let battleID: Int
 
     private let isReplay: Bool
-    private let natType: NATType
+    private let natType: Battle.NATType
     private let founder: String
     private let ip: String
     private let port: Int
@@ -184,7 +184,7 @@ public struct SCOpenBattleFailedCommand: SCCommand {
 
 public struct CSOpenBattleCommand: CSCommand {
     let isReplay: Bool
-    let natType: NATType
+    let natType: Battle.NATType
     let password: String?
     let port: Int
     let maxPlayers: Int
@@ -198,7 +198,7 @@ public struct CSOpenBattleCommand: CSCommand {
     let title: String
     let gameName: String
 
-    public init(isReplay: Bool, natType: NATType, password: String?, port: Int, maxPlayers: Int, gameHash: Int32, rank: Int, mapHash: Int32, engineName: String = "Spring", engineVersion: String, mapName: String, title: String, gameName: String) {
+    public init(isReplay: Bool, natType: Battle.NATType, password: String?, port: Int, maxPlayers: Int, gameHash: Int32, rank: Int, mapHash: Int32, engineName: String = "Spring", engineVersion: String, mapName: String, title: String, gameName: String) {
         self.isReplay = isReplay
         self.natType = natType
         self.password = password

@@ -1,5 +1,5 @@
 //
-//  Protocol.swift
+//  ProtocolFeatureAvailability.swift
 //  BelieveAndRise
 //
 //  Created by MasterBel2 on 4/7/20.

@@ -1,5 +1,5 @@
 //
-//  Model.swift
+//  Battle.swift
 //  BelieveAndRise
 //
 //  Created by MasterBel2 on 24/6/19.
@@ -102,4 +102,11 @@ public final class Battle: Sortable {
 			return ValueRelation(value1: self.playerCount, value2: other.playerCount)
 		}
 	}
+    
+    public enum NATType: Int {
+        case none
+        case holePunching
+        case fixedSourcePorts
+    }
+
 }

@@ -21,6 +21,7 @@ public protocol ClientWindowManager {
     func selectServer(completionHandler: @escaping (ServerAddress) -> Void)
     /// Dismisses the server selection interface.
     func dismissServerSelection()
+    #warning("dismissServerSelection() is unused; consider removing.")
     /// Present a login interface.
     func presentLogin(controller: UserAuthenticationController)
     /// Dismisses the login interface.

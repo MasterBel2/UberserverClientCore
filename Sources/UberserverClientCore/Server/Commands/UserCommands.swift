@@ -154,20 +154,14 @@ public struct SCClientStatusCommand: SCCommand {
         // Update battleroom before we update the status, so we can access the previous status
         if let battleroom = client.battleController.battleroom,
             userID == battleroom.battle.founderID,
-            user.status.isIngame != status.isIngame {
-            // TODO: move this logic into `Battleroom.list(_:itemWasUpdatedAt:)` ?
-            if status.isIngame {
-                client.battleController.startGame()
-            }
-            user.status = status
-            /// Display new status after the update.
-            battleroom.displayIngameStatus()
-            return
+            user.status.isIngame != status.isIngame,
+			status.isIngame {
+			client.battleController.startGame()
         }
 
 		user.status = status
-
-        client.userList.respondToUpdatesOnItem(identifiedBy: userID)
+		
+		client.userList.respondToUpdatesOnItem(identifiedBy: userID)
 	}
 	
     public var description: String {

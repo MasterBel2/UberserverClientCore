@@ -313,6 +313,7 @@ public final class Battleroom: BattleDelegate, ListDelegate {
 
         mapInfoDisplay?.displayMapName(map.name)
         minimapDisplay?.removeAllStartRects()
+        minimapDisplay?.displayMapUnknown()
 
         let (nameMatch, checksumMatch, _) = resourceManager.hasMap(named: map.name, checksum: map.hash, preferredVersion: battle.engineVersion)
         self.hasMap = nameMatch
@@ -337,7 +338,6 @@ public final class Battleroom: BattleDelegate, ListDelegate {
                 }
             })
         }
-        minimapDisplay?.displayMapUnknown()
     }
 
     /// Sends map presentation data to the minimap display for it to display the map.
@@ -370,7 +370,7 @@ public final class Battleroom: BattleDelegate, ListDelegate {
     public func list(_ list: ListProtocol, didRemoveItemAt index: Int) {}
 
     public func list(_ list: ListProtocol, itemWasUpdatedAt index: Int) {
-        if list.sortedItemsByID[index] == myID {
+        if list.sortedItemsByID[index] == myID || list.sortedItemsByID[index] == battle.founderID {
             displayIngameStatus()
         }
     }
