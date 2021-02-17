@@ -144,6 +144,15 @@ public final class Minimap {
 		mipLevels[mipLevel] = data
 		return data
 	}
+    
+    public func loadMinimaps(mipLevels: Range<Int>, queue: DispatchQueue, completionBlock: @escaping ((data: [UInt16], dimension: Int)?) -> Void) {
+        for mipLevel in mipLevels.reversed() {
+            queue.async { [weak self] in
+                guard let self = self else { return }
+                completionBlock((self.minimap(for: mipLevel), 1024 / Int(pow(2, Float(mipLevel)))))
+            }
+        }
+    }
 }
 
 // MARK: - Skirmish AIs

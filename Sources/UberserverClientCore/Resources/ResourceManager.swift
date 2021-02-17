@@ -16,8 +16,28 @@ public final class ResourceManager {
     private let remoteResourceFetcher: RemoteResourceFetcher
 
     private let queue = DispatchQueue(label: "com.believeandrise.resourcemanager")
+    
+    // MARK: - Creating a Resource Manager
+    
+    public static func make(downloadController: DownloadController, windowManager: WindowManager, archiveLoader: DescribesArchivesOnDisk) {
+        ResourceManager.default = ResourceManager(downloadController: downloadController, windowManager: windowManager, archiveLoader: archiveLoader)
+    }
+    
+    private static var _default: ResourceManager?
+    public static var `default`: ResourceManager {
+        set {
+            _default = newValue
+        }
+        get {
+            if let resourceManager = _default {
+                return resourceManager
+            } else {
+                fatalError("ResourceManager has not been set; call ResourceManager.make(downloadController:windowManager:archiveLoader:) to initialise this property")
+            }
+        }
+    }
 
-	public init(downloadController: DownloadController, windowManager: WindowManager, archiveLoader: DescribesArchivesOnDisk) {
+	private init(downloadController: DownloadController, windowManager: WindowManager, archiveLoader: DescribesArchivesOnDisk) {
         remoteResourceFetcher = RemoteResourceFetcher(
 			downloadController: downloadController,
 			windowManager: windowManager
@@ -31,54 +51,29 @@ public final class ResourceManager {
     public func loadLocalResources() {
 		archiveLoader.load()
     }
-
-    /// Downloads a resource, and calls a completion handler with a boolean value indicating whether the download
-    /// was successful, including verifying that unitsync can now identify the newly downloaded resource.
-    public func download(_ resource: Resource, completionHandler: @escaping (Bool) -> Void) {
-        remoteResourceFetcher.retrieve(resource, completionHandler: { [weak self] successful in
-            guard let self = self else {
-                return
-            }
-            if successful {
-				self.queue.sync { self.archiveLoader.reload() }
-                switch resource {
-                case .engine(let (name, platform)):
-                    fatalError()
-                case .game(let name):
-                    completionHandler(self.hasGame(name: name))
-                case .map(let name):
-                    // We only care about the name match here. Checksum can be checked where sync is important.
-                    let hasMap = self.hasMap(named: name, checksum: 0, preferredVersion: "").hasNameMatch
-                    completionHandler(hasMap)
+    
+    
+    public typealias MapLoadResult = Result<(mapArchive: MapArchive, checksumMatch: Bool, usedPreferredEngineVersion: Bool), Error>
+    public func loadMap(named mapName: String, checksum: Int32, preferredVersion: String, shouldDownload: Bool = true, completionHandler: @escaping (MapLoadResult) -> Void) {
+        let matches = archiveLoader.mapArchives.filter({ $0.name == mapName })
+        if let match = matches.first {
+            completionHandler(.success((match, match.singleArchiveChecksum == checksum, false)))
+        } else if shouldDownload {
+            remoteResourceFetcher.retrieve(.map(name: mapName)) { [weak self] successful in
+                guard let self = self else {
+                    return
                 }
-            } else {
-                completionHandler(false)
+                if successful {
+                    self.queue.sync {
+                        self.archiveLoader.reload()
+                        self.loadMap(named: mapName, checksum: checksum, preferredVersion: preferredVersion, shouldDownload: false, completionHandler: completionHandler)
+                    }
+                }
             }
-        })
+        }
     }
 
     // MARK: - Establishing sync
-
-    /// 
-    public func hasMap(named mapName: String, checksum: Int32, preferredVersion: String) -> (hasNameMatch: Bool, hasChecksumMatch: Bool, usedPreferredVersion: Bool) {
-        let matches = archiveLoader.mapArchives.filter({ $0.name == mapName })
-        return (
-            hasNameMatch: matches.count > 0,
-            hasChecksumMatch: matches.filter({ $0.checksum == checksum }).count == 1,
-            usedPreferredVersion: true
-        )
-    }
-	
-//	public func loadMap(named mapName: String, checksum: Int32, preferredEngineVersion: String, downloadIfNecessary: Bool, completionHandler: (hasNameMatch: Bool, hasChecksumMatch: Bool, ))
-
-    public func dimensions(forMapNamed name: String) -> (width: Int, height: Int)? {
-		return queue.sync {
-			guard let archive = archiveLoader.mapArchives.first(where: { $0.name == name }) else {
-				return nil
-			}
-			return (archive.width, archive.height)
-		}
-    }
 
     /// Whether the lobby has located an engine with the specified version.
     public func hasEngine(version: String) -> Bool {
@@ -88,25 +83,5 @@ public final class ResourceManager {
     /// Whether unitsync can find a game with the matching name. The name string should include the game's version.
     public func hasGame(name: String) -> Bool {
         return archiveLoader.modArchives.contains(where: { $0.name == name })
-    }
-
-    // MARK: - Maps
-
-    /// Loads a minimap of the given resolution. Calls the completion block for each mip level as it loads from the lowest to the highest. (This is to ensure the user sees visual feedback through the loading process.)
-    public func loadMinimapData(forMapNamed mapName: String, mipLevels: Range<Int>, completionBlock: @escaping ((data: [UInt16], dimension: Int)?) -> Void) {
-        // Proces the largest mipLevel (lowest resolution) to the smallest (greatest resolution).
-        for mipLevel in mipLevels.reversed() {
-            queue.async { [weak self] in
-				// Retrieve array of dimension * dimension pixels that form the minimap for the given map, where dimension = 1024 / (2^mipLevel).
-				let dimension = 1024 / Int(pow(2, Float(mipLevel)))
-				guard let maybeData = self?.archiveLoader.mapArchives.first(where: { $0.name == mapName })?.miniMap.minimap(for: mipLevel),
-					maybeData.count == dimension * dimension else {
-					completionBlock(nil)
-					return
-				}
-
-				completionBlock((maybeData, dimension))
-            }
-        }
     }
 }

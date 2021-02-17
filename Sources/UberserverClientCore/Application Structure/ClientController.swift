@@ -16,14 +16,12 @@ public final class ClientController {
     private(set) var clients: [Client] = []
     /// Provides platform-specific windows.
     private let windowManager: WindowManager
-    private let resourceManager: ResourceManager
     /// The user's preferences controller.
     let preferencesController: PreferencesController
     let springProcessController: SpringProcessController
 
-    public init(windowManager: WindowManager, resourceManager: ResourceManager, preferencesController: PreferencesController, springProcessController: SpringProcessController) {
+    public init(windowManager: WindowManager, preferencesController: PreferencesController, springProcessController: SpringProcessController) {
         self.windowManager = windowManager
-        self.resourceManager = resourceManager
         self.preferencesController = preferencesController
         self.springProcessController = springProcessController
     }
@@ -44,7 +42,6 @@ public final class ClientController {
     public func connect(to address: ServerAddress) {
         let client = Client(
             windowManager: windowManager.newClientWindowManager(clientController: self),
-            resourceManager: resourceManager,
             preferencesController: preferencesController,
             address: address,
             springProcessController: springProcessController
@@ -57,7 +54,6 @@ public final class ClientController {
     public func createNewClient() {
         let client = Client(
             windowManager: windowManager.newClientWindowManager(clientController: self),
-            resourceManager: resourceManager,
             preferencesController: preferencesController,
             springProcessController: springProcessController
         )

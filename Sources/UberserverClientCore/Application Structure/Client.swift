@@ -22,7 +22,6 @@ public final class Client {
 
     /// Provides platform-specific windows.
     public let windowManager: ClientWindowManager
-    public let resourceManager: ResourceManager
 
     // MARK: - Server
 
@@ -66,12 +65,11 @@ public final class Client {
     // MARK: - Lifecycle
 
 
-    public init(windowManager: ClientWindowManager, resourceManager: ResourceManager, preferencesController: PreferencesController, address: ServerAddress? = nil, springProcessController: SpringProcessController) {
+    public init(windowManager: ClientWindowManager, preferencesController: PreferencesController, address: ServerAddress? = nil, springProcessController: SpringProcessController) {
 
         // Initialise values
 
         self.windowManager = windowManager
-        self.resourceManager = resourceManager
         self.preferencesController = preferencesController
 
         self.userAuthenticationController = UserAuthenticationController(preferencesController: preferencesController)

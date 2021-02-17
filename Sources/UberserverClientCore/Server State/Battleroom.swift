@@ -10,49 +10,61 @@ import Foundation
 
 // MARK: - Protocols
 
-public protocol BattleroomMapInfoDisplay: AnyObject {
-    func displayMapName(_ mapName: String)
-//    func addCustomisedMapOption(_ option: String, value: UnitsyncWrapper.InfoValue)
+public protocol ReceivesBattleroomUpdates {
+
+    // Map Options
+    
+    func addCustomisedMapOption(_ option: String, value: ArchiveOption.ValueType)
     func removeCustomisedMapOption(_ option: String)
-}
-
-public protocol BattleroomGameInfoDisplay: AnyObject {
-//    func addCustomisedGameOption(_ option: String, value: UnitsyncWrapper.InfoValue)
+    
+    // Game Options
+    
+    func addCustomisedGameOption(_ option: String, value: ArchiveOption.ValueType)
     func removeCustomisedGameOption(_ option: String)
-}
-
-public protocol BattleroomDisplay: AnyObject {
+    
+    // Status
+    
     /// Notifies the display of the host's and user's updated in-game states.
     func display(isHostIngame: Bool, isPlayerIngame: Bool)
-    /// Notifiies the display that a new team was added.
-    func addedTeam(named teamName: String)
-    /// Notifies the display that a team was removed.
-    func removedTeam(named teamName: String)
-    /// Notifies the display that an updated sync status should be displayed.
-    func displaySyncStatus(_ isSynced: Bool)
-	/// Notifies the display that an updated ready state should be displayed.
-	func displayReadySate(_ isReady: Bool)
-}
-
-public protocol MinimapDisplay: AnyObject {
+    /// Notifies the display that an updated ready state should be displayed.
+    func displayReadySate(_ isReady: Bool)
+    
+    // Start Rect
+    
     /// Draws a start rect overlay on the minimap for the specified allyteam.
     func addStartRect(_ rect: StartRect, for allyTeam: Int)
     /// Removes the start rect coresponding to the specified ally team.
     func removeStartRect(for allyTeam: Int)
     /// Removes all start rects that have been displayed.
     func removeAllStartRects()
-
-    /// Displays an image in place of the map, indicating the minimap cannot be loaded for the specified map (likely because the map
-    /// has not yet been downloaded).
-    func displayMapUnknown()
-
-    /// Prepares the view with the given map dimensions. Must be set before `displayMapImage(for:dimension:)` is called.
-    func setMapDimensions(_ width: Int, _ height: Int)
-    /// Displays a minimap with the given image dimension. Must be called after  `setMapDimensions(_:_:)`.
-    func displayMapImage(for imageData: [RGB565Color], dimension: Int)
+    
+    // Teams
+    
+    /// Notifiies the display that a new team was added.
+    func addedTeam(named teamName: String)
+    /// Notifies the display that a team was removed.
+    func removedTeam(named teamName: String)
 }
 
-public final class Battleroom: BattleDelegate, ListDelegate {
+public extension ReceivesBattleroomUpdates {
+    func addCustomisedMapOption(_ option: String, value: ArchiveOption.ValueType) {}
+    func removeCustomisedMapOption(_ option: String) {}
+
+    func addCustomisedGameOption(_ option: String, value: ArchiveOption.ValueType) {}
+    func removeCustomisedGameOption(_ option: String) {}
+    
+    func display(isHostIngame: Bool, isPlayerIngame: Bool) {}
+    func displayReadySate(_ isReady: Bool) {}
+    
+    func addStartRect(_ rect: StartRect, for allyTeam: Int) {}
+    func removeStartRect(for allyTeam: Int) {}
+    func removeAllStartRects() {}
+    
+    func addedTeam(named teamName: String) {}
+    func removedTeam(named teamName: String) {}
+}
+
+public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdates {
 
     // MARK: - Data
 
@@ -86,57 +98,11 @@ public final class Battleroom: BattleDelegate, ListDelegate {
 
     public private(set) var allyNamesForAllyNumbers: [Int : String] = [:]
 
-    // MARK: - Sync
-
-    /// Whether the client can verify the presence of the engine in the file system.
-    var hasEngine: Bool {
-        return resourceManager.hasEngine(version: battle.engineVersion)
-    }
-    /// Whether the client can verify the presence of the game in the file system.
-    var hasGame: Bool {
-        return resourceManager.hasGame(name: battle.gameName)
-    }
-
-    /// Whether the client can verify the presence of the map in the file system.
-    ///
-    /// Updates sync status on change.
-    private(set) var hasMap: Bool = false {
-        didSet {
-            #warning("This should be ")
-            updateSync()
-        }
-    }
-
-    /// Returns true if the client has verified all downloadable content (game, map, and engine).
-    var isSynced: Bool {
-        return hasGame && hasMap && hasEngine
-    }
-
     // MARK: - Dependencies
 
-    let resourceManager: ResourceManager
     private unowned let battleController: BattleController
 
     // MARK: - Displays
-
-    public weak var allyTeamListDisplay: ListDisplay? {
-        didSet {
-            if let allyTeamListDisplay = allyTeamListDisplay {
-                allyTeamLists.forEach(allyTeamListDisplay.addSection(_:))
-            }
-        }
-    }
-
-    public weak var spectatorListDisplay: ListDisplay? {
-        didSet {
-            spectatorListDisplay?.addSection(spectatorList)
-        }
-    }
-
-    public weak var minimapDisplay: MinimapDisplay?
-    public weak var mapInfoDisplay: BattleroomMapInfoDisplay?
-    public weak var gameInfoDisplay: BattleroomGameInfoDisplay?
-    public weak var generalDisplay: BattleroomDisplay?
 
     // MARK: - Player information
 
@@ -149,21 +115,21 @@ public final class Battleroom: BattleDelegate, ListDelegate {
             allyNumber: 0,
             isSpectator: false,
             handicap: 0,
-            syncStatus: isSynced ? .synced : .unsynced,
+            syncStatus: battle.isSynced ? .synced : .unsynced,
             side: 0
         )
     }
 
-    var myColor: Int32 {
+    public var myColor: Int32 {
         return colors[myID] ?? Int32(myID.hashValue & 0x00FFFFFF)
     }
     /// Whether the player is ingame.
-    private var isPlayerIngame: Bool {
+    public var isPlayerIngame: Bool {
         return battle.userList.items[myID]?.status.isIngame ?? false
     }
 
     /// Whether the host is ingame.
-    private var isHostIngame: Bool {
+    public var isHostIngame: Bool {
         return battle.userList.items[battle.founderID]?.status.isIngame ?? false
     }
 
@@ -174,12 +140,11 @@ public final class Battleroom: BattleDelegate, ListDelegate {
 
     // MARK: - Lifecycle
 
-    init(battle: Battle, channel: Channel, hashCode: Int32, resourceManager: ResourceManager, battleController: BattleController, myID: Int) {
+    init(battle: Battle, channel: Channel, hashCode: Int32, battleController: BattleController, myID: Int) {
         self.battle = battle
         self.hashCode = hashCode
         self.channel = channel
 
-        self.resourceManager = resourceManager
         self.myID = myID
 
         self.battleController = battleController
@@ -191,27 +156,19 @@ public final class Battleroom: BattleDelegate, ListDelegate {
         spectatorList = List<User>(title: "Spectators", sorter: battleroomSorter, parent: battle.userList)
 
         battleroomSorter.battleroom = self
-        battle.delegate = self
-		battle.userList.addObject(object: self)
-
-        if !hasEngine {
-            resourceManager.download(.engine(name: battle.engineVersion, platform: platform), completionHandler: { [weak self] _ in
-                self?.updateSync()
-            })
-        }
-        if !hasGame {
-            resourceManager.download(.game(name: battle.gameName), completionHandler: { [weak self] _ in
-                self?.updateSync()
-            })
-        }
+        battle.addObject(self)
+		battle.userList.addObject(self)
+        
+        battle.shouldAutomaticallyDownloadMap = true
+        
+        updateSync()
+    }
+    
+    deinit {
+        battle.shouldAutomaticallyDownloadMap = false
     }
 
     // MARK: - Updates
-
-    #warning("Seriously?")
-    public func displayIngameStatus() {
-        generalDisplay?.display(isHostIngame: isHostIngame, isPlayerIngame: isPlayerIngame)
-    }
 
     /// Updates the status for a user, as specified by their ID.
     func updateUserStatus(_ newUserStatus: UserStatus, forUserIdentifiedBy userID: Int) {
@@ -231,7 +188,7 @@ public final class Battleroom: BattleDelegate, ListDelegate {
                 allyTeamList.removeItem(withID: userID)
                 if allyTeamList.sortedItemCount == 0,
                     let allyName = allyNamesForAllyNumbers[previousAllyNumber] {
-                    generalDisplay?.removedTeam(named: allyName)
+                    applyActionToChainedObjects({ $0.removedTeam(named: allyName) })
                     allyNamesForAllyNumbers.removeValue(forKey: previousAllyNumber)
                 }
             }
@@ -245,7 +202,7 @@ public final class Battleroom: BattleDelegate, ListDelegate {
                 if allyTeamList.sortedItemCount == 1 {
                     let allyName = String(newUserStatus.allyNumber + 1)
                     allyNamesForAllyNumbers[newUserStatus.allyNumber] = allyName
-                    generalDisplay?.addedTeam(named: allyName)
+                    applyActionToChainedObjects({ $0.addedTeam(named: allyName) })
                 }
             }
         }
@@ -273,7 +230,7 @@ public final class Battleroom: BattleDelegate, ListDelegate {
         }
 
         if userID == myID {
-			generalDisplay?.displayReadySate(newUserStatus.isReady)
+            applyActionToChainedObjects({ $0.displayReadySate(newUserStatus.isReady) })
 		}
 
         // Update the view
@@ -283,85 +240,40 @@ public final class Battleroom: BattleDelegate, ListDelegate {
     /// Adds a start rect.
     func addStartRect(_ rect: StartRect, for allyTeam: Int) {
         startRects[allyTeam] = rect
-        minimapDisplay?.addStartRect(rect, for: allyTeam)
+        applyActionToChainedObjects({ $0.addStartRect(rect, for: allyTeam) })
     }
 
     /// Removes a start rect.
     func removeStartRect(for allyTeam: Int) {
         startRects.removeValue(forKey: allyTeam)
-        minimapDisplay?.removeStartRect(for: allyTeam)
+        applyActionToChainedObjects({ $0.removeStartRect(for: allyTeam) })
     }
-
-    /// Updates the sync status for the user and the server.
+    
+    // MARK: - UpdateNotifier
+    
+    public var objectsWithLinkedActions: [() -> ReceivesBattleroomUpdates?] = []
+    
+    // MARK: - Battle Updates
+    
+    public func mapDidUpdate(to map: Battle.MapIdentification) {
+        updateSync()
+    }
+    
+    public func loadedMapArchive(_ mapArchive: MapArchive, checksumMatch: Bool, usedPreferredEngineVersion: Bool) {
+        updateSync()
+    }
+    
     private func updateSync() {
-        battleController.setBattleStatus(Battleroom.UserStatus(
-            isReady: myBattleStatus.isReady,
-            teamNumber: myBattleStatus.teamNumber,
-            allyNumber: myBattleStatus.allyNumber,
-            isSpectator: myBattleStatus.isSpectator,
-            handicap: myBattleStatus.handicap,
-            syncStatus: isSynced ? .synced : .unsynced,
-            side: myBattleStatus.side
-        ))
-        generalDisplay?.displaySyncStatus(isSynced)
-    }
-
-    // MARK: - Map
-
-    /// Updates sync status, and loads minimap if the map is found.
-    public func mapDidUpdate(to map: Battle.Map) {
-
-        mapInfoDisplay?.displayMapName(map.name)
-        minimapDisplay?.removeAllStartRects()
-        minimapDisplay?.displayMapUnknown()
-
-        let (nameMatch, checksumMatch, _) = resourceManager.hasMap(named: map.name, checksum: map.hash, preferredVersion: battle.engineVersion)
-        self.hasMap = nameMatch
-        if self.hasMap {
-            if !checksumMatch {
-                debugOnlyPrint("Warning: Map checksums do not match.")
-            }
-
-            displayMinimap(for: map)
-        } else {
-            resourceManager.download(.map(name: map.name), completionHandler: { [weak self] successful in
-                guard let self = self else {
-                    return
-                }
-                if successful,
-                    // Because this is async, check the map hasn't changed yet.
-                    map == self.battle.map {
-                    self.displayMinimap(for: map)
-                    self.hasMap = true
-                } else {
-                    print("Unsuccessful download of map \(map.name)")
-                }
-            })
-        }
-    }
-
-    /// Sends map presentation data to the minimap display for it to display the map.
-    ///
-    /// Fails silently when the map's width and height cannot be retreived from the resource manager.
-    private func displayMinimap(for map: Battle.Map) {
-        guard let (width, height) = resourceManager.dimensions(forMapNamed: map.name) else {
-            return
-        }
-        minimapDisplay?.setMapDimensions(width, height)
-
-        resourceManager.loadMinimapData(forMapNamed: map.name, mipLevels: Range(0...5)) { [weak self] result in
-            guard let self = self,
-                let minimapDisplay = self.minimapDisplay,
-                let (imageData, dimension) = result else {
-                return
-            }
-
-            minimapDisplay.displayMapImage(for: imageData, dimension: dimension)
-        }
+        battleController.server?.send(
+            CSMyBattleStatusCommand(
+                battleStatus: myBattleStatus.changing(syncStatus: battle.isSynced ? .synced : .unsynced),
+                color: myColor
+            )
+        )
     }
 
     // MARK: - ListDelegate
-    // The Battleroom is the delegate of the battle's userlist. Updates happen there.
+    // The Battleroom needs to update when the battle updates.
 
     public func list(_ list: ListProtocol, didAddItemWithID id: Int, at index: Int) {}
 
@@ -371,7 +283,7 @@ public final class Battleroom: BattleDelegate, ListDelegate {
 
     public func list(_ list: ListProtocol, itemWasUpdatedAt index: Int) {
         if list.sortedItemsByID[index] == myID || list.sortedItemsByID[index] == battle.founderID {
-            displayIngameStatus()
+            applyActionToChainedObjects({ $0.display(isHostIngame: isHostIngame, isPlayerIngame: isPlayerIngame)})
         }
     }
 

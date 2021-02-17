@@ -192,7 +192,7 @@ struct SCJoinBattleCommand: SCCommand {
 		// Must use client.userlist instead of battle.userlist because the client is added to the channel before he receives notification of a successful join of the battle.
 		let battleroomChannel = Channel(title: battle.channel, rootList: client.userList)
 		client.channelList.addItem(battleroomChannel, with: client.id(forChannelnamed: battleroomChannel.title))
-        let battleroom = Battleroom(battle: battle, channel: battleroomChannel, hashCode: hashCode, resourceManager: client.resourceManager, battleController: client.battleController, myID: myID)
+        let battleroom = Battleroom(battle: battle, channel: battleroomChannel, hashCode: hashCode, battleController: client.battleController, myID: myID)
         client.battleController.battleroom = battleroom
         client.windowManager.displayBattleroom(battleroom)
 	}
@@ -905,7 +905,7 @@ struct SCUpdateBattleInfoCommand: SCCommand {
 		}
 		battle.spectatorCount = spectatorCount
 		battle.isLocked = locked
-		battle.map = Battle.Map(name: mapName, hash: mapHash)
+		battle.mapIdentification = Battle.MapIdentification(name: mapName, hash: mapHash)
         client.battleList.respondToUpdatesOnItem(identifiedBy: battleID)
 	}
 	

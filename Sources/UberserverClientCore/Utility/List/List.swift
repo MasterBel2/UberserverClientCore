@@ -83,11 +83,11 @@ public final class List<ListItem>: ListProtocol, UpdateNotifier {
 	
 	///
 	public func addDelegate<DelegateObject: ListDelegate>(_ delegate: DelegateObject) {
-		addObject(object: delegate)
+		addObject(delegate)
 	}
 	///
 	public func removeDelegate<DelegateObject: ListDelegate>(_ delegate: DelegateObject) {
-		removeObject(object: delegate)
+		removeObject(delegate)
 	}
 	
 	/// Describes how the list should sort its items.
