@@ -46,7 +46,7 @@ final class UnitsyncMapArchive: UnitsyncArchive, MapArchive {
 	
 	// MARK: Unitsync
 	
-	func loadInfoMapSize<T>(infoMapName: InfoMap<T>.Name) -> (width: Int, height: Int) {
+	private func loadInfoMapSize<T>(infoMapName: InfoMap<T>.Name) -> (width: Int, height: Int) {
 		let cName = infoMapName.rawValue.cString(using: .utf8)!
 		var height = CInt()
 		var width = CInt()
@@ -56,14 +56,14 @@ final class UnitsyncMapArchive: UnitsyncArchive, MapArchive {
 		return (width: Int(width), height: Int(height))
 	}
 	
-	func loadInfoMapPixels<T>(infoMapName: InfoMap<T>.Name, loadDestination: UnsafeMutablePointer<UInt8>) {
+	private func loadInfoMapPixels<T>(infoMapName: InfoMap<T>.Name, loadDestination: UnsafeMutablePointer<UInt8>) {
 		let cName = infoMapName.rawValue.cString(using: .utf8)!
 		withUnsafePointer(to: cName[0]) { cName in
             _ = unitsyncWrapper.sync { $0.GetInfoMap(name, cName, loadDestination, CInt(MemoryLayout<T>.size)) }
 		}
 	}
 	
-	func loadMinimapPixels(mipLevel: Int, count: Int) -> [RGB565Color] {
+	private func loadMinimapPixels(mipLevel: Int, count: Int) -> [RGB565Color] {
         let minimapPointer = unitsyncWrapper.sync { $0.GetMinimap(name, CInt(mipLevel)) }
 		return Array(UnsafeBufferPointer(start: minimapPointer, count: count))
 	}
