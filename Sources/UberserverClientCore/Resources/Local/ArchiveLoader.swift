@@ -28,7 +28,7 @@ public final class UnitsyncArchiveLoader: DescribesArchivesOnDisk {
 
 	public func reload() {
 		for engine in engines {
-			engine.unitsyncWrapper.refresh()
+            engine.unitsyncWrapper.sync { $0.refresh() }
 		}
         archivesAreLoaded = false
         load()
@@ -51,7 +51,7 @@ public final class UnitsyncArchiveLoader: DescribesArchivesOnDisk {
 					version: version,
 					isReleaseVersion: wrapper.IsSpringReleaseVersion(),
 					location: applicationURL,
-					unitsyncWrapper: wrapper
+                    unitsyncWrapper: QueueLocked(lockedObject: wrapper, queue: DispatchQueue(label: "Unitsync Wrapper", qos: .userInteractive))
 					)
 				)
 			}
@@ -65,20 +65,20 @@ public final class UnitsyncArchiveLoader: DescribesArchivesOnDisk {
 		autodetectSpringVersions()
 		guard let unitsyncWrapper = mostRecentUnitsync else { return }
 		
-        mapArchives = (0..<unitsyncWrapper.GetMapCount()).map({ index in
+        mapArchives = (0..<unitsyncWrapper.sync { $0.GetMapCount()}).map({ index in
             return UnitsyncMapArchive(
                 archiveIndex: index,
-                archiveName: String(cString: unitsyncWrapper.GetMapName(index)),
+                archiveName: String(cString: unitsyncWrapper.sync { $0.GetMapName(index) }),
                 unitsyncWrapper: unitsyncWrapper
             )
         })
-        modArchives = (0..<unitsyncWrapper.GetPrimaryModCount()).map({ index in
+        modArchives = (0..<unitsyncWrapper.sync { $0.GetPrimaryModCount() }).map({ index in
             return UnitsyncModArchive(
                 archiveIndex: index,
                 unitsyncWrapper: unitsyncWrapper
             )
         })
-        skirmishAIArchives = (0..<unitsyncWrapper.GetSkirmishAICount()).map({ index in
+        skirmishAIArchives = (0..<unitsyncWrapper.sync { $0.GetSkirmishAICount() }).map({ index in
             return UnitsyncSkirmishAIArchive(
                 archiveIndex: index,
                 unitsyncWrapper: unitsyncWrapper
@@ -92,7 +92,7 @@ public final class UnitsyncArchiveLoader: DescribesArchivesOnDisk {
 	public private(set) var mapArchives: [MapArchive] = []
 	public private(set) var skirmishAIArchives: [SkirmishAIArchive] = []
 	
-	private var mostRecentUnitsync: UnitsyncWrapper? {
+	private var mostRecentUnitsync: QueueLocked<UnitsyncWrapper>? {
 		return engines.sorted(by: { $0.version > $1.version }).first?.unitsyncWrapper
 	}
 }
@@ -113,5 +113,5 @@ public struct Engine {
 	}
 
 	public let location: URL
-	let unitsyncWrapper: UnitsyncWrapper
+	let unitsyncWrapper: QueueLocked<UnitsyncWrapper>
 }
