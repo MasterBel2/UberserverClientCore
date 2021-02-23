@@ -24,10 +24,10 @@ public final class TASServer: NSObject, SocketDelegate {
 
     /// A dictionary specifying data structures relating to the server commands that the command handler will handle.
     private var incomingCommands: [String : SCCommand.Type] = [:]
-    /// Blocks to be executed when a command with a specific ID is received.
+    /// Blocks to be executed when a command with a specific ID is received. Return true if the expected response has been received.
     ///
     /// internal access provided due to a current bug where command IDs don't properly register the "ACCEPTED"/"DENIED" commands, see `SCLoginAcceptedCommand.execute(on:)` and `SCLoginDeniedCommand.execute(on:)`.
-    var specificCommandHandlers: [Int : (SCCommand) -> ()] = [:]
+    var specificCommandHandlers: [Int : (SCCommand) -> (Bool)] = [:]
 
     // MARK: - Connection Properties
 
@@ -80,8 +80,8 @@ public final class TASServer: NSObject, SocketDelegate {
     /// Sends an encoded command over the socket and delays the keepalive to avoid sending superfluous messages to the server.
     ///
     /// Command handlers should not contain any strong references to objects in the case a command is never responded to.
-    public func send(_ command: CSCommand, specificHandler: ((SCCommand) -> ())? = nil) {
-        Logger.log("Sending: " + command.description, tag: .General)
+    public func send(_ command: CSCommand, specificHandler: ((SCCommand) -> (Bool))? = nil) {
+        Logger.log("Sending: #\(count) " + command.description, tag: .General)
         NSObject.cancelPreviousPerformRequests(withTarget: self, selector: #selector(TASServer.sendPing), object: nil)
 
         specificCommandHandlers[count] = specificHandler
@@ -117,8 +117,10 @@ public final class TASServer: NSObject, SocketDelegate {
                 continue
             }
             if let messageID = messageID {
-                specificCommandHandlers[messageID]?(command)
-                specificCommandHandlers.removeValue(forKey: messageID)
+                if let specificHandler = specificCommandHandlers[messageID],
+                   specificHandler(command) {
+                    specificCommandHandlers.removeValue(forKey: messageID)
+                }
             }
             command.execute(on: client)
         }

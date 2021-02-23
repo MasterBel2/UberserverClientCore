@@ -101,15 +101,17 @@ public final class UserAuthenticationController: LoginDelegate {
                 ]
             ),
             specificHandler: { [weak self] (command: SCCommand) in
-                guard let self = self else { return }
+                guard let self = self else { return true }
                 if let loginAcceptedCommand = command as? SCLoginAcceptedCommand {
                     self.record(Credentials(username: loginAcceptedCommand.username, password: password))
                     completionHandler(.success(loginAcceptedCommand.username))
                 } else if let loginDeniedCommand = command as? SCLoginDeniedCommand {
                     completionHandler(.failure(LoginError(description: loginDeniedCommand.reason)))
                 } else {
-                    completionHandler(.failure(LoginError(description: "A server error occured.")))
+//                    completionHandler(.failure(LoginError(description: "A server error occured.")))
+                    return false
                 }
+                return true
             }
         )
     }
@@ -124,7 +126,7 @@ public final class UserAuthenticationController: LoginDelegate {
                 password: password
             ),
             specificHandler: { [weak self] (command: SCCommand) in
-                guard let self = self else { return }
+                guard let self = self else { return true }
                 if command is SCRegistrationAcceptedCommand {
                     completionHandler(nil)
                     self.submitLogin(
@@ -142,8 +144,10 @@ public final class UserAuthenticationController: LoginDelegate {
                 } else if let deniedCommand = command as? SCRegistrationDeniedCommand {
                     completionHandler(deniedCommand.reason)
                 } else {
-                    completionHandler("A server error occured.")
+//                    completionHandler("A server error occured.")
+                    return false
                 }
+                return true
             }
         )
     }

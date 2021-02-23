@@ -115,8 +115,10 @@ public final class AccountInfoController {
                 } else if let failureResponse = response as? SCChangeEmailRequestDeniedCommand {
                     completionBlock(failureResponse.errorMessage)
                 } else {
-                    completionBlock("A server error occurred!")
+//                    completionBlock("A server error occurred!")
+                    return false
                 }
+                return true
             }
         } else {
             completionBlock("Incorrect password.")
@@ -135,8 +137,10 @@ public final class AccountInfoController {
                 } else if let failureResponse = response as? SCChangeEmailDeniedCommand {
                     completionBlock(failureResponse.errorMessage)
                 } else {
-                    completionBlock("A server error occurred!")
+                    return false
+//                    completionBlock("A server error occurred!")
                 }
+                return true
             }
         } else {
             completionBlock("Incorrect password.")
@@ -153,8 +157,10 @@ public final class AccountInfoController {
                 } else if let failureResponse = response as? SCChangeEmailDeniedCommand {
                     completionBlock(failureResponse.errorMessage)
                 } else {
-                    completionBlock("A server error occurred!")
+                    return false
+//                    completionBlock("A server error occurred!")
                 }
+                return true
             }
         } else {
             completionBlock("Incorrect password.")
