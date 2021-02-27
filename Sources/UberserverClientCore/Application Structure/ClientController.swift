@@ -18,12 +18,12 @@ public final class ClientController {
     private let windowManager: WindowManager
     /// The user's preferences controller.
     let preferencesController: PreferencesController
-    let springProcessController: SpringProcessController
+    let system: System
 
-    public init(windowManager: WindowManager, preferencesController: PreferencesController, springProcessController: SpringProcessController) {
+    public init(windowManager: WindowManager, preferencesController: PreferencesController, system: System) {
         self.windowManager = windowManager
         self.preferencesController = preferencesController
-        self.springProcessController = springProcessController
+        self.system = system
     }
 
     /// On update, inserts the most recent server
@@ -42,9 +42,9 @@ public final class ClientController {
     public func connect(to address: ServerAddress) {
         let client = Client(
             windowManager: windowManager.newClientWindowManager(clientController: self),
+            system: system,
             preferencesController: preferencesController,
-            address: address,
-            springProcessController: springProcessController
+            address: address
         )
         client.createAndShowWindow()
         clients.append(client)
@@ -54,8 +54,8 @@ public final class ClientController {
     public func createNewClient() {
         let client = Client(
             windowManager: windowManager.newClientWindowManager(clientController: self),
-            preferencesController: preferencesController,
-            springProcessController: springProcessController
+            system: system,
+            preferencesController: preferencesController
         )
         client.createAndShowWindow()
         clients.append(client)

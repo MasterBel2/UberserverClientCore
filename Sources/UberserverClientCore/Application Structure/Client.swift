@@ -22,6 +22,7 @@ public final class Client {
 
     /// Provides platform-specific windows.
     public let windowManager: ClientWindowManager
+    public let system: System
 
     // MARK: - Server
 
@@ -34,7 +35,7 @@ public final class Client {
     /// The user's preferences controller.
     public let preferencesController: PreferencesController
     public let chatController: ChatController
-	public let battleController: BattleController
+	public internal(set) var battleroom: Battleroom?
     public let accountInfoController = AccountInfoController()
     /// The server.
     public let userAuthenticationController: UserAuthenticationController
@@ -48,7 +49,7 @@ public final class Client {
     // MARK: - Data
 
     /// Returns the User object associated with the account the client has connected to the server with.
-    var connectedAccount: User? {
+    public var connectedAccount: User? {
         guard let username = userAuthenticationController.credentials?.username,
         let userID = id(forPlayerNamed: username) else {
             return nil
@@ -65,15 +66,15 @@ public final class Client {
     // MARK: - Lifecycle
 
 
-    public init(windowManager: ClientWindowManager, preferencesController: PreferencesController, address: ServerAddress? = nil, springProcessController: SpringProcessController) {
+    public init(windowManager: ClientWindowManager, system: System, preferencesController: PreferencesController, address: ServerAddress? = nil) {
 
         // Initialise values
 
         self.windowManager = windowManager
+        self.system = system
         self.preferencesController = preferencesController
 
         self.userAuthenticationController = UserAuthenticationController(preferencesController: preferencesController)
-        self.battleController = BattleController(battleList: battleList, windowManager: windowManager, springProcessController: springProcessController)
         self.chatController = ChatController(windowManager: windowManager)
 
         // Configuration
@@ -100,7 +101,7 @@ public final class Client {
         userAuthenticationController.reset()
 
         chatController.channels = []
-        battleController.battleroom = nil
+        battleroom = nil
         accountInfoController.invalidate()
 
         server?.disconnect()
@@ -122,10 +123,8 @@ public final class Client {
 	}
 	
 	public func initialiseServer(_ address: ServerAddress) {
-        let server = TASServer(address: address, client: self)
-		
+        let server = TASServer(address: address, client: self, baseCacheDirectory: system.configDirectory)
         chatController.server = server
-        battleController.server = server
 
         server.connect()
 		
@@ -232,5 +231,33 @@ public final class Client {
             privateMessageList.addItem(channel, with: channelID)
         }
         return channel
+    }
+    
+    // MARK: - Battleroom
+    
+    public func joinBattle(_ battleID: Int) {
+        guard let battle = battleList.items[battleID],
+              battle !== battleroom?.battle else {
+            return
+        }
+        
+        if battleroom != nil {
+            leaveBattle()
+        }
+        
+        if battle.hasPassword {
+            // TODO: Prompt for password
+        } else {
+            server?.send(CSJoinBattleCommand(battleID: battleID, password: nil, scriptPassword: battle.myScriptPassword))
+        }
+    }
+    
+    /// Removes the player from the battle; first locally, then with a message to the server.
+    public func leaveBattle() {
+        guard battleroom != nil else { return }
+        battleroom = nil
+        windowManager.destroyBattleroom()
+
+        server?.send(CSLeaveBattleCommand())
     }
 }

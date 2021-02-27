@@ -86,6 +86,9 @@ public struct SCBattleOpenedCommand: SCCommand {
     // MARK: - Behaviour
     
     public func execute(on client: Client) {
+        guard let server = client.server else {
+            return
+        }
         guard let founderID = client.id(forPlayerNamed: founder) else {
             fatalError("Could not find battle host with username \(founder)")
         }
@@ -106,7 +109,8 @@ public struct SCBattleOpenedCommand: SCCommand {
             mapName: mapName,
             title: title,
             gameName: gameName,
-            channel: channel
+            channel: channel,
+            scriptPasswordCacheDirectory: server.cacheDirectory.appendingPathComponent("Script Passwords")
         )
 
         client.battleList.addItem(battle, with: battleID)

@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import SpringRTSStartScriptHandling
 
 public protocol DescribesArchivesOnDisk {
 	func reload()
@@ -23,8 +24,11 @@ public final class UnitsyncArchiveLoader: DescribesArchivesOnDisk {
 
     /// Whether the archives have been loaded.
     private var archivesAreLoaded = false
-	
-	public init() {}
+    private let system: System
+    
+    public init(system: System) {
+        self.system = system
+    }
 
 	public func reload() {
 		for engine in engines {
@@ -48,9 +52,10 @@ public final class UnitsyncArchiveLoader: DescribesArchivesOnDisk {
 			if let wrapper = UnitsyncWrapper(config: config) {
 				let version = wrapper.springVersion
 				engines.append(Engine(
+                    location: applicationURL,
 					version: version,
 					isReleaseVersion: wrapper.IsSpringReleaseVersion(),
-					location: applicationURL,
+                    system: system,
                     unitsyncWrapper: QueueLocked(lockedObject: wrapper, queue: DispatchQueue(label: "Unitsync Wrapper", qos: .userInteractive))
 					)
 				)
@@ -98,8 +103,22 @@ public final class UnitsyncArchiveLoader: DescribesArchivesOnDisk {
 }
 
 public struct Engine {
+    private let system: System
+    
+    init(location: URL, version: String, isReleaseVersion: Bool, system: System, unitsyncWrapper: QueueLocked<UnitsyncWrapper>) {
+        self.system = system
+        self.version = version
+        self.isReleaseVersion = isReleaseVersion
+        self.location = location
+        self.unitsyncWrapper = unitsyncWrapper
+    }
+    
 	public let version: String
 	public let isReleaseVersion: Bool
+    
+    private var scriptFileURL: URL {
+        return system.configDirectory.appendingPathComponent("script.txt")
+    }
 
 	/// Returns a string that may be used to determine if it will sync with another engine version. For a release version, this is the major
 	/// and minor versions of the engine. For other versions, it is the entire version string.
@@ -114,4 +133,22 @@ public struct Engine {
 
 	public let location: URL
 	let unitsyncWrapper: QueueLocked<UnitsyncWrapper>
+    
+    /// Launches spring.
+    ///
+    /// - parameter willRecordDemo: whether the script contains an isntruction to record a demo. If true, the replay controller will be instructed to reload replays after the game is done, to detect the new file.
+    /// - parameter completionHandler: A function to be called when Spring closes or an error is thrown.
+    public func launchGame(script: LaunchScriptConvertible, doRecordDemo: Bool, completionHandler: (() -> Void)?) throws {
+        do {
+            try script.launchScript(shouldRecordDemo: doRecordDemo).write(toFile: scriptFileURL.path, atomically: true, encoding: .utf8)
+            system.launchApplication(at: location.path, with: [scriptFileURL.path], completionHandler: {
+                completionHandler?()
+//                if doRecordDemo {
+//                    try? self?.replayController.loadReplays()
+//                }
+            })
+        } catch {
+            completionHandler?()
+        }
+    }
 }

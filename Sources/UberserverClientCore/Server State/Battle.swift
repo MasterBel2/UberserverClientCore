@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import ServerAddress
 
 public protocol ReceivesBattleUpdates {
     
@@ -29,7 +30,7 @@ public extension ReceivesBattleUpdates {
 
 public final class Battle: UpdateNotifier, Sortable {
 
-    // MARK: - Properties
+    // MARK: - Server State
     
     public let userList: List<User>
     public internal(set) var spectatorCount: Int = 0
@@ -66,7 +67,11 @@ public final class Battle: UpdateNotifier, Sortable {
 	public let ip: String
 	public let natType: NATType
     
-    // MARK: - Sync
+    // MARK: - Identity
+    
+    public let myScriptPassword: String
+    
+    // MARK: - Local State
 
     /// Whether the client can verify the presence of the engine in the file system.
     public var hasEngine: Bool {
@@ -76,17 +81,18 @@ public final class Battle: UpdateNotifier, Sortable {
     public var hasGame: Bool {
         return ResourceManager.default.hasGame(name: gameName)
     }
-
+    /// Indicates whether `loadedMap` has a value.
     public var hasMap: Bool {
         return loadedMap != nil
     }
 
-    /// Returns true if the client has verified all downloadable content (game, map, and engine).
+    /// An amalgam of `hasEngine`, `hasGame`, and `hasMap`.
     public var isSynced: Bool {
         return hasGame && hasMap && hasEngine
     }
     
-    public var loadedMap: MapArchive?
+    public private(set) var loadedMap: MapArchive?
+    
     public var shouldAutomaticallyDownloadMap: Bool = false {
         didSet {
             if shouldAutomaticallyDownloadMap && !hasMap {
@@ -128,7 +134,9 @@ public final class Battle: UpdateNotifier, Sortable {
     init(serverUserList: List<User>,
         isReplay: Bool, natType: NATType, founder: String, founderID: Int, ip: String, port: Int,
         maxPlayers: Int, hasPassword: Bool, rank: Int, mapHash: Int32, engineName: String,
-        engineVersion: String, mapName: String, title: String, gameName: String, channel: String) {
+        engineVersion: String, mapName: String, title: String, gameName: String, channel: String, scriptPasswordCacheDirectory: URL) {
+        
+        // Setup
 
         self.isReplay = isReplay
         self.natType = natType
@@ -149,6 +157,19 @@ public final class Battle: UpdateNotifier, Sortable {
         self.channel = channel
 		
 		userList = List<User>(title: "", sortKey: .rank, parent: serverUserList)
+        
+        myScriptPassword = {
+            let directory = scriptPasswordCacheDirectory.appendingPathComponent(String(founderID))
+            do {
+                return try String(contentsOf: directory)
+            } catch {
+                let password = UUID().uuidString
+                try? password.write(toFile: directory.path, atomically: false, encoding: .utf8)
+                return password
+            }
+        }()
+        
+        // Additional Setup
 		
         userList.addItemFromParent(id: founderID)
         

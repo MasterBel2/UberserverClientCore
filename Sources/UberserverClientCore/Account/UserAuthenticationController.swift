@@ -48,7 +48,7 @@ public final class UserAuthenticationController: LoginDelegate {
     /// A string that uniquely identifies the server
     private var serverDescription: String? {
         if let server = client.server {
-            return "\(server.socket.address):\(server.socket.port)"
+            return server.description
         }
         return nil
     }

@@ -13,7 +13,7 @@ public protocol WindowManager {
 	/// Immediately displays current and past downloads to the user.
 	func presentDownloads(_ controller: DownloadController)
 
-    func presentReplays(_ controller: ReplayController, springProcessController: SpringProcessController)
+    func presentReplays(_ controller: ReplayController)
 
     /// Creates a new manager for client-specific windows.
     func newClientWindowManager(clientController: ClientController) -> ClientWindowManager

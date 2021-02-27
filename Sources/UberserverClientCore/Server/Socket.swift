@@ -20,9 +20,8 @@ final class Socket: NSObject, StreamDelegate {
 	
 	weak var delegate: SocketDelegate?
 	
-	let address: String
-	let port: Int
-	
+	let address: ServerAddress
+    
 	private var inputStream: InputStream?
 	private var outputStream: OutputStream?
 	
@@ -33,8 +32,7 @@ final class Socket: NSObject, StreamDelegate {
 	// MARK: - Lifecycle
 	
 	init(address: ServerAddress) {
-		self.address = address.location
-		self.port = address.port
+		self.address = address
 	}
 	
 	// MARK: - Public API
@@ -45,7 +43,7 @@ final class Socket: NSObject, StreamDelegate {
 			return
 		}
         
-		Stream.getStreamsToHost(withName: address, port: port, inputStream: &inputStream, outputStream: &outputStream)
+        Stream.getStreamsToHost(withName: address.location, port: address.port, inputStream: &inputStream, outputStream: &outputStream)
 		
 		guard let inputStream = inputStream, let outputStream = outputStream else {
 			print("Failed to get input & output streams")

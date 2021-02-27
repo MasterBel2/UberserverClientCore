@@ -35,7 +35,13 @@ public final class TASServer: NSObject, SocketDelegate {
     private(set) var socket: Socket
     /// The delay after which the keepalive "PING" should be sent in order to maintain the server connection.
     /// A delay of 30 seconds is reccomended by TASServer documentation.
-    static let keepaliveDelay: TimeInterval = 30
+    private static let keepaliveDelay: TimeInterval = 30
+    
+    public var address: ServerAddress {
+        return socket.address
+    }
+    
+    public let cacheDirectory: URL
 
     // MARK: - Lifecycle
 
@@ -43,7 +49,9 @@ public final class TASServer: NSObject, SocketDelegate {
     ///
     /// - parameter address: The IP address or domain name of the server.
     /// - parameter port: The port on which the socket should connect.
-    init(address: ServerAddress, client: Client, defaultProtocol: ServerProtocol = .unknown) {
+    init(address: ServerAddress, client: Client, baseCacheDirectory: URL, defaultProtocol: ServerProtocol = .unknown) {
+        self.cacheDirectory = baseCacheDirectory.appendingPathComponent(address.description)
+        
         socket = Socket(address: address)
         self.client = client
         super.init()

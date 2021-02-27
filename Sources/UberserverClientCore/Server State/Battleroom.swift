@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import SpringRTSStartScriptHandling
 
 // MARK: - Protocols
 
@@ -67,15 +68,24 @@ public extension ReceivesBattleroomUpdates {
 public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdates {
 
     // MARK: - Data
+    
+    private weak var server: TASServer?
+    
+    // MARK: - Dependencies
 
     /// The battleroom's associated battle.
     public let battle: Battle
     /// The battleroom's associated channel.
     public let channel: Channel
-
+    
+    // MARK: - Users
+    
+    public private(set) var allyNamesForAllyNumbers: [Int : String] = [:]
     public let allyTeamLists: [List<User>]
     public let spectatorList: List<User>
     var bots: [Bot] = []
+    
+    // MARK: - Game Attributes
 
     private(set) var startRects: [Int : StartRect] = [:]
 
@@ -96,15 +106,7 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
     /// A hash code taken from the map, game, and engine. Calculated by Unitsync.
     public private(set) var hashCode: Int32
 
-    public private(set) var allyNamesForAllyNumbers: [Int : String] = [:]
-
-    // MARK: - Dependencies
-
-    private unowned let battleController: BattleController
-
-    // MARK: - Displays
-
-    // MARK: - Player information
+    // MARK: - Information about the Local Client
 
     let myID: Int
 
@@ -140,20 +142,20 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
 
     // MARK: - Lifecycle
 
-    init(battle: Battle, channel: Channel, hashCode: Int32, battleController: BattleController, myID: Int) {
+    init(battle: Battle, channel: Channel, server: TASServer, hashCode: Int32, myID: Int) {
         self.battle = battle
         self.hashCode = hashCode
         self.channel = channel
 
         self.myID = myID
 
-        self.battleController = battleController
-
         let battleroomSorter = BattleroomPlayerListSorter()
 
         // + 1 – Users will count from 1, not from 0
         allyTeamLists = (0...15).map({ List(title: "Ally \(String($0 + 1))", sorter: battleroomSorter, parent: battle.userList) })
         spectatorList = List<User>(title: "Spectators", sorter: battleroomSorter, parent: battle.userList)
+        
+        self.server = server
 
         battleroomSorter.battleroom = self
         battle.addObject(self)
@@ -249,6 +251,27 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
         applyActionToChainedObjects({ $0.removeStartRect(for: allyTeam) })
     }
     
+    // MARK: - User Actions
+    
+    public func startGame() {
+        #warning("Consider moving this to Battle")
+        guard let server = server,
+            let myAccount = battle.userList.items[myID] else {
+            return
+        }
+        guard let engine = battle.engine else {
+            #warning("Throw an error here!")
+            return
+        }
+        server.send(CSMyStatusCommand(status: myAccount.status.changing(isIngame: true)))
+        server.send(CSMyBattleStatusCommand(battleStatus: myBattleStatus.changing(isReady: false), color: myColor))
+        
+        let specification = ClientSpecification(ip: battle.ip, port: battle.port, username: myAccount.profile.username, scriptPassword: battle.myScriptPassword)
+        try? engine.launchGame(script: specification, doRecordDemo: true) { [weak self] in
+            self?.server?.send(CSMyStatusCommand(status: myAccount.status.changing(isIngame: false)))
+        }
+    }
+    
     // MARK: - UpdateNotifier
     
     public var objectsWithLinkedActions: [() -> ReceivesBattleroomUpdates?] = []
@@ -264,7 +287,7 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
     }
     
     private func updateSync() {
-        battleController.server?.send(
+        server?.send(
             CSMyBattleStatusCommand(
                 battleStatus: myBattleStatus.changing(syncStatus: battle.isSynced ? .synced : .unsynced),
                 color: myColor

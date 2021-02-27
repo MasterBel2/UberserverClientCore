@@ -175,12 +175,13 @@ struct SCJoinBattleCommand: SCCommand {
 	}
 	
 	func execute(on client: Client) {
-        guard let myUsername = client.userAuthenticationController.credentials?.username,
+        guard let server = client.server,
+            let myUsername = client.userAuthenticationController.credentials?.username,
             let myID = client.id(forPlayerNamed: myUsername) else {
             debugOnlyPrint("Error: was instructed to join a battle when not logged in!")
             return
         }
-		guard client.battleController.battleroom == nil else {
+		guard client.battleroom == nil else {
 			debugOnlyPrint("Was instructed to join a battleroom when already in one!")
             return
 		}
@@ -192,8 +193,8 @@ struct SCJoinBattleCommand: SCCommand {
 		// Must use client.userlist instead of battle.userlist because the client is added to the channel before he receives notification of a successful join of the battle.
 		let battleroomChannel = Channel(title: battle.channel, rootList: client.userList)
 		client.channelList.addItem(battleroomChannel, with: client.id(forChannelnamed: battleroomChannel.title))
-        let battleroom = Battleroom(battle: battle, channel: battleroomChannel, hashCode: hashCode, battleController: client.battleController, myID: myID)
-        client.battleController.battleroom = battleroom
+        let battleroom = Battleroom(battle: battle, channel: battleroomChannel, server: server, hashCode: hashCode, myID: myID)
+        client.battleroom = battleroom
         client.windowManager.displayBattleroom(battleroom)
 	}
 }
@@ -253,7 +254,7 @@ struct SCClientBattleStatusCommand: SCCommand {
 	}
 	
 	func execute(on client: Client) {
-		guard let battleroom = client.battleController.battleroom,
+		guard let battleroom = client.battleroom,
 			let userID = client.id(forPlayerNamed: username) else {
 			return
 		}
@@ -277,7 +278,7 @@ struct SCRequestBattleStatusCommand: SCCommand {
 	init?(description: String) {}
 	
 	func execute(on client: Client) {
-        guard let battleroom = client.battleController.battleroom else {
+        guard let battleroom = client.battleroom else {
             return
         }
         
@@ -332,7 +333,7 @@ struct SCAddBotCommand: SCCommand {
 	}
 	
 	func execute(on client: Client) {
-		guard let battleroom = client.battleController.battleroom,
+		guard let battleroom = client.battleroom,
 			let ownerID = client.id(forPlayerNamed: owner),
 			let ownerUser = client.userList.items[ownerID] else {
 				return
@@ -366,7 +367,7 @@ struct SCRemoveBotCommand: SCCommand {
 	}
 	
 	func execute(on client: Client) {
-		guard let battleroom = client.battleController.battleroom else {
+		guard let battleroom = client.battleroom else {
 			return
 		}
 		battleroom.bots = battleroom.bots.filter { $0.name != botName }
@@ -411,7 +412,7 @@ struct SCUpdateBotCommand: SCCommand {
 	}
 	
 	func execute(on client: Client) {
-		guard let battleroom = client.battleController.battleroom,
+		guard let battleroom = client.battleroom,
 			let bot = battleroom.bots.first(where: { $0.name == name }) else {
 				return
 		}
@@ -473,7 +474,7 @@ struct SCAddStartRectCommand: SCCommand {
 	}
 	
 	func execute(on client: Client) {
-        guard let battleroom = client.battleController.battleroom else {
+        guard let battleroom = client.battleroom else {
             return
         }
 		battleroom.addStartRect(rect, for: allyNo)
@@ -505,7 +506,7 @@ struct SCRemoveStartRectCommand: SCCommand {
 	}
 	
 	func execute(on client: Client) {
-        client.battleController.battleroom?.removeStartRect(for: allyNo)
+        client.battleroom?.removeStartRect(for: allyNo)
 	}
 	
 	var description: String {
@@ -533,7 +534,7 @@ struct SCSetScriptTagsCommand: SCCommand {
         for tag in tags {
             switch tag.category {
             case "players":
-                guard let battleroom = client.battleController.battleroom,
+                guard let battleroom = client.battleroom,
                     tag.path[3] == "skill",
                     let playerID = client.id(forPlayerNamed: tag.path[2]) else {
                         continue
@@ -541,7 +542,7 @@ struct SCSetScriptTagsCommand: SCCommand {
                 battleroom.trueSkills[playerID] = tag.value
                 (battleroom.allyTeamLists + [battleroom.spectatorList]).filter({ $0.sortedItemsByID.contains(playerID)}).forEach({ $0.respondToUpdatesOnItem(identifiedBy: playerID) })
             case "modoptions":
-                client.battleController.battleroom?.modOptions[tag.path[1]] = tag.value
+                client.battleroom?.modOptions[tag.path[1]] = tag.value
             default:
                 print("Unrecognised script tag: \(tag)")
             }
@@ -597,10 +598,10 @@ struct SCRemoveScriptTagsCommand: SCCommand {
             switch key[1] {
             case "players":
                 guard key.count == 4, key[3] == "skill", let playerID = client.id(forPlayerNamed: key[2]) else { continue }
-                client.battleController.battleroom?.trueSkills.removeValue(forKey: playerID)
+                client.battleroom?.trueSkills.removeValue(forKey: playerID)
             case "modOptions":
                 guard key.count == 3 else { continue }
-                client.battleController.battleroom?.modOptions.removeValue(forKey: key[2])
+                client.battleroom?.modOptions.removeValue(forKey: key[2])
             default:
                 continue
             }
@@ -752,9 +753,9 @@ struct SCBattleClosedCommand: SCCommand {
 	}
 	
 	func execute(on client: Client) {
-        if let battle = client.battleController.battleroom?.battle,
+        if let battle = client.battleroom?.battle,
             battle === client.battleList.items[battleID] {
-            client.battleController.battleroom = nil
+            client.battleroom = nil
             client.windowManager.destroyBattleroom()
         }
 		client.battleList.removeItem(withID: battleID)
@@ -939,7 +940,7 @@ struct SCKickFromBattleCommand: SCCommand {
 	}
 	
 	func execute(on client: Client) {
-        client.battleController.battleroom = nil
+        client.battleroom = nil
         client.windowManager.destroyBattleroom()
 		#warning("todo")
 	}
@@ -965,7 +966,7 @@ struct SCForceQuitBattleCommand: SCCommand {
 	init?(description: String) {}
 	
 	func execute(on client: Client) {
-		client.battleController.battleroom = nil
+		client.battleroom = nil
 	}
 	
 	var description: String {
@@ -996,7 +997,7 @@ struct SCDisableUnitsCommand: SCCommand {
 	}
 	
 	func execute(on client: Client) {
-		client.battleController.battleroom?.disabledUnits.append(contentsOf: units)
+		client.battleroom?.disabledUnits.append(contentsOf: units)
 	}
 	
 	var description: String {
@@ -1027,7 +1028,7 @@ struct SCEnableUnitsCommand: SCCommand {
 	}
 	
 	func execute(on client: Client) {
-		client.battleController.battleroom?.disabledUnits.removeAll(where: { units.contains($0) })
+		client.battleroom?.disabledUnits.removeAll(where: { units.contains($0) })
 	}
 	
 	var description: String {
