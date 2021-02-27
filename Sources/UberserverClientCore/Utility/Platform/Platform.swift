@@ -15,24 +15,24 @@ public enum Platform: String {
     case Windows64 = "engine_windows64"
     case macOS = "engine_macosx"
 	case unknown = "unknown"
-}
-
-var platform: Platform {
-    #if os(Linux)
-    if Int.bitWidth == Int64.bitWidth {
-        return .Linux64
-    } else {
-        return .Linux
+    
+    public static var current: Platform {
+        #if os(Linux)
+        if Int.bitWidth == Int64.bitWidth {
+            return .Linux64
+        } else {
+            return .Linux
+        }
+        #elseif os(macOS)
+        return .macOS
+        #elseif os(Windows)
+        if Int.bitWidth == Int64.bitWidth {
+            return .Windows64
+        } else {
+            return .Windows
+        }
+        #else
+        return .unknown
+        #endif
     }
-    #elseif os(macOS)
-    return .macOS
-    #elseif os(Windows)
-    if Int.bitWidth == Int64.bitWidth {
-        return .Windows64
-    } else {
-        return .Windows
-    }
-	#else
-	return .unknown
-    #endif
 }

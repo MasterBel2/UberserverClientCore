@@ -37,7 +37,7 @@ public final class ResourceManager {
         }
     }
 
-	private init(downloadController: DownloadController, windowManager: WindowManager, archiveLoader: DescribesArchivesOnDisk) {
+    private init(downloadController: DownloadController, windowManager: WindowManager, archiveLoader: DescribesArchivesOnDisk) {
         remoteResourceFetcher = RemoteResourceFetcher(
 			downloadController: downloadController,
 			windowManager: windowManager
@@ -52,9 +52,48 @@ public final class ResourceManager {
 		archiveLoader.load()
     }
     
+    public func loadEngine(version: String, shouldDownload: Bool, completionHandler: @escaping (Result<Engine, Error>) -> Void) {
+        let matches = archiveLoader.engines.filter({ $0.syncVersion == version})
+        if let match = matches.first {
+            completionHandler(.success(match))
+        } else if shouldDownload {
+            remoteResourceFetcher.retrieve(.engine(name: version, platform: Platform.current)) { [weak self] successful in
+                guard let self = self else { return }
+                if successful {
+                    self.queue.sync {
+                        self.archiveLoader.reload()
+                        self.loadEngine(version: version, shouldDownload: false, completionHandler: completionHandler)
+                    }
+                }
+            }
+        }
+    }
+    
+    public typealias GameLoadResult = Result<(ModArchive, Bool), Error>
+    public func loadGame(named gameName: String, preferredEngineVersion: Bool, shouldDownload: Bool, completionHandler: @escaping (GameLoadResult) -> Void) {
+        let matches = archiveLoader.modArchives.filter({ $0.name == gameName })
+        if let match = matches.first {
+            completionHandler(.success((match, false)))
+        } else if shouldDownload {
+            remoteResourceFetcher.retrieve(.game(name: gameName)) { [weak self] successful in
+                guard let self = self else { return }
+                if successful {
+                    self.queue.sync {
+                        self.archiveLoader.reload()
+                        self.loadGame(named: gameName, preferredEngineVersion: preferredEngineVersion, shouldDownload: false, completionHandler: completionHandler)
+                    }
+                }
+            }
+        }
+    }
+    
+    public func loadEngine(version: String, completionHandler: (Result<Engine, Error>) -> Void) {
+        
+    }
+    
     
     public typealias MapLoadResult = Result<(mapArchive: MapArchive, checksumMatch: Bool, usedPreferredEngineVersion: Bool), Error>
-    public func loadMap(named mapName: String, checksum: Int32, preferredVersion: String, shouldDownload: Bool = true, completionHandler: @escaping (MapLoadResult) -> Void) {
+    public func loadMap(named mapName: String, checksum: Int32, preferredVersion: String, shouldDownload: Bool, completionHandler: @escaping (MapLoadResult) -> Void) {
         let matches = archiveLoader.mapArchives.filter({ $0.name == mapName })
         if let match = matches.first {
             completionHandler(.success((match, match.singleArchiveChecksum == checksum, false)))

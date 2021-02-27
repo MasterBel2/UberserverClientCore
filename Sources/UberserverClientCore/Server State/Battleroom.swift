@@ -278,13 +278,10 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
     
     // MARK: - Battle Updates
     
-    public func mapDidUpdate(to map: Battle.MapIdentification) {
-        updateSync()
-    }
-    
-    public func loadedMapArchive(_ mapArchive: MapArchive, checksumMatch: Bool, usedPreferredEngineVersion: Bool) {
-        updateSync()
-    }
+    public func mapDidUpdate(to map: Battle.MapIdentification) { updateSync() }
+    public func loadedMapArchive(_ mapArchive: MapArchive, checksumMatch: Bool, usedPreferredEngineVersion: Bool) { updateSync() }
+    public func loadedEngine(_ engine: Engine) { updateSync() }
+    public func loadedGameArchive(_ gameArchive: ModArchive) { updateSync() }
     
     private func updateSync() {
         server?.send(

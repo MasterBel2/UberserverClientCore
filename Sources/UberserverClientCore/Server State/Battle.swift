@@ -16,6 +16,9 @@ public protocol ReceivesBattleUpdates {
     func mapDidUpdate(to map: Battle.MapIdentification)
     func loadedMapArchive(_ mapArchive: MapArchive, checksumMatch: Bool, usedPreferredEngineVersion: Bool)
     
+    func loadedGameArchive(_ gameArchive: ModArchive)
+    func loadedEngine(_ engine: Engine)
+    
     // Host
     
     func hostIsInGameChanged(to hostIsIngame: Bool)
@@ -24,6 +27,9 @@ public protocol ReceivesBattleUpdates {
 public extension ReceivesBattleUpdates {
     func mapDidUpdate(to map: Battle.MapIdentification) {}
     func loadedMapArchive(_ mapArchive: MapArchive, checksumMatch: Bool, usedPreferredEngineVersion: Bool) {}
+    
+    func loadedGameArchive(_ gameArchive: ModArchive) {}
+    func loadedEngine(_ engine: Engine) {}
     
     func hostIsInGameChanged(to hostIsIngame: Bool) {}
 }
@@ -73,13 +79,13 @@ public final class Battle: UpdateNotifier, Sortable {
     
     // MARK: - Local State
 
-    /// Whether the client can verify the presence of the engine in the file system.
+    /// Indicates whether `engine` has a value.
     public var hasEngine: Bool {
-        return ResourceManager.default.hasEngine(version: engineVersion)
+        return engine != nil
     }
-    /// Whether the client can verify the presence of the game in the file system.
+    /// Indicates whether `gameArchive` has a value.
     public var hasGame: Bool {
-        return ResourceManager.default.hasGame(name: gameName)
+        return gameArchive != nil
     }
     /// Indicates whether `loadedMap` has a value.
     public var hasMap: Bool {
@@ -91,6 +97,8 @@ public final class Battle: UpdateNotifier, Sortable {
         return hasGame && hasMap && hasEngine
     }
     
+    public private(set) var gameArchive: ModArchive?
+    public private(set) var engine: Engine?
     public private(set) var loadedMap: MapArchive?
     
     public var shouldAutomaticallyDownloadMap: Bool = false {
@@ -98,6 +106,20 @@ public final class Battle: UpdateNotifier, Sortable {
             if shouldAutomaticallyDownloadMap && !hasMap {
                 loadMap()
             }
+        }
+    }
+    
+    public func loadEngine() {
+        engine = ResourceManager.default.archiveLoader.engines.first(where: { $0.syncVersion == engineVersion })
+        if let engine = engine {
+            applyActionToChainedObjects({ $0.loadedEngine(engine) })
+        }
+    }
+    
+    public func loadGame() {
+        gameArchive = ResourceManager.default.archiveLoader.modArchives.first(where: { $0.name == gameName })
+        if let gameArchive = gameArchive {
+            applyActionToChainedObjects({ $0.loadedGameArchive(gameArchive) })
         }
     }
     
@@ -173,6 +195,8 @@ public final class Battle: UpdateNotifier, Sortable {
 		
         userList.addItemFromParent(id: founderID)
         
+        loadEngine()
+        loadGame()
         loadMap()
     }
     
