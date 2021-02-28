@@ -27,6 +27,8 @@ final class Logger {
             case StatusUpdate
 
             case ServerError
+            
+            case ClientStateError
         }
     }
 

@@ -61,8 +61,8 @@ struct SCLoginAcceptedCommand: SCCommand {
 
     /// Uberserver does not handle command IDs properly, so this hacks around that (since we know that we don't send a second command handler before login completes).
     func execute(on client: Client) {
-        client.server?.specificCommandHandlers.first?.value(self)
-        client.server?.specificCommandHandlers = [:]
+        client.connection?.specificCommandHandlers.first?.value(self)
+        client.connection?.specificCommandHandlers = [:]
     }
 }
 
@@ -90,8 +90,8 @@ struct SCLoginDeniedCommand: SCCommand {
 
     /// Uberserver does not handle command IDs properly, so this hacks around that (since we know that we don't send a second command handler before login completes).
 	func execute(on client: Client) {
-        client.server?.specificCommandHandlers.first?.value(self)
-        client.server?.specificCommandHandlers = [:]
+        client.connection?.specificCommandHandlers.first?.value(self)
+        client.connection?.specificCommandHandlers = [:]
     }
 
 	var description: String {

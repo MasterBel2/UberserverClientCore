@@ -9,21 +9,26 @@
 import Foundation
 import ServerAddress
 
+public protocol ReceivesClientControllerUpdates {
+    func clientController(_ clientController: ClientController, didCreate client: Client)
+}
+public extension ReceivesClientControllerUpdates {
+    func clientController(_ clientController: ClientController, didCreate client: Client) {}
+}
+
 /**
  Facilitates creation of clients.
  */
-public final class ClientController {
+public final class ClientController: UpdateNotifier {
     private(set) var clients: [Client] = []
-    /// Provides platform-specific windows.
-    private let windowManager: WindowManager
-    /// The user's preferences controller.
-    let preferencesController: PreferencesController
+    let userAuthenticationController: UserAuthenticationController
     let system: System
+    let resourceManager: ResourceManager
 
-    public init(windowManager: WindowManager, preferencesController: PreferencesController, system: System) {
-        self.windowManager = windowManager
-        self.preferencesController = preferencesController
+    public init(system: System, resourceManager: ResourceManager, userAuthenticationController: UserAuthenticationController) {
         self.system = system
+        self.resourceManager = resourceManager
+        self.userAuthenticationController = userAuthenticationController
     }
 
     /// On update, inserts the most recent server
@@ -41,28 +46,32 @@ public final class ClientController {
     /// Initiates a client which will connect to the given address.
     public func connect(to address: ServerAddress) {
         let client = Client(
-            windowManager: windowManager.newClientWindowManager(clientController: self),
             system: system,
-            preferencesController: preferencesController,
-            address: address
+            userAuthenticationController: userAuthenticationController,
+            address: address,
+            resourceManager: resourceManager
         )
-        client.createAndShowWindow()
         clients.append(client)
+        applyActionToChainedObjects({ $0.clientController(self, didCreate: client) })
     }
 
     /// Creates a new client without a predefined server.
     public func createNewClient() {
         let client = Client(
-            windowManager: windowManager.newClientWindowManager(clientController: self),
             system: system,
-            preferencesController: preferencesController
+            userAuthenticationController: userAuthenticationController,
+            resourceManager: resourceManager
         )
-        client.createAndShowWindow()
         clients.append(client)
+        applyActionToChainedObjects({ $0.clientController(self, didCreate: client) })
     }
 
 	/// Forgets the reference to a client.
     public func destroyClient(_ client: Client) {
 		clients = clients.filter({ $0 !== client })
     }
+    
+    // MARK: - UpdateNotifier
+    
+    public var objectsWithLinkedActions: [() -> ReceivesClientControllerUpdates?] = []
 }

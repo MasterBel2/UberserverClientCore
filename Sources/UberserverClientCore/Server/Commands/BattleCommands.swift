@@ -173,29 +173,29 @@ struct SCJoinBattleCommand: SCCommand {
 	var description: String {
 		return "JOINBATTLE \(battleID) \(hashCode) \(channelName)"
 	}
-	
-	func execute(on client: Client) {
-        guard let server = client.server,
-            let myUsername = client.userAuthenticationController.credentials?.username,
-            let myID = client.id(forPlayerNamed: myUsername) else {
-            debugOnlyPrint("Error: was instructed to join a battle when not logged in!")
-            return
+    
+    func execute(on client: Client) {
+        client.inAuthenticatedState { authenticatedClient, connection in
+            guard let myID = authenticatedClient.myID else {
+                return
+            }
+            guard authenticatedClient.battleroom == nil else {
+                debugOnlyPrint("Was instructed to join a battleroom when already in one!")
+                return
+            }
+            guard let battle = authenticatedClient.battleList.items[battleID] else {
+                debugOnlyPrint("Was instructed to join a battleroom that doesn't exist!")
+                return
+            }
+            
+            // Must use client.userlist instead of battle.userlist because the client is added to the channel before he receives notification of a successful join of the battle.
+            let battleroomChannel = Channel(title: battle.channel, rootList: authenticatedClient.userList, sendAction: { [weak connection] channel, message in
+                connection?.send(CSSayCommand(channelName: battle.channel, message: message))
+            })
+            authenticatedClient.channelList.addItem(battleroomChannel, with: authenticatedClient.id(forChannelnamed: battleroomChannel.title))
+            let battleroom = Battleroom(battle: battle, channel: battleroomChannel, connection: connection, hashCode: hashCode, myID: myID)
+            authenticatedClient.battleroom = battleroom
         }
-		guard client.battleroom == nil else {
-			debugOnlyPrint("Was instructed to join a battleroom when already in one!")
-            return
-		}
-		guard let battle = client.battleList.items[battleID] else {
-			debugOnlyPrint("Was instructed to join a battleroom that doesn't exist!")
-            return
-		}
-		
-		// Must use client.userlist instead of battle.userlist because the client is added to the channel before he receives notification of a successful join of the battle.
-		let battleroomChannel = Channel(title: battle.channel, rootList: client.userList)
-		client.channelList.addItem(battleroomChannel, with: client.id(forChannelnamed: battleroomChannel.title))
-        let battleroom = Battleroom(battle: battle, channel: battleroomChannel, server: server, hashCode: hashCode, myID: myID)
-        client.battleroom = battleroom
-        client.windowManager.displayBattleroom(battleroom)
 	}
 }
 
@@ -254,12 +254,13 @@ struct SCClientBattleStatusCommand: SCCommand {
 	}
 	
 	func execute(on client: Client) {
-		guard let battleroom = client.battleroom,
-			let userID = client.id(forPlayerNamed: username) else {
-			return
-		}
-        battleroom.updateUserStatus(battleStatus, forUserIdentifiedBy: userID)
-		battleroom.colors[userID] = teamColor
+        client.inBattleroomState { battleroom, authenticatedClient, connection in
+            guard let userID = authenticatedClient.id(forPlayerNamed: username) else {
+                return
+            }
+            battleroom.updateUserStatus(battleStatus, forUserIdentifiedBy: userID)
+            battleroom.colors[userID] = teamColor
+        }
 	}
 	
 	var description: String {
@@ -278,14 +279,12 @@ struct SCRequestBattleStatusCommand: SCCommand {
 	init?(description: String) {}
 	
 	func execute(on client: Client) {
-        guard let battleroom = client.battleroom else {
-            return
+        client.inBattleroomState { battleroom, _, connection in
+            connection.send(CSMyBattleStatusCommand(
+                battleStatus: battleroom.myBattleStatus,
+                color: battleroom.myColor
+            ))
         }
-        
-        client.server?.send(CSMyBattleStatusCommand(
-            battleStatus: battleroom.myBattleStatus,
-            color: battleroom.myColor
-        ))
 	}
 	
 	var description: String {
@@ -333,13 +332,14 @@ struct SCAddBotCommand: SCCommand {
 	}
 	
 	func execute(on client: Client) {
-		guard let battleroom = client.battleroom,
-			let ownerID = client.id(forPlayerNamed: owner),
-			let ownerUser = client.userList.items[ownerID] else {
-				return
-		}
-		let bot = Battleroom.Bot(name: name, owner: ownerUser, status: battleStatus, color: teamColor)
-		battleroom.bots.append(bot)
+        client.inBattleroomState { battleroom, authenticatedClient, _ in
+            guard let ownerID = authenticatedClient.id(forPlayerNamed: owner),
+                  let ownerUser = authenticatedClient.userList.items[ownerID] else {
+                return
+            }
+            let bot = Battleroom.Bot(name: name, owner: ownerUser, status: battleStatus, color: teamColor)
+            battleroom.bots.append(bot)
+        }
 	}
 	
 	var description: String {
@@ -367,11 +367,9 @@ struct SCRemoveBotCommand: SCCommand {
 	}
 	
 	func execute(on client: Client) {
-		guard let battleroom = client.battleroom else {
-			return
-		}
-		battleroom.bots = battleroom.bots.filter { $0.name != botName }
-		
+        client.inBattleroomState { battleroom, _, _ in
+            battleroom.bots = battleroom.bots.filter { $0.name != botName }
+        }
 	}
 	
 	var description: String {
@@ -412,13 +410,14 @@ struct SCUpdateBotCommand: SCCommand {
 	}
 	
 	func execute(on client: Client) {
-		guard let battleroom = client.battleroom,
-			let bot = battleroom.bots.first(where: { $0.name == name }) else {
-				return
-		}
-		
-		bot.status = battleStatus
-		bot.color = teamColor
+        client.inBattleroomState { battleroom, _, _ in
+            guard let bot = battleroom.bots.first(where: { $0.name == name }) else {
+                    return
+            }
+            
+            bot.status = battleStatus
+            bot.color = teamColor
+        }
 	}
 	
 	var description: String {
@@ -474,10 +473,9 @@ struct SCAddStartRectCommand: SCCommand {
 	}
 	
 	func execute(on client: Client) {
-        guard let battleroom = client.battleroom else {
-            return
+        client.inBattleroomState { battleroom, _, _ in
+            battleroom.addStartRect(rect, for: allyNo)
         }
-		battleroom.addStartRect(rect, for: allyNo)
 	}
 	
 	var description: String {
@@ -506,7 +504,9 @@ struct SCRemoveStartRectCommand: SCCommand {
 	}
 	
 	func execute(on client: Client) {
-        client.battleroom?.removeStartRect(for: allyNo)
+        client.inBattleroomState { battleroom, _, _ in
+            battleroom.removeStartRect(for: allyNo)
+        }
 	}
 	
 	var description: String {
@@ -531,20 +531,21 @@ struct SCSetScriptTagsCommand: SCCommand {
 	}
 
 	func execute(on client: Client) {
-        for tag in tags {
-            switch tag.category {
-            case "players":
-                guard let battleroom = client.battleroom,
-                    tag.path[3] == "skill",
-                    let playerID = client.id(forPlayerNamed: tag.path[2]) else {
-                        continue
+        client.inBattleroomState { battleroom, authenticatedClient, _ in
+            for tag in tags {
+                switch tag.category {
+                case "players":
+                    guard tag.path[3] == "skill",
+                        let playerID = authenticatedClient.id(forPlayerNamed: tag.path[2]) else {
+                            continue
+                    }
+                    battleroom.trueSkills[playerID] = tag.value
+                    (battleroom.allyTeamLists + [battleroom.spectatorList]).filter({ $0.sortedItemsByID.contains(playerID)}).forEach({ $0.respondToUpdatesOnItem(identifiedBy: playerID) })
+                case "modoptions":
+                    battleroom.modOptions[tag.path[1]] = tag.value
+                default:
+                    print("Unrecognised script tag: \(tag)")
                 }
-                battleroom.trueSkills[playerID] = tag.value
-                (battleroom.allyTeamLists + [battleroom.spectatorList]).filter({ $0.sortedItemsByID.contains(playerID)}).forEach({ $0.respondToUpdatesOnItem(identifiedBy: playerID) })
-            case "modoptions":
-                client.battleroom?.modOptions[tag.path[1]] = tag.value
-            default:
-                print("Unrecognised script tag: \(tag)")
             }
         }
 	}
@@ -593,17 +594,22 @@ struct SCRemoveScriptTagsCommand: SCCommand {
 	}
 
 	func execute(on client: Client) {
-        for key in keys {
-            guard key.count >= 2 else { continue }
-            switch key[1] {
-            case "players":
-                guard key.count == 4, key[3] == "skill", let playerID = client.id(forPlayerNamed: key[2]) else { continue }
-                client.battleroom?.trueSkills.removeValue(forKey: playerID)
-            case "modOptions":
-                guard key.count == 3 else { continue }
-                client.battleroom?.modOptions.removeValue(forKey: key[2])
-            default:
-                continue
+        client.inBattleroomState { battleroom, authenticatedClient, _ in
+            for key in keys {
+                guard key.count >= 2 else { continue }
+                switch key[1] {
+                case "players":
+                    guard key.count == 4, key[3] == "skill",
+                          let playerID = authenticatedClient.id(forPlayerNamed: key[2]) else {
+                        continue
+                    }
+                    battleroom.trueSkills.removeValue(forKey: playerID)
+                case "modOptions":
+                    guard key.count == 3 else { continue }
+                    battleroom.modOptions.removeValue(forKey: key[2])
+                default:
+                    continue
+                }
             }
         }
 	}
@@ -670,12 +676,14 @@ struct SCJoinedBattleCommand: SCCommand {
 	}
 	
 	func execute(on client: Client) {
-		guard let battle = client.battleList.items[battleID],
-			let userID = client.id(forPlayerNamed: username) else {
-				return
-		}
-		battle.userList.addItemFromParent(id: userID)
-        client.battleList.respondToUpdatesOnItem(identifiedBy: battleID)
+        client.inAuthenticatedState { authenticatedClient, _ in
+            guard let battle = authenticatedClient.battleList.items[battleID],
+                let userID = authenticatedClient.id(forPlayerNamed: username) else {
+                    return
+            }
+            battle.userList.addItemFromParent(id: userID)
+            authenticatedClient.battleList.respondToUpdatesOnItem(identifiedBy: battleID)
+        }
 	}
 	
 	var description: String {
@@ -714,12 +722,14 @@ struct SCLeftBattleCommand: SCCommand {
 	}
 	
 	func execute(on client: Client) {
-		guard let battle = client.battleList.items[battleID],
-			let userID = client.id(forPlayerNamed: username) else {
-				return
-		}
-		battle.userList.removeItem(withID: userID)
-        client.battleList.respondToUpdatesOnItem(identifiedBy: battleID)
+        client.inAuthenticatedState { authenticatedClient, _ in
+            guard let battle = authenticatedClient.battleList.items[battleID],
+                  let userID = authenticatedClient.id(forPlayerNamed: username) else {
+                return
+            }
+            battle.userList.removeItem(withID: userID)
+            authenticatedClient.battleList.respondToUpdatesOnItem(identifiedBy: battleID)
+        }
 	}
 	
 	var description: String {
@@ -753,12 +763,14 @@ struct SCBattleClosedCommand: SCCommand {
 	}
 	
 	func execute(on client: Client) {
-        if let battle = client.battleroom?.battle,
-            battle === client.battleList.items[battleID] {
-            client.battleroom = nil
-            client.windowManager.destroyBattleroom()
+        client.inBattleroomState { battleroom, authenticatedClient, _ in
+            if battleroom.battle === authenticatedClient.battleList.items[battleID] {
+                authenticatedClient.battleroom = nil
+            }
         }
-		client.battleList.removeItem(withID: battleID)
+        client.inAuthenticatedState { authenticatedClient, _ in
+            authenticatedClient.battleList.removeItem(withID: battleID)
+        }
 	}
 	
 	var description: String {
@@ -901,13 +913,15 @@ struct SCUpdateBattleInfoCommand: SCCommand {
 	}
 	
 	func execute(on client: Client) {
-		guard let battle = client.battleList.items[battleID] else {
-			return
-		}
-		battle.spectatorCount = spectatorCount
-		battle.isLocked = locked
-		battle.mapIdentification = Battle.MapIdentification(name: mapName, hash: mapHash)
-        client.battleList.respondToUpdatesOnItem(identifiedBy: battleID)
+        client.inAuthenticatedState { authenticatedClient, _ in
+            guard let battle = authenticatedClient.battleList.items[battleID] else {
+                return
+            }
+            battle.spectatorCount = spectatorCount
+            battle.isLocked = locked
+            battle.mapIdentification = Battle.MapIdentification(name: mapName, hash: mapHash)
+            authenticatedClient.battleList.respondToUpdatesOnItem(identifiedBy: battleID)
+        }
 	}
 	
 	var description: String {
@@ -940,9 +954,10 @@ struct SCKickFromBattleCommand: SCCommand {
 	}
 	
 	func execute(on client: Client) {
-        client.battleroom = nil
-        client.windowManager.destroyBattleroom()
-		#warning("todo")
+        client.inBattleroomState { battleroom, authenticatedClient, _ in
+            authenticatedClient.battleroom = nil
+            #warning("todo: Notify the user")
+        }
 	}
 	
 	var description: String {
@@ -966,7 +981,9 @@ struct SCForceQuitBattleCommand: SCCommand {
 	init?(description: String) {}
 	
 	func execute(on client: Client) {
-		client.battleroom = nil
+        client.inBattleroomState { _, authenticatedClient, _ in
+            authenticatedClient.battleroom = nil
+        }
 	}
 	
 	var description: String {
@@ -997,7 +1014,9 @@ struct SCDisableUnitsCommand: SCCommand {
 	}
 	
 	func execute(on client: Client) {
-		client.battleroom?.disabledUnits.append(contentsOf: units)
+        client.inBattleroomState { battleroom, _, _ in
+            battleroom.disabledUnits.append(contentsOf: units)
+        }
 	}
 	
 	var description: String {
@@ -1028,7 +1047,9 @@ struct SCEnableUnitsCommand: SCCommand {
 	}
 	
 	func execute(on client: Client) {
-		client.battleroom?.disabledUnits.removeAll(where: { units.contains($0) })
+        client.inBattleroomState { battleroom, _, _ in
+            battleroom.disabledUnits.removeAll(where: { units.contains($0) })
+        }
 	}
 	
 	var description: String {

@@ -12,6 +12,12 @@ var springDataDirectory: URL {
     return NSHomeDirectoryURL().appendingPathComponent(".spring")
 }
 
+/// A set of functions called by a `RemoteResourceFetcher` to allow updates in response to a change in its state.
+public protocol ReceivesRemoteResourceFetcherUpdates {
+    /// Indicates that a download task is about to commence.
+    func remoteResourceFetcher(_ remoteResourceFetcher: RemoteResourceFetcher, willBeginDownloadOf resource: Resource)
+}
+
 // For downloading from rapid:
 // 1. Ensure cached versions.gz are up-to-date
 // 2. Locate resource in versions.gz
@@ -24,19 +30,19 @@ var springDataDirectory: URL {
 // 2. Check dependencies are dowloaded
 // 3. Download from mirror
 
-final class RemoteResourceFetcher: DownloaderDelegate {
+public final class RemoteResourceFetcher: DownloaderDelegate, UpdateNotifier {
 
     // MARK: - Dependencies
 
     private let downloadController: DownloadController
-	private let windowManager: WindowManager
+
+    public var objectsWithLinkedActions: [() -> ReceivesRemoteResourceFetcherUpdates?] = []
 
     /// In-progress download task cache.
     private var tasks: [UUID : URLSessionDownloadTask] = [:]
 
-	init(downloadController: DownloadController, windowManager: WindowManager) {
+	public init(downloadController: DownloadController) {
         self.downloadController = downloadController
-		self.windowManager = windowManager
     }
 
     // MARK: - Properties
@@ -48,8 +54,10 @@ final class RemoteResourceFetcher: DownloaderDelegate {
 
     /// Attempts to retrieve a resource from either Rapid or the SpringFiles API. The completion handler calls true for successful
     /// download, and false for a faliure.
-    func retrieve(_ resource: Resource, completionHandler: @escaping (Bool) -> Void) {
-		windowManager.presentDownloads(downloadController)
+    public func retrieve(_ resource: Resource, completionHandler: @escaping (Bool) -> Void) {
+
+        applyActionToChainedObjects({ $0.remoteResourceFetcher(self, willBeginDownloadOf: resource) })
+
         self.completionHandler = completionHandler
         switch resource {
         case .engine, .map:

@@ -30,9 +30,6 @@ public protocol System: AnyObject {
     var dataDirectory: URL { get }
     /// Spring's configuration/cache directory.
     var configDirectory: URL { get }
-
-    /// Provides platform based interfaces.
-    var windowManager: WindowManager { get }
 }
 
 #if os(macOS)
@@ -42,13 +39,10 @@ import Cocoa
 /// MacOS-specific system functions.
 public final class MacOS: System {
 
-    public init(windowManager: WindowManager) {
-        self.windowManager = windowManager
-    }
+    public init() {}
 
     // MARK: - Dependencies
     private let fileManager = FileManager.default
-    public let windowManager: WindowManager
     private(set) var processes: [Process] = []
 
     // MARK: - Directories

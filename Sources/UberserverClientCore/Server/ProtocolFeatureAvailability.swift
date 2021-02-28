@@ -11,8 +11,8 @@ import Foundation
 // https://springrts.com/dl/LobbyProtocol/ProtocolDescription.html
 
 /// Describes whether certain features are supported by the current protocol.
-struct ProtocolFeatureAvailability {
-    let serverProtocol: TASServer.ServerProtocol
+public struct ProtocolFeatureAvailability {
+    let serverProtocol: Connection.ServerProtocol
 
     var requiresVerificationCodeForChangeEmail: Bool {
         switch serverProtocol {

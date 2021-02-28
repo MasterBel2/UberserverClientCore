@@ -12,44 +12,25 @@ public final class ResourceManager {
 
 	/// Provides access to engine-related archives, such as mods, etc.
 	public let archiveLoader: DescribesArchivesOnDisk
-	
+    public let replayController: ReplayController
     private let remoteResourceFetcher: RemoteResourceFetcher
 
     private let queue = DispatchQueue(label: "com.believeandrise.resourcemanager")
     
     // MARK: - Creating a Resource Manager
-    
-    public static func make(downloadController: DownloadController, windowManager: WindowManager, archiveLoader: DescribesArchivesOnDisk) {
-        ResourceManager.default = ResourceManager(downloadController: downloadController, windowManager: windowManager, archiveLoader: archiveLoader)
-    }
-    
-    private static var _default: ResourceManager?
-    public static var `default`: ResourceManager {
-        set {
-            _default = newValue
-        }
-        get {
-            if let resourceManager = _default {
-                return resourceManager
-            } else {
-                fatalError("ResourceManager has not been set; call ResourceManager.make(downloadController:windowManager:archiveLoader:) to initialise this property")
-            }
-        }
-    }
 
-    private init(downloadController: DownloadController, windowManager: WindowManager, archiveLoader: DescribesArchivesOnDisk) {
-        remoteResourceFetcher = RemoteResourceFetcher(
-			downloadController: downloadController,
-			windowManager: windowManager
-		)
+    public init(replayController: ReplayController, remoteResourceFetcher: RemoteResourceFetcher, archiveLoader: DescribesArchivesOnDisk) {
+        self.remoteResourceFetcher = remoteResourceFetcher
 		self.archiveLoader = archiveLoader
+        self.replayController = replayController
     }
 
     // MARK: - Controlling resources
 
-    /// Loads engines, maps, then games.
+    /// Begins an asynchronous load of all data on disk, beginning with sync-necessary items (such as engines, games, and maps.)
     public func loadLocalResources() {
 		archiveLoader.load()
+        try? replayController.loadReplays()
     }
     
     public func loadEngine(version: String, shouldDownload: Bool, completionHandler: @escaping (Result<Engine, Error>) -> Void) {

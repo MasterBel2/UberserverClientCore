@@ -12,28 +12,8 @@ public struct LoginError: LocalizedError, CustomStringConvertible {
     public let description: String
 }
 
-public protocol LoginDelegate: AnyObject {
-    func submitLogin(
-        username: String,
-        password: String,
-        completionHandler: @escaping (Result<String, LoginError>) -> Void
-    )
-    func submitRegister(
-        username: String,
-        email: String,
-        password: String,
-        completionHandler: @escaping (String?) -> Void
-    )
-    var prefillableUsernames: [String] { get }
-    var lastCredentialsPair: Credentials? { get }
-}
-
 /// A controller for the user authentication process.
-public final class UserAuthenticationController: LoginDelegate {
-
-    // MARK: - Data
-
-    public private(set) var credentials: Credentials?
+public final class UserAuthenticationController {
 
     // MARK: - Dependencies
 
@@ -47,21 +27,17 @@ public final class UserAuthenticationController: LoginDelegate {
 
     /// A string that uniquely identifies the server
     private var serverDescription: String? {
-        if let server = client.server {
-            return server.description
+        if let connection = client.connection {
+            return connection.address.description
         }
         return nil
     }
 
     // MARK: - Lifecycle
 
-    init(preferencesController: PreferencesController) {
+    public init(preferencesController: PreferencesController) {
         self.preferencesController = preferencesController
         credentialsManager = CredentialsManager.shared
-    }
-
-    func reset() {
-        credentials = nil
     }
 
     // MARK: - LoginDataSource
@@ -82,80 +58,84 @@ public final class UserAuthenticationController: LoginDelegate {
         return nil
     }
 
-    // MARK: - LoginDelegate
+    // MARK: - Logging In
 
     /// Performs a registration attempt, and calls the completion handler on a response.
     ///
     /// The completion handler's argument is the username of the account logged in, or an error.
     public func submitLogin(username: String, password: String, completionHandler: @escaping (Result<String, LoginError>) -> Void) {
-        client.server?.send(
-            CSLoginCommand(
-                username: username,
-                password: password,
-                compatabilityFlags: [
-                    .sayForBattleChatAndSayFrom,
-                    .springEngineVersionAndNameInBattleOpened,
-                    .lobbyIDInAddUser,
-                    .joinBattleRequestAcceptDeny,
-                    .scriptPasswords
-                ]
-            ),
-            specificHandler: { [weak self] (command: SCCommand) in
-                guard let self = self else { return true }
-                if let loginAcceptedCommand = command as? SCLoginAcceptedCommand {
-                    self.record(Credentials(username: loginAcceptedCommand.username, password: password))
-                    completionHandler(.success(loginAcceptedCommand.username))
-                } else if let loginDeniedCommand = command as? SCLoginDeniedCommand {
-                    completionHandler(.failure(LoginError(description: loginDeniedCommand.reason)))
-                } else {
-//                    completionHandler(.failure(LoginError(description: "A server error occured.")))
-                    return false
+        client.inConnectedState { connection in
+            connection.send(
+                CSLoginCommand(
+                    username: username,
+                    password: password,
+                    compatabilityFlags: [
+                        .sayForBattleChatAndSayFrom,
+                        .springEngineVersionAndNameInBattleOpened,
+                        .lobbyIDInAddUser,
+                        .joinBattleRequestAcceptDeny,
+                        .scriptPasswords
+                    ]
+                ),
+                specificHandler: { [weak self] (command: SCCommand) in
+                    guard let self = self else { return true }
+                    if let loginAcceptedCommand = command as? SCLoginAcceptedCommand {
+                        self.record(Credentials(username: loginAcceptedCommand.username, password: password))
+                        connection.authenticatedClient = AuthenticatedClient(username: loginAcceptedCommand.username, password: password, connection: connection)
+                        completionHandler(.success(loginAcceptedCommand.username))
+                    } else if let loginDeniedCommand = command as? SCLoginDeniedCommand {
+                        completionHandler(.failure(LoginError(description: loginDeniedCommand.reason)))
+                    } else {
+                        //                    completionHandler(.failure(LoginError(description: "A server error occured.")))
+                        return false
+                    }
+                    return true
                 }
-                return true
-            }
-        )
+            )
+        }
     }
 
     /// Performs a registration attempt, and calls the completion handler on a response.
     ///
     /// The completion handler's argument is an error, or nil.
     public func submitRegister(username: String, email: String, password: String, completionHandler: @escaping (String?) -> Void) {
-        client.server?.send(
-            CSRegisterCommand(
-                username: username,
-                password: password
-            ),
-            specificHandler: { [weak self] (command: SCCommand) in
-                guard let self = self else { return true }
-                if command is SCRegistrationAcceptedCommand {
-                    completionHandler(nil)
-                    self.submitLogin(
-                        username: username,
-                        password: password,
-                        completionHandler: { result in
-                            switch result {
-                            case .success:
-                                break
-                            case .failure(let error):
-                                fatalError("Login failed: \(error.description)")
+        client.inConnectedState { connection in
+            connection.send(
+                CSRegisterCommand(
+                    username: username,
+                    password: password
+                ),
+                specificHandler: { [weak self] (command: SCCommand) in
+                    guard let self = self else { return true }
+                    if command is SCRegistrationAcceptedCommand {
+                        completionHandler(nil)
+                        self.submitLogin(
+                            username: username,
+                            password: password,
+                            completionHandler: { result in
+                                switch result {
+                                case .success:
+                                    break
+                                case .failure(let error):
+                                    fatalError("Login failed: \(error.description)")
+                                }
                             }
-                        }
-                    )
-                } else if let deniedCommand = command as? SCRegistrationDeniedCommand {
-                    completionHandler(deniedCommand.reason)
-                } else {
-//                    completionHandler("A server error occured.")
-                    return false
+                        )
+                    } else if let deniedCommand = command as? SCRegistrationDeniedCommand {
+                        completionHandler(deniedCommand.reason)
+                    } else {
+                        //                    completionHandler("A server error occured.")
+                        return false
+                    }
+                    return true
                 }
-                return true
-            }
-        )
+            )
+        }
     }
 
     private func record(_ credentials: Credentials) {
         if let serverDescription = serverDescription {
             preferencesController.setLastUsername(credentials.username, for: serverDescription)
-            self.credentials = credentials
             try? credentialsManager.writeCredentials(
                 credentials, forServerWithAddress: serverDescription)
         }

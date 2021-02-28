@@ -9,144 +9,155 @@
 import Foundation
 import ServerAddress
 
+public protocol ReceivesClientUpdates {
+    /// Indicates that the client has created a `Connection` object that it will use to connect to a server.
+    func client(_ client: Client, didPrepare connection: Connection)
+    /// Indicates that the client is about to destroy its connection object, usually directly after the connection disconnects from a server.
+    func client(_ client: Client, willDestroy connection: Connection)
+}
+
+public extension ReceivesClientUpdates {
+    func client(_ client: Client, didPrepare connection: Connection) {}
+    func client(_ client: Client, willDestroy connection: Connection) {}
+}
+
 /**
- An object that at an abstract level represents a client between a user and the server.
+ A client encapsulates a single connection to a server.
 
- A client handles the top-level data and windows associated with a client-server connection, as well as handling the outputting of commands back to the server.
-
- Updates received from the server are processed by instances of the SCServerCommand protocol. The Client object simply manages the interactions between its various components as needed.
+ The connection is described by the client's `connection` property.
+ A the `connection` property may be initialized by calling the `connect(to serverAddress:)` instance method.
  */
-public final class Client {
+public final class Client: UpdateNotifier {
+    
+    // MARK: - Client State
 
-    // MARK: - Delegating tasks
+    /// Executes a block if the client is not connected to a server, logging an error on failure.
+    public func inDisconnectedState<ReturnType>(_ block: () -> ReturnType, file: String = #file, function: String = #function, line: Int = #line) -> ReturnType? {
+        if connection == nil {
+            return block()
+        } else {
+            Logger.log("\(file):\(line) \(function): Client is not disconnected.", tag: .ClientStateError)
+            return nil
+        }
+    }
 
-    /// Provides platform-specific windows.
-    public let windowManager: ClientWindowManager
+    /// Executes a block if the client is connected to a server, logging an error on failure.
+    public func inConnectedState<ReturnType>(_ block: (Connection) -> ReturnType, file: String = #file, function: String = #function, line: Int = #line) -> ReturnType? {
+        if let connection = connection {
+            return block(connection)
+        } else {
+            Logger.log("\(file):\(line) \(function): Client is not connected to a server.", tag: .ClientStateError)
+            return nil
+        }
+    }
+
+    /// Executes a block if the client is authenticated with a server, logging an error on failure.
+    public func inAuthenticatedState<ReturnType>(_ block: (AuthenticatedClient, Connection) -> ReturnType, file: String = #file, function: String = #function, line: Int = #line) -> ReturnType? {
+        let result = inConnectedState({ (connection: Connection) -> ReturnType? in
+            if let authenticatedClient = connection.authenticatedClient {
+                return block(authenticatedClient, connection)
+            } else {
+                return nil
+            }
+        })
+        if let result = result {
+            return result
+        } else {
+            Logger.log("\(file):\(line) \(function): User is not authenticated.", tag: .ClientStateError)
+            return nil
+        }
+    }
+
+    /// Executes a block if the client is in a battleroom, logging an error on failure.
+    public func inBattleroomState<ReturnType>(_ block: (Battleroom, AuthenticatedClient, Connection) -> ReturnType, file: String = #file, function: String = #function, line: Int = #line) -> ReturnType? {
+        let result = inAuthenticatedState { (authenticatedClient: AuthenticatedClient, connection: Connection) -> ReturnType? in
+            if let battleroom = authenticatedClient.battleroom {
+                return block(battleroom, authenticatedClient, connection)
+            } else {
+                return nil
+            }
+        }
+        if let result = result {
+            return result
+        } else {
+            Logger.log("\(file):\(line) \(function): User is not in a battleroom.", tag: .ClientStateError)
+            return nil
+        }
+    }
+
+    // MARK: - System data
+
+    public let resourceManager: ResourceManager
     public let system: System
 
-    // MARK: - Server
-
-    public private(set) var server: TASServer?
-    var featureAvailability: ProtocolFeatureAvailability?
-    /// Processes chat-related information directed back towards the server
+    // MARK: - Chaining Updates
+    
+    public var objectsWithLinkedActions: [() -> ReceivesClientUpdates?] = []
 
     // MARK: - Controlling specific data & interactions
 
-    /// The user's preferences controller.
-    public let preferencesController: PreferencesController
-    public let chatController: ChatController
-	public internal(set) var battleroom: Battleroom?
+    ///
     public let accountInfoController = AccountInfoController()
-    /// The server.
+
+    /// The The
     public let userAuthenticationController: UserAuthenticationController
-    
-    // MARK: - Actions
-    
-    private lazy var withAddressInitialiseServer: (ServerAddress) -> Void = { [weak self] serverAddress in
-        self?.initialiseServer(serverAddress)
-    }
 
-    // MARK: - Data
+    // MARK: -
 
-    /// Returns the User object associated with the account the client has connected to the server with.
-    public var connectedAccount: User? {
-        guard let username = userAuthenticationController.credentials?.username,
-        let userID = id(forPlayerNamed: username) else {
-            return nil
-        }
-        return userList.items[userID]
-    }
+    public private(set) var connection: Connection?
 
-    public let channelList = List<Channel>(title: "All Channels", sortKey: .title)
-    public let privateMessageList = List<Channel>(title: "Private Messages", sortKey: .title)
-    public let forwardedMessageList = List<Channel>(title: "Forwarded Messages", sortKey: .title)
-    public let userList = List<User>(title: "All Users", sortKey: .rank)
-    public let battleList = List<Battle>(title: "All Battles", sortKey: .playerCount)
+    // MARK: - Creating a Client
 
-    // MARK: - Lifecycle
-
-
-    public init(windowManager: ClientWindowManager, system: System, preferencesController: PreferencesController, address: ServerAddress? = nil) {
+    public init(system: System, userAuthenticationController: UserAuthenticationController, address: ServerAddress? = nil, resourceManager: ResourceManager) {
 
         // Initialise values
 
-        self.windowManager = windowManager
         self.system = system
-        self.preferencesController = preferencesController
+        self.resourceManager = resourceManager
 
-        self.userAuthenticationController = UserAuthenticationController(preferencesController: preferencesController)
-        self.chatController = ChatController(windowManager: windowManager)
+        self.userAuthenticationController = userAuthenticationController
 
         // Configuration
 
-        windowManager.configure(for: self)
-
-        chatController.client = self
         accountInfoController.client = self
         userAuthenticationController.client = self
 
         // Initialise server
         if let address = address {
-            initialiseServer(address)
+            connect(to: address)
         }
     }
+
+    // MARK: - Managing the Client's Connection
 
     func reset() {
-        channelList.clear()
-        userList.clear()
-        battleList.clear()
+        if let connection = connection {
+            applyActionToChainedObjects({ $0.client(self, willDestroy: connection) })
+            connection.disconnect()
+            self.connection = nil
+        }
 
-        windowManager.resetServerWindows()
-
-        userAuthenticationController.reset()
-
-        chatController.channels = []
-        battleroom = nil
         accountInfoController.invalidate()
-
-        server?.disconnect()
-        server = nil
-
-        windowManager.selectServer(completionHandler: withAddressInitialiseServer)
     }
-
-    // MARK: - Interacting with the server client
-
-    /// Disconnects from the current server and connects to a new one.
-	func redirect(to address: ServerAddress) {
-        if let server = server {
-            server.redirect(to: address)
-        } else {
-            initialiseServer(address)
-        }
-		#warning("Pass information to the user!")
-	}
 	
-	public func initialiseServer(_ address: ServerAddress) {
-        let server = TASServer(address: address, client: self, baseCacheDirectory: system.configDirectory)
-        chatController.server = server
-
-        server.connect()
-		
-		self.server = server
+	public func connect(to address: ServerAddress) {
+        if let connection = connection {
+            connection.redirect(to: address)
+        } else {
+            let connection = Connection(
+                address: address,
+                client: self,
+                userAuthenticationController: userAuthenticationController,
+                baseCacheDirectory: system.configDirectory
+            )
+            applyActionToChainedObjects({ $0.client(self, didPrepare: connection) })
+            connection.connect()
+            
+            self.connection = connection
+        }
 	}
 
-    // MARK: - Window
-
-    /// 
-    func createAndShowWindow() {
-        windowManager.presentInitialWindow()
-        if server == nil {
-            windowManager.selectServer(completionHandler: withAddressInitialiseServer)
-        }
-    }
-
-    // MARK: - Presenting information
-
-    /// Presents a login control to the user.
-    func presentLogin() {
-        windowManager.presentLogin(controller: userAuthenticationController)
-    }
+    // MARK: - Receiving Messages from the Server
 
     /// Handles an error from the server.
     func receivedError(_ error: ServerError) {
@@ -184,80 +195,5 @@ public final class Client {
             guard let ingameTime = Int(ingameTimeString) else { return }
             accountInfoController.setIngameHours(ingameTime)
         }
-    }
-
-    // MARK: - Helpers
-
-    var myID: Int? {
-        if let myUsername = userAuthenticationController.credentials?.username {
-            return id(forPlayerNamed: myUsername)
-        }
-        return nil
-    }
-
-    /// Returns ID of a player, if they are online.
-    func id(forPlayerNamed username: String) -> Int? {
-        return userList.items.first { (_, user) in
-            return user.profile.fullUsername.lowercased() == username.lowercased()
-        }?.key
-    }
-
-    /// The unique integer ID of channels, keyed by their name.
-	private var channelIDs: [String : Int] = [:]
-    /// Retrieves the unique integer ID for a channel.
-	func id(forChannelnamed channelName: String) -> Int {
-		if let id = channelIDs[channelName] {
-			return id
-		} else {
-			let id = channelIDs.count
-			channelIDs[channelName] = id
-			return id
-		}
-	}
-
-    func privateMessageChannel(withUserNamed username: String, userID: Int) -> Channel? {
-        guard let myID = myID else { return nil }
-
-        let channelID = id(forChannelnamed: username)
-        
-        let channel: Channel
-        if let cachedChannel = privateMessageList.items[channelID] {
-            channel = cachedChannel
-        } else {
-            channel = Channel(title: username, rootList: userList)
-            channel.userlist.addItemFromParent(id: userID)
-            channel.userlist.addItemFromParent(id: myID)
-
-            privateMessageList.addItem(channel, with: channelID)
-        }
-        return channel
-    }
-    
-    // MARK: - Battleroom
-    
-    public func joinBattle(_ battleID: Int) {
-        guard let battle = battleList.items[battleID],
-              battle !== battleroom?.battle else {
-            return
-        }
-        
-        if battleroom != nil {
-            leaveBattle()
-        }
-        
-        if battle.hasPassword {
-            // TODO: Prompt for password
-        } else {
-            server?.send(CSJoinBattleCommand(battleID: battleID, password: nil, scriptPassword: battle.myScriptPassword))
-        }
-    }
-    
-    /// Removes the player from the battle; first locally, then with a message to the server.
-    public func leaveBattle() {
-        guard battleroom != nil else { return }
-        battleroom = nil
-        windowManager.destroyBattleroom()
-
-        server?.send(CSLeaveBattleCommand())
     }
 }

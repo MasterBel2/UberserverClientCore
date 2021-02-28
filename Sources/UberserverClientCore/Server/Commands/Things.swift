@@ -66,7 +66,9 @@ public struct SCRedirectCommand: SCCommand {
 	}
 	
     public func execute(on client: Client) {
-		client.redirect(to: ServerAddress(location: ip, port: port))
+        client.inConnectedState { connection in
+            connection.redirect(to: ServerAddress(location: ip, port: port))
+        }
 	}
 	
     public var description: String {

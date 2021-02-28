@@ -79,9 +79,11 @@ public struct SCAddUserCommand: SCCommand {
     }
 
     public func execute(on client: Client) {
-        let userProfile = User.Profile(id: userID, fullUsername: username, lobbyID: lobbyID)
-        let user = User(profile: userProfile)
-        client.userList.addItem(user, with: userID)
+        client.inAuthenticatedState { authenticatedClient, _ in
+            let userProfile = User.Profile(id: userID, fullUsername: username, lobbyID: lobbyID)
+            let user = User(profile: userProfile)
+            authenticatedClient.userList.addItem(user, with: userID)
+        }
     }
 
     public var description: String {
@@ -111,10 +113,12 @@ public struct SCRemoveUserCommand: SCCommand {
 	}
 	
     public func execute(on client: Client) {
-		guard let userID = client.id(forPlayerNamed: username) else {
-			return
-		}
-		client.userList.removeItem(withID: userID)
+        client.inAuthenticatedState { authenticatedClient, _ in
+            guard let userID = authenticatedClient.id(forPlayerNamed: username) else {
+                return
+            }
+            authenticatedClient.userList.removeItem(withID: userID)
+        }
 	}
 	
     public var description: String {
@@ -146,22 +150,24 @@ public struct SCClientStatusCommand: SCCommand {
 	}
 	
     public func execute(on client: Client) {
-		guard let userID = client.id(forPlayerNamed: username),
-			let user = client.userList.items[userID] else {
-				return
-		}
-
-        // Update battleroom before we update the status, so we can access the previous status
-        if let battleroom = client.battleroom,
-            userID == battleroom.battle.founderID,
-            user.status.isIngame != status.isIngame,
-			status.isIngame {
-			battleroom.startGame()
+        client.inAuthenticatedState { authenticatedClient, _ in
+            guard let userID = authenticatedClient.id(forPlayerNamed: username),
+                  let user = authenticatedClient.userList.items[userID] else {
+                return
+            }
+            
+            // Update battleroom before we update the status, so we can access the previous status
+            if let battleroom = authenticatedClient.battleroom,
+               userID == battleroom.battle.founderID,
+               user.status.isIngame != status.isIngame,
+               status.isIngame {
+                battleroom.startGame()
+            }
+            
+            user.status = status
+            
+            authenticatedClient.userList.respondToUpdatesOnItem(identifiedBy: userID)
         }
-
-		user.status = status
-		
-		client.userList.respondToUpdatesOnItem(identifiedBy: userID)
 	}
 	
     public var description: String {

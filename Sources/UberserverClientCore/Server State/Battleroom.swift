@@ -69,10 +69,10 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
 
     // MARK: - Data
     
-    private weak var server: TASServer?
-    
     // MARK: - Dependencies
 
+    /// The server connection associated with this battleroom.
+    private weak var connection: Connection?
     /// The battleroom's associated battle.
     public let battle: Battle
     /// The battleroom's associated channel.
@@ -142,7 +142,7 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
 
     // MARK: - Lifecycle
 
-    init(battle: Battle, channel: Channel, server: TASServer, hashCode: Int32, myID: Int) {
+    init(battle: Battle, channel: Channel, connection: Connection, hashCode: Int32, myID: Int) {
         self.battle = battle
         self.hashCode = hashCode
         self.channel = channel
@@ -155,7 +155,7 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
         allyTeamLists = (0...15).map({ List(title: "Ally \(String($0 + 1))", sorter: battleroomSorter, parent: battle.userList) })
         spectatorList = List<User>(title: "Spectators", sorter: battleroomSorter, parent: battle.userList)
         
-        self.server = server
+        self.connection = connection
 
         battleroomSorter.battleroom = self
         battle.addObject(self)
@@ -255,7 +255,7 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
     
     public func startGame() {
         #warning("Consider moving this to Battle")
-        guard let server = server,
+        guard let connection = connection,
             let myAccount = battle.userList.items[myID] else {
             return
         }
@@ -263,13 +263,18 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
             #warning("Throw an error here!")
             return
         }
-        server.send(CSMyStatusCommand(status: myAccount.status.changing(isIngame: true)))
-        server.send(CSMyBattleStatusCommand(battleStatus: myBattleStatus.changing(isReady: false), color: myColor))
+        connection.send(CSMyStatusCommand(status: myAccount.status.changing(isIngame: true)))
+        setBattleStatus(myBattleStatus.changing(isReady: false))
         
         let specification = ClientSpecification(ip: battle.ip, port: battle.port, username: myAccount.profile.username, scriptPassword: battle.myScriptPassword)
-        try? engine.launchGame(script: specification, doRecordDemo: true) { [weak self] in
-            self?.server?.send(CSMyStatusCommand(status: myAccount.status.changing(isIngame: false)))
+        try? engine.launchGame(script: specification, doRecordDemo: true) { [weak connection] in
+            connection?.send(CSMyStatusCommand(status: myAccount.status.changing(isIngame: false)))
         }
+    }
+
+    /// Informs the server that the user's status updated.
+    public func setBattleStatus(_ newBattleStatus: Battleroom.UserStatus) {
+        connection?.send(CSMyBattleStatusCommand(battleStatus: newBattleStatus, color: myColor))
     }
     
     // MARK: - UpdateNotifier
@@ -284,12 +289,7 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
     public func loadedGameArchive(_ gameArchive: ModArchive) { updateSync() }
     
     private func updateSync() {
-        server?.send(
-            CSMyBattleStatusCommand(
-                battleStatus: myBattleStatus.changing(syncStatus: battle.isSynced ? .synced : .unsynced),
-                color: myColor
-            )
-        )
+        setBattleStatus(myBattleStatus.changing(syncStatus: battle.isSynced ? .synced : .unsynced))
     }
 
     // MARK: - ListDelegate

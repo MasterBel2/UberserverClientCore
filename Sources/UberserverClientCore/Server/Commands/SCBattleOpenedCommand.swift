@@ -86,34 +86,34 @@ public struct SCBattleOpenedCommand: SCCommand {
     // MARK: - Behaviour
     
     public func execute(on client: Client) {
-        guard let server = client.server else {
-            return
+        client.inAuthenticatedState { authenticatedClient, connection in
+            guard let founderID = authenticatedClient.id(forPlayerNamed: founder) else {
+                fatalError("Could not find battle host with username \(founder)")
+            }
+            let battle = Battle(
+                serverUserList: authenticatedClient.userList,
+                isReplay: isReplay,
+                natType: natType,
+                founder: founder,
+                founderID: founderID,
+                ip: ip,
+                port: port,
+                maxPlayers: maxPlayers,
+                hasPassword: passworded,
+                rank: rank,
+                mapHash: mapHash,
+                engineName: engineName,
+                engineVersion: engineVersion,
+                mapName: mapName,
+                title: title,
+                gameName: gameName,
+                channel: channel,
+                scriptPasswordCacheDirectory: connection.cacheDirectory.appendingPathComponent("Script Passwords"),
+                resourceManager: client.resourceManager
+            )
+            
+            authenticatedClient.battleList.addItem(battle, with: battleID)
         }
-        guard let founderID = client.id(forPlayerNamed: founder) else {
-            fatalError("Could not find battle host with username \(founder)")
-        }
-        let battle = Battle(
-            serverUserList: client.userList,
-            isReplay: isReplay,
-            natType: natType,
-            founder: founder,
-            founderID: founderID,
-            ip: ip,
-            port: port,
-            maxPlayers: maxPlayers,
-			hasPassword: passworded,
-            rank: rank,
-            mapHash: mapHash,
-            engineName: engineName,
-            engineVersion: engineVersion,
-            mapName: mapName,
-            title: title,
-            gameName: gameName,
-            channel: channel,
-            scriptPasswordCacheDirectory: server.cacheDirectory.appendingPathComponent("Script Passwords")
-        )
-
-        client.battleList.addItem(battle, with: battleID)
     }
 
     // MARK: - String representation

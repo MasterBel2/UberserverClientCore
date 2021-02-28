@@ -35,6 +35,10 @@ public extension ReceivesBattleUpdates {
 }
 
 public final class Battle: UpdateNotifier, Sortable {
+    
+    // MARK: - Dependencies
+    
+    let resourceManager: ResourceManager
 
     // MARK: - Server State
     
@@ -110,14 +114,14 @@ public final class Battle: UpdateNotifier, Sortable {
     }
     
     public func loadEngine() {
-        engine = ResourceManager.default.archiveLoader.engines.first(where: { $0.syncVersion == engineVersion })
+        engine = resourceManager.archiveLoader.engines.first(where: { $0.syncVersion == engineVersion })
         if let engine = engine {
             applyActionToChainedObjects({ $0.loadedEngine(engine) })
         }
     }
     
     public func loadGame() {
-        gameArchive = ResourceManager.default.archiveLoader.modArchives.first(where: { $0.name == gameName })
+        gameArchive = resourceManager.archiveLoader.modArchives.first(where: { $0.name == gameName })
         if let gameArchive = gameArchive {
             applyActionToChainedObjects({ $0.loadedGameArchive(gameArchive) })
         }
@@ -125,7 +129,7 @@ public final class Battle: UpdateNotifier, Sortable {
     
     /// Updates sync status, and loads minimap if the map is found.
     public func loadMap() {
-        ResourceManager.default.loadMap(named: mapIdentification.name, checksum: mapIdentification.hash, preferredVersion: engineVersion, shouldDownload: shouldAutomaticallyDownloadMap) { [weak self] result in
+        resourceManager.loadMap(named: mapIdentification.name, checksum: mapIdentification.hash, preferredVersion: engineVersion, shouldDownload: shouldAutomaticallyDownloadMap) { [weak self] result in
             guard let self = self else {
                 return
             }
@@ -156,7 +160,7 @@ public final class Battle: UpdateNotifier, Sortable {
     init(serverUserList: List<User>,
         isReplay: Bool, natType: NATType, founder: String, founderID: Int, ip: String, port: Int,
         maxPlayers: Int, hasPassword: Bool, rank: Int, mapHash: Int32, engineName: String,
-        engineVersion: String, mapName: String, title: String, gameName: String, channel: String, scriptPasswordCacheDirectory: URL) {
+        engineVersion: String, mapName: String, title: String, gameName: String, channel: String, scriptPasswordCacheDirectory: URL, resourceManager: ResourceManager) {
         
         // Setup
 
@@ -177,6 +181,8 @@ public final class Battle: UpdateNotifier, Sortable {
         self.gameName = gameName
 
         self.channel = channel
+        
+        self.resourceManager = resourceManager
 		
 		userList = List<User>(title: "", sortKey: .rank, parent: serverUserList)
         

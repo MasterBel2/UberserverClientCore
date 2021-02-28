@@ -14,16 +14,18 @@ import Foundation
 // - SCLeftCommand
 
 private func addUsersToChannel(named channelName: String, on client: Client, usernames: [String]) {
-    guard let channel = client.channelList.items[client.id(forChannelnamed: channelName)] else {
-		return
-	}
-	
-	for username in usernames {
-		guard let id = client.id(forPlayerNamed: username) else {
-			continue
-		}
-		channel.userlist.addItemFromParent(id: id)
-	}
+    client.inAuthenticatedState { authenticatedClient, _ in
+        guard let channel = authenticatedClient.channelList.items[authenticatedClient.id(forChannelnamed: channelName)] else {
+            return
+        }
+        
+        for username in usernames {
+            guard let id = authenticatedClient.id(forPlayerNamed: username) else {
+                continue
+            }
+            channel.userlist.addItemFromParent(id: id)
+        }
+    }
 }
 
 // MARK: - Functions
@@ -134,14 +136,16 @@ struct SCLeftCommand: SCCommand {
     var description: String {
         return "LEFT \(channelName) \(username) \(reason)"
     }
-
+    
     func execute(on client: Client) {
-		let channelID = client.id(forChannelnamed: channelName)
-        guard let channel = client.channelList.items[channelID],
-			let id = client.id(forPlayerNamed: username)
-			else {
-				return
-		}
-		channel.userlist.removeItem(withID: id)
+        client.inAuthenticatedState { authenticatedClient, _ in
+            let channelID = authenticatedClient.id(forChannelnamed: channelName)
+            guard let channel = authenticatedClient.channelList.items[channelID],
+                  let id = authenticatedClient.id(forPlayerNamed: username)
+            else {
+                return
+            }
+            channel.userlist.removeItem(withID: id)
+        }
     }
 }
