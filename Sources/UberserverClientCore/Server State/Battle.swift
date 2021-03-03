@@ -34,7 +34,7 @@ public extension ReceivesBattleUpdates {
     func hostIsInGameChanged(to hostIsIngame: Bool) {}
 }
 
-public final class Battle: UpdateNotifier, Sortable {
+public final class Battle: UpdateNotifier {
     
     // MARK: - Dependencies
     
@@ -184,7 +184,7 @@ public final class Battle: UpdateNotifier, Sortable {
         
         self.resourceManager = resourceManager
 		
-		userList = List<User>(title: "", sortKey: .rank, parent: serverUserList)
+        userList = List<User>(title: "", property: { $0.status.rank }, parent: serverUserList)
         
         myScriptPassword = {
             let directory = scriptPasswordCacheDirectory.appendingPathComponent(String(founderID))
@@ -205,27 +205,14 @@ public final class Battle: UpdateNotifier, Sortable {
         loadGame()
         loadMap()
     }
-    
-    // MARK: - UpdateNotifier
-    
-    public var objectsWithLinkedActions: [() -> ReceivesBattleUpdates?] = []
-	
-	// MARK: - Sortable
-	
-	public enum PropertyKey {
-		case playerCount
-	}
-	
-	public func relationTo(_ other: Battle, forSortKey sortKey: Battle.PropertyKey) -> ValueRelation {
-		switch sortKey {
-		case .playerCount:
-			return ValueRelation(value1: self.playerCount, value2: other.playerCount)
-		}
-	}
-    
+
     public enum NATType: Int {
         case none
         case holePunching
         case fixedSourcePorts
     }
+    
+    // MARK: - UpdateNotifier
+    
+    public var objectsWithLinkedActions: [() -> ReceivesBattleUpdates?] = []
 }

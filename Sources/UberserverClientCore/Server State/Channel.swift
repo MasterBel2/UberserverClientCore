@@ -8,7 +8,7 @@
 
 import Foundation
 
-public final class Channel: Sortable {
+public final class Channel {
 
     public let title: String
     public let userlist: List<User>
@@ -31,22 +31,11 @@ public final class Channel: Sortable {
         topic = title
         self.title = title
         self.sendAction = sendAction
-        userlist = List<User>(title: title, sortKey: .rank, parent: rootList)
-        messageList = List<ChatMessage>(title: title, sortKey: .time)
+        userlist = List<User>(title: title, property: { $0.status.rank }, parent: rootList)
+        messageList = List<ChatMessage>(title: title, property: { $0.time })
     }
 
-    // MARK: - Sortable
-
-    public enum PropertyKey {
-        case title
-    }
-
-    public func relationTo(_ other: Channel, forSortKey sortKey: Channel.PropertyKey) -> ValueRelation {
-        switch sortKey {
-        case .title:
-			return ValueRelation(value1: self.title, value2: other.title)
-        }
-    }
+    // MARK: - Messages
 
     func receivedNewMessage(_ message: ChatMessage) {
         messageList.addItem(message, with: messageList.sortedItemCount)

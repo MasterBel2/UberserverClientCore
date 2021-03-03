@@ -9,7 +9,7 @@
 import Foundation
 
 /// A chat message received from another client in a channel or private message.
-public final class ChatMessage: Sortable {
+public final class ChatMessage {
 
     init(time: Date, senderID: Int, senderName: String, content: String, isIRCStyle: Bool) {
         self.time = time
@@ -26,16 +26,4 @@ public final class ChatMessage: Sortable {
     public let senderName: String
     public let content: String
     public let isIRCStyle: Bool
-
-    public enum PropertyKey {
-        case time
-    }
-
-    public func relationTo(_ other: ChatMessage, forSortKey sortKey: ChatMessage.PropertyKey) -> ValueRelation {
-        switch sortKey {
-        case .time:
-            // Reverse order, since we want the lowest time at the top, and the highest time at the bottom
-            return ValueRelation(value1: other.time, value2: self.time)
-        }
-    }
 }

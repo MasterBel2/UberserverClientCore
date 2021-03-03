@@ -149,7 +149,7 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
 
         self.myID = myID
 
-        let battleroomSorter = BattleroomPlayerListSorter()
+        var battleroomSorter = BattleroomPlayerListSorter()
 
         // + 1 – Users will count from 1, not from 0
         allyTeamLists = (0...15).map({ List(title: "Ally \(String($0 + 1))", sorter: battleroomSorter, parent: battle.userList) })
@@ -158,6 +158,8 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
         self.connection = connection
 
         battleroomSorter.battleroom = self
+        allyTeamLists.forEach({ $0.sorter = battleroomSorter })
+        spectatorList.sorter = battleroomSorter
         battle.addObject(self)
 		battle.userList.addObject(self)
         

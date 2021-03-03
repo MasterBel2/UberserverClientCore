@@ -8,10 +8,7 @@
 
 import Foundation
 
-public final class User: Sortable {
-	public enum PropertyKey {
-		case rank
-	}
+public final class User {
 	
 	public init(profile: Profile) {
 		self.profile = profile
@@ -21,17 +18,8 @@ public final class User: Sortable {
 	public let profile: Profile
     public var status = Status.default
 	
-	// MARK: - Sortable
-	
 	/// The user's ID.
 	public var id: Int { return profile.id }
-	
-	public func relationTo(_ other: User, forSortKey sortKey: User.PropertyKey) -> ValueRelation {
-		switch sortKey {
-		case .rank:
-			return ValueRelation(value1: status.rank, value2: other.status.rank)
-		}
-	}
 	
 	public struct Profile {
 		public let id: Int

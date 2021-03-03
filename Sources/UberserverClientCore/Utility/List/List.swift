@@ -19,9 +19,15 @@ public protocol ListDelegate: AnyObject {
     func list(_ list: ListProtocol, didMoveItemFrom index1: Int, to index2: Int)
     /// Notifies the delegate that the list will clear all data, so that they may remove all data associated with the list.
     func listWillClear(_ list: ListProtocol)
+    /// Indicates that the list just sorted itself from scratch, likely as a result of sort rules changing.
+    func listDidSort(_ list: ListProtocol)
 }
 
-/// A wrapper protocol for lists which hides the generic API
+public extension ListDelegate {
+    func listDidSort(_ list: ListProtocol) {}
+}
+
+/// A wrapper protocol for lists which hides the generic API.
 public protocol ListProtocol: AnyObject {
 	func addDelegate<DelegateObject: ListDelegate>(_ delegate: DelegateObject)
 	func removeDelegate<DelegateObject: ListDelegate>(_ delegate: DelegateObject)
@@ -78,20 +84,66 @@ public final class List<ListItem>: ListProtocol, UpdateNotifier {
 
     // MARK: - Dependencies
 
-    /// 
 	public var objectsWithLinkedActions: [() -> ListDelegate?] = []
-	
-	///
+
+    // MARK: - ListProtocol
+
+    /// Alias for addObject to satisfy ListProtocol requirements.
 	public func addDelegate<DelegateObject: ListDelegate>(_ delegate: DelegateObject) {
 		addObject(delegate)
 	}
-	///
+	/// Alias for removeObject to satisfy ListProtocol requirements.
 	public func removeDelegate<DelegateObject: ListDelegate>(_ delegate: DelegateObject) {
 		removeObject(delegate)
 	}
+
+    // MARK: - Sorting
+
+    public enum SortDirection {
+        /// Indicates the lowest values at the start of the list, and the greatest values at the end of the list.
+        case ascending
+        /// Indicates the greatest values at the start of the list, and the lowest values at the end of the list.
+        case descending
+    }
+
+    public var sortDirection: SortDirection = .descending {
+        didSet {
+            switch sortDirection {
+            case .descending:
+                _forwardSortCondition = .firstIsGreaterThanSecond
+                _reverseSortCondition = .firstIsLesserThanSecond
+            case .ascending:
+                _forwardSortCondition = .firstIsLesserThanSecond
+                _reverseSortCondition = .firstIsGreaterThanSecond
+            }
+            sortFromScratch()
+        }
+    }
+
+    private var _forwardSortCondition: ValueRelation = .firstIsGreaterThanSecond
+    private var _reverseSortCondition: ValueRelation = .firstIsLesserThanSecond
 	
-	/// Describes how the list should sort its items.
-    let sorter: ListSorter
+	/// Describes how the list should sort its items. Re-sorts the list on update.
+    public var sorter: ListSorter {
+        didSet {
+            sortFromScratch()
+        }
+    }
+
+    /// Re-sorts the list based on the given property.
+    func sort<T: Comparable>(by property: @escaping (ListItem) -> T) {
+        var sorter = PropertySorter<ListItem, T>(property: property)
+        sorter.list = self
+        self.sorter = sorter
+    }
+
+    /// Sorts the list.
+    private func sortFromScratch() {
+        sortedItemsByID.sort(by: { sorter.relation(betweenItemIdentifiedBy: $0, andItemIdentifiedBy: $1) == _forwardSortCondition })
+        for (index, itemID) in sortedItemsByID.enumerated() {
+            itemIndicies[itemID] = index
+        }
+    }
 
     // MARK: - Lifecycle
 
@@ -104,14 +156,22 @@ public final class List<ListItem>: ListProtocol, UpdateNotifier {
         parent?.sublists.append(self)
     }
 
+    convenience init<T: Comparable>(title: String, property: @escaping (ListItem) -> T, parent: List<ListItem>? = nil) {
+        var sorter = PropertySorter<ListItem, T>(property: property)
+
+        self.init(title: title, sorter: sorter, parent: parent)
+        sorter.list = self
+        self.sorter = sorter
+    }
+
     // MARK: - Retrieving list data
 
-    /// The number of items in the list
+    /// The number of items in the list.
     public var sortedItemCount: Int {
         return sortedItemsByID.count
     }
 
-    /// The ID of the item at the given location
+    /// The ID of the item at the given location.
     public func itemID(at index: Int) -> Int? {
         guard (0..<sortedItemCount).contains(index) else {
             return nil
@@ -119,7 +179,7 @@ public final class List<ListItem>: ListProtocol, UpdateNotifier {
         return sortedItemsByID[index]
     }
 
-
+    /// The item in the given position in the list.
     public func item(at index: Int) -> ListItem? {
         guard let itemID = self.itemID(at: index) else {
             return nil
@@ -129,6 +189,7 @@ public final class List<ListItem>: ListProtocol, UpdateNotifier {
 
     // MARK: - Updating list content
 
+    /// Removes all data from the list.
     func clear() {
 		applyActionToChainedObjects({ $0.listWillClear(self) })
         sublists.forEach({ $0.clear() })
@@ -143,7 +204,7 @@ public final class List<ListItem>: ListProtocol, UpdateNotifier {
         items[id] = item
         for index in 0..<sortedItemCount {
             let idAtIndex = sortedItemsByID[index]
-            if sorter.relation(betweenItemIdentifiedBy: id, shouldAppearBeforeItemIdentifiedBy: idAtIndex) != .lesser {
+            if sorter.relation(betweenItemIdentifiedBy: id, andItemIdentifiedBy: idAtIndex) != _forwardSortCondition {
                 // Update the location of the items this displaces. Must happen before we sort the
                 // so that we can identify them by their current location.
                 for indexToUpdate in index..<sortedItemCount {
@@ -180,12 +241,12 @@ public final class List<ListItem>: ListProtocol, UpdateNotifier {
         var indexesToUpdate: [Int] = []
         var newIndex = index
 
-        for (relationToMove, offset) in [(ValueRelation.lesser, 1), (ValueRelation.greater, -1)] {
+        for (relationToMove, offset) in [(_forwardSortCondition, 1), (_reverseSortCondition, -1)] {
             var nextIndex: Int {
                 return newIndex + offset
             }
             while (0..<sortedItemCount).contains(nextIndex),
-                sorter.relation(betweenItemIdentifiedBy: id, shouldAppearBeforeItemIdentifiedBy: sortedItemsByID[nextIndex]) == relationToMove {
+                sorter.relation(betweenItemIdentifiedBy: id, andItemIdentifiedBy: sortedItemsByID[nextIndex]) == relationToMove {
                 newIndex = nextIndex
                 indexesToUpdate.append(newIndex)
             }
@@ -227,7 +288,7 @@ public final class List<ListItem>: ListProtocol, UpdateNotifier {
 
     // MARK: - List integrity
 
-    /// Checks whether `itemIndicies` and `sortedItemsByID` agree, and prints an error message to the console if an inconsistency is detected
+    /// Checks whether `itemIndicies` and `sortedItemsByID` agree, and prints an error message to the console if an inconsistency is detected.
     private func validateList() {
         var valid = true
         items.forEach({
@@ -255,20 +316,5 @@ public final class List<ListItem>: ListProtocol, UpdateNotifier {
                 }
             }).forEach({ debugOnlyPrint($0)})
         }
-    }
-}
-extension List where ListItem: Sortable {
-    /// Creates a list with the given title, sorted by the given sort key
-    convenience init(title: String, sortKey: ListItem.PropertyKey, parent: List<ListItem>? = nil) {
-        let sorter = SortKeyBasedSorter<ListItem>(sortKey: sortKey)
-        self.init(title: title, sorter: sorter, parent: parent)
-        sorter.list = self
-    }
-}
-extension List {
-    convenience init<T: Comparable>(title: String, property: @escaping (ListItem) -> T, parent: List<ListItem>? = nil) {
-        let sorter = PropertySorter<ListItem, T>(property: property)
-        self.init(title: title, sorter: sorter, parent: parent)
-        sorter.list = self
     }
 }

@@ -39,15 +39,15 @@ public class AuthenticatedClient: UpdateNotifier {
     internal let password: String
 
     /// The channels the user is participating in.
-    public let channelList = List<Channel>(title: "All Channels", sortKey: .title)
+    public let channelList = List<Channel>(title: "All Channels", property: { $0.title })
     /// The private message conversations the user is engaging in.
-    public let privateMessageList = List<Channel>(title: "Private Messages", sortKey: .title)
+    public let privateMessageList = List<Channel>(title: "Private Messages", property: { $0.title })
     /// The set of forwarded conversations the user is receiving.
-    public let forwardedMessageList = List<Channel>(title: "Forwarded Messages", sortKey: .title)
+    public let forwardedMessageList = List<Channel>(title: "Forwarded Messages", property: { $0.title })
     /// The users that are authenticated on the server.
-    public let userList = List<User>(title: "All Users", sortKey: .rank)
+    public let userList = List<User>(title: "All Users", property: { $0.status.rank })
     /// The battles currently published on the server.
-    public let battleList = List<Battle>(title: "All Battles", sortKey: .playerCount)
+    public let battleList = List<Battle>(title: "All Battles", property: { $0.playerCount })
 
     /// The battleroom the user has joined.
     public internal(set) var battleroom: Battleroom? {

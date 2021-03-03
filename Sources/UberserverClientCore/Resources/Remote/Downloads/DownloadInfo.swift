@@ -9,7 +9,7 @@
 import Foundation
 
 /// An encapsulation of information about a download operation.
-public final class DownloadInfo: Sortable {
+public final class DownloadInfo {
 
     init(name: String, location: URL) {
         self.name = name
@@ -42,23 +42,4 @@ public final class DownloadInfo: Sortable {
 		/// The download has completed successfully.
 		case completed
 	}
-
-    public func relationTo(_ other: DownloadInfo, forSortKey sortKey: DownloadInfo.PropertyKey) -> ValueRelation {
-        switch sortKey {
-		case .dateBeganAscending:
-			return ValueRelation(value1: other.dateBegan, value2: dateBegan)
-		case .dateBeganDescending:
-			return ValueRelation(value1: dateBegan, value2: other.dateBegan)
-        case .name:
-            return ValueRelation(value1: name, value2: other.name)
-        }
-    }
-
-    public enum PropertyKey {
-		/// Order by date the download started, with the earliest at the top.
-        case dateBeganAscending
-		/// Order by date the download started, with the latest at the top
-		case dateBeganDescending
-        case name
-    }
 }
