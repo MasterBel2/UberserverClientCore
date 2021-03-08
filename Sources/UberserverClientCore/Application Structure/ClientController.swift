@@ -21,14 +21,12 @@ public extension ReceivesClientControllerUpdates {
  */
 public final class ClientController: UpdateNotifier {
     private(set) var clients: [Client] = []
-    let userAuthenticationController: UserAuthenticationController
     let system: System
     let resourceManager: ResourceManager
 
-    public init(system: System, resourceManager: ResourceManager, userAuthenticationController: UserAuthenticationController) {
+    public init(system: System, resourceManager: ResourceManager) {
         self.system = system
         self.resourceManager = resourceManager
-        self.userAuthenticationController = userAuthenticationController
     }
 
     /// On update, inserts the most recent server
@@ -47,7 +45,6 @@ public final class ClientController: UpdateNotifier {
     public func connect(to address: ServerAddress) {
         let client = Client(
             system: system,
-            userAuthenticationController: userAuthenticationController,
             address: address,
             resourceManager: resourceManager
         )
@@ -59,7 +56,6 @@ public final class ClientController: UpdateNotifier {
     public func createNewClient() {
         let client = Client(
             system: system,
-            userAuthenticationController: userAuthenticationController,
             resourceManager: resourceManager
         )
         clients.append(client)

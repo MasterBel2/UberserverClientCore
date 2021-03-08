@@ -85,35 +85,34 @@ public struct SCBattleOpenedCommand: SCCommand {
     
     // MARK: - Behaviour
     
-    public func execute(on client: Client) {
-        client.inAuthenticatedState { authenticatedClient, connection in
-            guard let founderID = authenticatedClient.id(forPlayerNamed: founder) else {
-                fatalError("Could not find battle host with username \(founder)")
-            }
-            let battle = Battle(
-                serverUserList: authenticatedClient.userList,
-                isReplay: isReplay,
-                natType: natType,
-                founder: founder,
-                founderID: founderID,
-                ip: ip,
-                port: port,
-                maxPlayers: maxPlayers,
-                hasPassword: passworded,
-                rank: rank,
-                mapHash: mapHash,
-                engineName: engineName,
-                engineVersion: engineVersion,
-                mapName: mapName,
-                title: title,
-                gameName: gameName,
-                channel: channel,
-                scriptPasswordCacheDirectory: connection.cacheDirectory.appendingPathComponent("Script Passwords"),
-                resourceManager: client.resourceManager
-            )
-            
-            authenticatedClient.battleList.addItem(battle, with: battleID)
+    public func execute(on connection: ThreadUnsafeConnection) {
+        guard case let .authenticated(authenticatedSession) = connection.session,
+              let founderID = authenticatedSession.id(forPlayerNamed: founder) else {
+            return
         }
+        let battle = Battle(
+            serverUserList: authenticatedSession.userList,
+            isReplay: isReplay,
+            natType: natType,
+            founder: founder,
+            founderID: founderID,
+            ip: ip,
+            port: port,
+            maxPlayers: maxPlayers,
+            hasPassword: passworded,
+            rank: rank,
+            mapHash: mapHash,
+            engineName: engineName,
+            engineVersion: engineVersion,
+            mapName: mapName,
+            title: title,
+            gameName: gameName,
+            channel: channel,
+            scriptPasswordCacheDirectory: connection.cacheDirectory.appendingPathComponent("Script Passwords"),
+            resourceManager: connection.resourceManager
+        )
+
+        authenticatedSession.battleList.addItem(battle, with: battleID)
     }
 
     // MARK: - String representation
@@ -151,7 +150,7 @@ public struct SCOpenBattleCommand: SCCommand {
 		self.battleID = battleID
 	}
 	
-    public func execute(on client: Client) {
+    public func execute(on connection: ThreadUnsafeConnection) {
 		#warning("TODO")
 	}
 	
@@ -177,9 +176,7 @@ public struct SCOpenBattleFailedCommand: SCCommand {
 		reason = description
 	}
 	
-    public func execute(on client: Client) {
-		client.receivedError(.openBattleFailed(reason: reason))
-	}
+    public func execute(on connection: ThreadUnsafeConnection) {}
 	
     public var description: String {
 		return "OPENBATTLEFAILED \(reason)"

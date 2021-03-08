@@ -1,5 +1,5 @@
 //
-//  AuthenticatedClient.swift
+//  AuthenticatedSession.swift
 //  
 //
 //  Created by MasterBel2 on 28/2/21.
@@ -7,21 +7,21 @@
 
 import Foundation
 
-/// A set of functions called by an `AuthenticatedClient` when it updates.
+/// A set of functions called by an `AuthenticatedSession` when it updates.
 public protocol ReceivesAuthenticatedClientUpdates {
     /// Indicates that the user has joined a battleroom.
-    func authenticatedClient(_ authenticatedClient: AuthenticatedClient, didJoin battleroom: Battleroom)
+    func authenticatedClient(_ authenticatedSession: AuthenticatedSession, didJoin battleroom: Battleroom)
     /// Indicates that the user has left the joined battleroom.
-    func authenticatedClientDidLeaveBattleroom(_ authenticatedClient: AuthenticatedClient)
+    func authenticatedClientDidLeaveBattleroom(_ authenticatedSession: AuthenticatedSession)
 }
 
 public extension ReceivesAuthenticatedClientUpdates {
-    func authenticatedClient(_ authenticatedClient: AuthenticatedClient, didJoin battleroom: Battleroom) {}
-    func authenticatedClientDidLeaveBattleroom(_ authenticatedClient: AuthenticatedClient) {}
+    func authenticatedClient(_ authenticatedSession: AuthenticatedSession, didJoin battleroom: Battleroom) {}
+    func authenticatedClientDidLeaveBattleroom(_ authenticatedSession: AuthenticatedSession) {}
 }
 
 /// Describes the state of the server that an authenticated user has access to.
-public class AuthenticatedClient: UpdateNotifier {
+public class AuthenticatedSession: UpdateNotifier {
 
     // MARK: - Associated Objects
 
@@ -61,12 +61,17 @@ public class AuthenticatedClient: UpdateNotifier {
         }
     }
 
+    let accountInfoController = AccountInfoController()
+
     // MARK: - Creating an AuthenticatedClient
     
     init(username: String, password: String, connection: Connection) {
         self.username = username
         self.password = password
         self.connection = connection
+
+        accountInfoController.authenticatedClient = self
+        accountInfoController.connection = connection
     }
 
     // MARK: - Player IDs

@@ -9,79 +9,86 @@
 import Foundation
 import ServerAddress
 
+/// A set of functions that may be implemented by a Socket's delegate.
 protocol SocketDelegate: AnyObject {
 	func socket(_ socket: Socket, didReceive message: String)
-    func socketDidClose(_ socket: Socket)
+    func socket(_ socket: Socket, didFailWithError error: Error?)
 }
 
+/// Creates a socket connection to a host.
 final class Socket: NSObject, StreamDelegate {
 	
 	// MARK: - Properties
-	
+
+    /// The socket's delegate
 	weak var delegate: SocketDelegate?
-	
+
+    /// The address the socket connected to.
 	let address: ServerAddress
     
-	private var inputStream: InputStream?
-	private var outputStream: OutputStream?
-	
+	private let inputStream: InputStream
+	private let outputStream: OutputStream
+
 	private let messageBuffer = NSMutableData(capacity: 256)!
-	
-	private var isConnected: Bool { return inputStream != nil && outputStream != nil }
+
+    /// Whether the socket is currently open.
+	public private(set) var isOpen: Bool = false
 	
 	// MARK: - Lifecycle
 	
-	init(address: ServerAddress) {
-		self.address = address
-	}
-	
-	// MARK: - Public API
+	init?(address: ServerAddress) {
+        var inputStream: InputStream?
+        var outputStream: OutputStream?
 
-    /// Instructs the socket to connect to the server
-	func connect() {
-		guard !isConnected else {
-			return
-		}
-        
         Stream.getStreamsToHost(withName: address.location, port: address.port, inputStream: &inputStream, outputStream: &outputStream)
-		
-		guard let inputStream = inputStream, let outputStream = outputStream else {
-			print("Failed to get input & output streams")
-			return
-		}
-		
-		inputStream.delegate = self
-		outputStream.delegate = self
-		
-		inputStream.schedule(in: .current, forMode: .default)
-		outputStream.schedule(in: .current, forMode: .default)
-		
-		inputStream.open()
-		outputStream.open()
+
+        if let inputStream = inputStream,
+           let outputStream = outputStream {
+
+            self.address = address
+
+            self.inputStream = inputStream
+            self.outputStream = outputStream
+
+            super.init()
+
+            inputStream.delegate = self
+            outputStream.delegate = self
+
+            inputStream.schedule(in: .current, forMode: .default)
+            outputStream.schedule(in: .current, forMode: .default)
+        } else {
+            print("Failed to get input & output streams")
+            return nil
+        }
 	}
 
-    /// Instructs the socket to disconnect to the server
-	func disconnect() {
-		guard isConnected else {
-			return
-		}
-		if let input = inputStream {
-			input.close()
-			input.remove(from: .current, forMode: .default)
-			inputStream = nil
-		}
-		if let output = outputStream {
-			output.close()
-			output.remove(from: .current, forMode: .default)
-			outputStream = nil
-		}
-	}
-	
+    /// Opens the socket.
+    ///
+    /// Note the socket cannot be re-opened after it is closed.
+    func open() {
+        guard !isOpen else { return }
+
+        inputStream.open()
+        outputStream.open()
+
+        isOpen = true
+    }
+
+    /// Closes the socket.
+    ///
+    /// Note that the socket cannot be re-opened after it is closed.
+    func close() {
+        guard isOpen else { return }
+
+        inputStream.close()
+        outputStream.close()
+
+        isOpen = false
+    }
+
+    /// Writes the string to the Socket's output stream, encoded with UTF8.
 	func send(message: String) {
-		guard let outputStream = outputStream else {
-			print("Error: Not Connected")
-			return
-		}
 		guard let data = message.data(using: String.Encoding.utf8, allowLossyConversion: false) else {
 			print("Cannot convert message into data to send: invalid format?")
 			return
@@ -120,17 +127,11 @@ final class Socket: NSObject, StreamDelegate {
 		case Stream.Event.hasSpaceAvailable:
 			break
 			
-        case Stream.Event.errorOccurred, Stream.Event.endEncountered:
-			stream.close()
-			stream.remove(from: .current, forMode: .default)
-			if stream == inputStream {
-				inputStream = nil
-			} else if stream == outputStream {
-				outputStream = nil
-			}
-            if inputStream == nil && outputStream == nil {
-                delegate?.socketDidClose(self)
-            }
+        case Stream.Event.errorOccurred:
+            delegate?.socket(self, didFailWithError: stream.streamError)
+            close()
+        case Stream.Event.endEncountered:
+			close()
 		default:
 			print(eventCode)
 		}

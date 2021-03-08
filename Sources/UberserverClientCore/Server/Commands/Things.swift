@@ -33,7 +33,7 @@ public struct SCCompFlagsCommand: SCCommand {
 		self.unrecognisedFlags = unrecognisedFlags
 	}
 	
-    public func execute(on client: Client) {
+    public func execute(on connection: ThreadUnsafeConnection) {
 		debugOnlyPrint("Unrecognised flags: \(unrecognisedFlags.joined(separator: " "))")
 	}
 	
@@ -65,10 +65,8 @@ public struct SCRedirectCommand: SCCommand {
 		self.port = port
 	}
 	
-    public func execute(on client: Client) {
-        client.inConnectedState { connection in
-            connection.redirect(to: ServerAddress(location: ip, port: port))
-        }
+    public func execute(on connection: ThreadUnsafeConnection) {
+        connection.redirect(to: ServerAddress(location: ip, port: port))
 	}
 	
     public var description: String {
@@ -87,9 +85,7 @@ public struct SCFailedCommand: SCCommand {
 	
     public init?(description: String) {}
 	
-    public func execute(on client: Client) {
-		client.receivedError(.failed)
-	}
+    public func execute(on connection: ThreadUnsafeConnection) {}
 	
     public var description: String {
 		return "FAILED"
@@ -115,37 +111,13 @@ public struct SCJSONCommand: SCCommand {
 		json = description
 	}
 	
-    public func execute(on client: Client) {
+    public func execute(on connection: ThreadUnsafeConnection) {
 //		jsonCommandHandler.execute(json, on: connection)
+        #warning("todo")
 	}
 	
     public var description: String {
 		return "JSON " + json
-	}
-}
-
-
-/**
-Sent as the response to a PING command.
-*/
-public struct SCPongCommand: SCCommand {
-	
-	let time = Date()
-	
-	// MARK: - Manual Construction
-	
-	init() {}
-	
-	// MARK: - SCCommand
-	
-    public init?(description: String) {}
-	
-    public func execute(on client: Client) {
-		#warning("todo")
-	}
-	
-    public var description: String {
-		return "PONG"
 	}
 }
 
@@ -162,7 +134,7 @@ public struct SCOKCommand: SCCommand {
 	
     public init?(description: String) {}
 	
-    public func execute(on client: Client) {
+    public func execute(on connection: ThreadUnsafeConnection) {
 		#warning("TODO")
 	}
 	

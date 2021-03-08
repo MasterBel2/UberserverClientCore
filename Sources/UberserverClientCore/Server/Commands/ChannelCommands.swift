@@ -30,17 +30,16 @@ public struct SCJoinCommand: SCCommand {
         return "JOIN \(channelName)"
     }
 
-    public func execute(on client: Client) {
-        client.inAuthenticatedState { authenticatedClient, connection in
-            let channelID = authenticatedClient.id(forChannelnamed: channelName)
-            guard authenticatedClient.channelList.items[channelID] == nil else {
-                return
-            }
-            let channel = Channel(title: channelName, rootList: authenticatedClient.userList, sendAction: { [weak connection] channel, message in
-                connection?.send(CSSayCommand(channelName: channelName, message: message))
-            })
-            authenticatedClient.channelList.addItem(channel, with: channelID)
+    public func execute(on connection: ThreadUnsafeConnection) {
+        guard case let .authenticated(authenticatedSession) = connection.session else { return }
+        let channelID = authenticatedSession.id(forChannelnamed: channelName)
+        guard authenticatedSession.channelList.items[channelID] == nil else {
+            return
         }
+        let channel = Channel(title: channelName, rootList: authenticatedSession.userList, sendAction: { [weak connection] channel, message in
+            connection?.send(CSSayCommand(channelName: channelName, message: message))
+        })
+        authenticatedSession.channelList.addItem(channel, with: channelID)
     }
 }
 
@@ -72,9 +71,7 @@ public struct SCJoinFailedCommand: SCCommand {
         return "JOINFAILED \(channelName) \(reason)"
     }
 
-    public func execute(on client: Client) {
-        client.receivedError(.joinFailed(channel: channelName, reason: reason))
-    }
+    public func execute(on connection: ThreadUnsafeConnection) {}
 }
 
 public struct CSJoinCommand: CSCommand {
@@ -137,14 +134,13 @@ public struct SCChannelTopicCommand: SCCommand {
         return "CHANNELTOPIC \(channelName) \(author) \(topic)"
     }
 
-    public func execute(on client: Client) {
-        client.inAuthenticatedState { authenticatedState, _ in
-            let channelID = authenticatedState.id(forChannelnamed: channelName)
-            guard let channel = authenticatedState.channelList.items[channelID] else {
-                return
-            }
-            channel.topic = topic
+    public func execute(on connection: ThreadUnsafeConnection) {
+        guard case let .authenticated(authenticatedSession) = connection.session else { return }
+        let channelID = authenticatedSession.id(forChannelnamed: channelName)
+        guard let channel = authenticatedSession.channelList.items[channelID] else {
+            return
         }
+        channel.topic = topic
     }
 }
 
@@ -242,8 +238,8 @@ public struct SCChannelMessageCommand: SCCommand {
         return "CHANNELMESSAGE \(channelName) \(message)"
     }
 
-    public func execute(on client: Client) {
-        #warning("Incomplete implementation")
+    public func execute(on connection: ThreadUnsafeConnection) {
+        #warning("TODO")
     }
 }
 
@@ -334,7 +330,7 @@ public protocol SaidEncodableCommand {
     var payloadDescription: String { get }
     var description: String { get }
 
-    func execute(on authenticatedClient: AuthenticatedClient, connection: Connection)
+    func execute(on authenticatedClient: AuthenticatedSession, connection: ThreadUnsafeConnection, senderID: Int, senderName: String)
 
     init?(payload: String)
 }
@@ -345,50 +341,79 @@ public extension SaidEncodableCommand {
     }
 }
 
-public struct RoutedPrivateMessage: SaidEncodableCommand {
-    public static let Identifier: String = "RoutedMessage"
-
-    let senderID: Int
-    let receiverID: Int
+public struct PrivateMessageToRoute: SaidEncodableCommand {
+    /// The ID of the intended recipient of this message
+    let targetID: Int
     let message: String
 
-    init(senderID: Int, receiverID: Int, message: String) {
-        self.senderID = senderID
-        self.receiverID = receiverID
+    public static let Identifier: String = "MessageToRoute"
+
+    public init(targetID: Int, message: String) {
+        self.targetID = targetID
         self.message = message
     }
 
     public init?(payload: String) {
-        guard let (_, sentences) = try? wordsAndSentences(for: payload, wordCount: 0, sentenceCount: 3),
-              let senderID = Int(sentences[1]), let receiverID = Int(sentences[2]) else {
+        guard let (words, sentences) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 1),
+              let targetID = Int(words[0]) else {
             return nil
         }
-
-        self.senderID = senderID
-        self.receiverID = receiverID
+        self.targetID = targetID
         self.message = sentences[0]
     }
 
     public var payloadDescription: String {
-        return "\(message)\t\(senderID)\t\(receiverID)"
+        return "\(targetID) \(message)"
+    }
+
+    public func execute(on authenticatedClient: AuthenticatedSession, connection: ThreadUnsafeConnection, senderID: Int, senderName: String) {
+        guard let targetName = authenticatedClient.userList.items[targetID]?.profile.fullUsername else { return }
+        let routedMessage = RoutedPrivateMessage(originalSenderID: senderID, message: message)
+        connection.send(CSSayPrivateCommand(intendedRecipient: targetName, message: routedMessage.description))
+    }
+}
+
+public struct RoutedPrivateMessage: SaidEncodableCommand {
+    public static let Identifier: String = "RoutedMessage"
+
+    let originalSenderID: Int
+    let message: String
+
+    init(originalSenderID: Int, message: String) {
+        self.originalSenderID = originalSenderID
+        self.message = message
+    }
+
+    public init?(payload: String) {
+        guard let (words, sentences) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 1),
+              let originalSenderID = Int(words[0]) else {
+            return nil
+        }
+
+        self.originalSenderID = originalSenderID
+        self.message = sentences[0]
+    }
+
+    public var payloadDescription: String {
+        return "\(originalSenderID) \(message)"
     }
     
-    public func execute(on authenticatedClient: AuthenticatedClient, connection: Connection) {
-        guard let senderName = authenticatedClient.userList.items[senderID]?.profile.fullUsername,
-              let receiverName = authenticatedClient.userList.items[receiverID]?.profile.fullUsername else {
+    public func execute(on authenticatedClient: AuthenticatedSession, connection: ThreadUnsafeConnection, senderID: Int, senderName: String) {
+        guard let originalSenderName = authenticatedClient.userList.items[originalSenderID]?.profile.fullUsername else {
             return
         }
-        let channelName = "\(senderName) via \(receiverName)"
+        let channelName = "\(originalSenderName) via \(senderName)"
         let channelID = authenticatedClient.id(forChannelnamed: channelName)
         
         let channel: Channel
         if let createdChannel = authenticatedClient.channelList.items[channelID] {
             channel = createdChannel
         } else {
-            channel = Channel(title: channelName, rootList: authenticatedClient.userList, sendAction: { [weak authenticatedClient] channel, message in
+            channel = Channel(title: channelName, rootList: authenticatedClient.userList, sendAction: { [weak connection] channel, message in
+                let messageToRoute = PrivateMessageToRoute(targetID: originalSenderID, message: message)
+                connection?.send(CSSayPrivateCommand(intendedRecipient: senderName, message: messageToRoute.description))
             })
-            channel.userlist.addItemFromParent(id: senderID)
-            channel.userlist.addItemFromParent(id: receiverID)
+            channel.userlist.addItemFromParent(id: originalSenderID)
             channel.userlist.addItemFromParent(id: senderID)
         }
         
@@ -397,8 +422,8 @@ public struct RoutedPrivateMessage: SaidEncodableCommand {
         channel.receivedNewMessage(
             ChatMessage(
                 time: Date(),
-                senderID: senderID,
-                senderName: senderName,
+                senderID: originalSenderID,
+                senderName: originalSenderName,
                 content: message,
                 isIRCStyle: false
             )
@@ -444,36 +469,35 @@ public struct SCSaidCommand: SCCommand {
         return "SAID \(channelName) \(username) \(message)"
     }
     
-    public func execute(on client: Client) {
-        client.inAuthenticatedState { authenticatedClient, connection in
-            let channelID = authenticatedClient.id(forChannelnamed: channelName)
-            guard let channel = authenticatedClient.channelList.items[channelID],
-                  let senderID = authenticatedClient.id(forPlayerNamed: username),
-                  let sender = authenticatedClient.userList.items[senderID] else {
-                return
-            }
-            
-            if handleSaidEncodedCommand(authenticatedClient: authenticatedClient, connection: connection, sender: sender, message: message, availableCommands: saidEncodableCommands) { return }
-            
-            channel.receivedNewMessage(ChatMessage(
-                time: Date(),
-                senderID: senderID,
-                senderName: username,
-                content: message,
-                isIRCStyle: false
-            ))
+    public func execute(on connection: ThreadUnsafeConnection) {
+        guard case let .authenticated(authenticatedSession) = connection.session else { return }
+        let channelID = authenticatedSession.id(forChannelnamed: channelName)
+        guard let channel = authenticatedSession.channelList.items[channelID],
+              let senderID = authenticatedSession.id(forPlayerNamed: username),
+              let sender = authenticatedSession.userList.items[senderID] else {
+            return
         }
+
+        if handleSaidEncodedCommand(authenticatedClient: authenticatedSession, connection: connection, senderID: senderID, sender: sender, message: message, availableCommands: saidEncodableCommands) { return }
+
+        channel.receivedNewMessage(ChatMessage(
+            time: Date(),
+            senderID: senderID,
+            senderName: username,
+            content: message,
+            isIRCStyle: false
+        ))
     }
 }
 
-func handleSaidEncodedCommand(authenticatedClient: AuthenticatedClient, connection: Connection, sender: User, message: String, availableCommands: [String : SaidEncodableCommand.Type]) -> Bool {
+func handleSaidEncodedCommand(authenticatedClient: AuthenticatedSession, connection: ThreadUnsafeConnection, senderID: Int, sender: User, message: String, availableCommands: [String : SaidEncodableCommand.Type]) -> Bool {
     if sender.profile.lobbyID.hasPrefix("BelieveAndRise"),
        let (payload, messageCode) = message.splitLastWord(),
        messageCode.hasPrefix("[&") && messageCode.hasSuffix("&]") {
         let commandID = String(messageCode.dropFirst(2).dropLast(2))
         if let commandType = availableCommands[commandID],
            let command = commandType.init(payload: String(payload)) {
-            command.execute(on: authenticatedClient, connection: connection)
+            command.execute(on: authenticatedClient, connection: connection, senderID: senderID, senderName: sender.profile.fullUsername)
             return true
         }
     }
@@ -547,21 +571,20 @@ public struct SCSaidExCommand: SCCommand {
         return "SAIDEX \(channelName) \(username) \(message)"
     }
     
-    public func execute(on client: Client) {
-        client.inAuthenticatedState { authenticatedClient, _ in
-            let channelID = authenticatedClient.id(forChannelnamed: channelName)
-            guard let channel = authenticatedClient.channelList.items[channelID],
-                  let senderID = authenticatedClient.id(forPlayerNamed: username) else {
-                return
-            }
-            channel.receivedNewMessage(ChatMessage(
-                time: Date(),
-                senderID: senderID,
-                senderName: username,
-                content: message,
-                isIRCStyle: true
-            ))
+    public func execute(on connection: ThreadUnsafeConnection) {
+        guard case let .authenticated(authenticatedSession) = connection.session else { return }
+        let channelID = authenticatedSession.id(forChannelnamed: channelName)
+        guard let channel = authenticatedSession.channelList.items[channelID],
+              let senderID = authenticatedSession.id(forPlayerNamed: username) else {
+            return
         }
+        channel.receivedNewMessage(ChatMessage(
+            time: Date(),
+            senderID: senderID,
+            senderName: username,
+            content: message,
+            isIRCStyle: true
+        ))
     }
 }
 
@@ -591,7 +614,8 @@ public struct SCChannelCommand: SCCommand {
 		topic = sentences.count == 1 ? sentences[0] : nil
 	}
 	
-    public func execute(on client: Client) {
+    public func execute(on connection: ThreadUnsafeConnection) {
+        guard case let .authenticated(authenticatedSession) = connection.session else { return }
 		#warning("todo")
 	}
 	
@@ -614,7 +638,8 @@ public struct SCEndOfChannelsCommand: SCCommand {
 	
     public init?(description: String) {}
 	
-    public func execute(on client: Client) {
+    public func execute(on connection: ThreadUnsafeConnection) {
+        guard case let .authenticated(authenticatedSession) = connection.session else { return }
 		#warning("todo")
 	}
 	

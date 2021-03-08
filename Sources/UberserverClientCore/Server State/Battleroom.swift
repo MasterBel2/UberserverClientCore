@@ -70,9 +70,7 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
     // MARK: - Data
     
     // MARK: - Dependencies
-
-    /// The server connection associated with this battleroom.
-    private weak var connection: Connection?
+    
     /// The battleroom's associated battle.
     public let battle: Battle
     /// The battleroom's associated channel.
@@ -142,20 +140,21 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
 
     // MARK: - Lifecycle
 
-    init(battle: Battle, channel: Channel, connection: Connection, hashCode: Int32, myID: Int) {
+    private let sendCommandBlock: (CSCommand) -> Void
+
+    init(battle: Battle, channel: Channel, sendCommandBlock: @escaping (CSCommand) -> Void, hashCode: Int32, myID: Int) {
         self.battle = battle
         self.hashCode = hashCode
         self.channel = channel
 
         self.myID = myID
+        self.sendCommandBlock = sendCommandBlock
 
         var battleroomSorter = BattleroomPlayerListSorter()
 
         // + 1 – Users will count from 1, not from 0
         allyTeamLists = (0...15).map({ List(title: "Ally \(String($0 + 1))", sorter: battleroomSorter, parent: battle.userList) })
         spectatorList = List<User>(title: "Spectators", sorter: battleroomSorter, parent: battle.userList)
-        
-        self.connection = connection
 
         battleroomSorter.battleroom = self
         allyTeamLists.forEach({ $0.sorter = battleroomSorter })
@@ -257,26 +256,27 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
     
     public func startGame() {
         #warning("Consider moving this to Battle")
-        guard let connection = connection,
-            let myAccount = battle.userList.items[myID] else {
+        guard let myAccount = battle.userList.items[myID] else {
             return
         }
         guard let engine = battle.engine else {
             #warning("Throw an error here!")
             return
         }
-        connection.send(CSMyStatusCommand(status: myAccount.status.changing(isIngame: true)))
+        sendCommandBlock(CSMyStatusCommand(status: myAccount.status.changing(isIngame: true)))
         setBattleStatus(myBattleStatus.changing(isReady: false))
-        
+
+        // Capture here to avoid depending on the battleroom's existence to change the status.
+        let sendCommandBlock = self.sendCommandBlock
         let specification = ClientSpecification(ip: battle.ip, port: battle.port, username: myAccount.profile.username, scriptPassword: battle.myScriptPassword)
-        try? engine.launchGame(script: specification, doRecordDemo: true) { [weak connection] in
-            connection?.send(CSMyStatusCommand(status: myAccount.status.changing(isIngame: false)))
+        try? engine.launchGame(script: specification, doRecordDemo: true) {
+            sendCommandBlock(CSMyStatusCommand(status: myAccount.status.changing(isIngame: false)))
         }
     }
 
     /// Informs the server that the user's status updated.
     public func setBattleStatus(_ newBattleStatus: Battleroom.UserStatus) {
-        connection?.send(CSMyBattleStatusCommand(battleStatus: newBattleStatus, color: myColor))
+        sendCommandBlock(CSMyBattleStatusCommand(battleStatus: newBattleStatus, color: myColor))
     }
     
     // MARK: - UpdateNotifier

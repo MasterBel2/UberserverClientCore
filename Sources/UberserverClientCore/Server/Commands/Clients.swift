@@ -13,18 +13,17 @@ import Foundation
 // - SCJoinedCommand
 // - SCLeftCommand
 
-private func addUsersToChannel(named channelName: String, on client: Client, usernames: [String]) {
-    client.inAuthenticatedState { authenticatedClient, _ in
-        guard let channel = authenticatedClient.channelList.items[authenticatedClient.id(forChannelnamed: channelName)] else {
-            return
+private func addUsersToChannel(named channelName: String, on connection: ThreadUnsafeConnection, usernames: [String]) {
+    guard case let .authenticated(authenticatedSession) = connection.session,
+          let channel = authenticatedSession.channelList.items[authenticatedSession.id(forChannelnamed: channelName)] else {
+        return
+    }
+
+    for username in usernames {
+        guard let id = authenticatedSession.id(forPlayerNamed: username) else {
+            continue
         }
-        
-        for username in usernames {
-            guard let id = authenticatedClient.id(forPlayerNamed: username) else {
-                continue
-            }
-            channel.userlist.addItemFromParent(id: id)
-        }
+        channel.userlist.addItemFromParent(id: id)
     }
 }
 
@@ -65,8 +64,8 @@ struct SCClientsCommand: SCCommand {
         return "CLIENTS \(channelName) \(clients.joined(separator: " "))"
     }
 
-    func execute(on client: Client) {
-        addUsersToChannel(named: channelName, on: client, usernames: clients)
+    func execute(on connection: ThreadUnsafeConnection) {
+        addUsersToChannel(named: channelName, on: connection, usernames: clients)
     }
 }
 
@@ -99,8 +98,8 @@ struct SCJoinedCommand: SCCommand {
         return "JOINED \(channelName) \(username)"
     }
 
-    func execute(on client: Client) {
-        addUsersToChannel(named: channelName, on: client, usernames: [username])
+    func execute(on connection: ThreadUnsafeConnection) {
+        addUsersToChannel(named: channelName, on: connection, usernames: [username])
     }
 }
 
@@ -132,20 +131,20 @@ struct SCLeftCommand: SCCommand {
         username = words[1]
         reason = sentences[0]
     }
-
+    
     var description: String {
         return "LEFT \(channelName) \(username) \(reason)"
     }
     
-    func execute(on client: Client) {
-        client.inAuthenticatedState { authenticatedClient, _ in
-            let channelID = authenticatedClient.id(forChannelnamed: channelName)
-            guard let channel = authenticatedClient.channelList.items[channelID],
-                  let id = authenticatedClient.id(forPlayerNamed: username)
-            else {
-                return
-            }
-            channel.userlist.removeItem(withID: id)
+    func execute(on connection: ThreadUnsafeConnection) {
+        guard case let .authenticated(authenticatedSession) = connection.session else { return }
+        
+        let channelID = authenticatedSession.id(forChannelnamed: channelName)
+        guard let channel = authenticatedSession.channelList.items[channelID],
+              let id = authenticatedSession.id(forPlayerNamed: username)
+        else {
+            return
         }
+        channel.userlist.removeItem(withID: id)
     }
 }

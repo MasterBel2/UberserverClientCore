@@ -78,12 +78,11 @@ public struct SCAddUserCommand: SCCommand {
         lobbyID = sentences[0]
     }
 
-    public func execute(on client: Client) {
-        client.inAuthenticatedState { authenticatedClient, _ in
-            let userProfile = User.Profile(id: userID, fullUsername: username, lobbyID: lobbyID)
-            let user = User(profile: userProfile)
-            authenticatedClient.userList.addItem(user, with: userID)
-        }
+    public func execute(on connection: ThreadUnsafeConnection) {
+        guard case let .authenticated(authenticatedSession) = connection.session else { return }
+        let userProfile = User.Profile(id: userID, fullUsername: username, lobbyID: lobbyID)
+        let user = User(profile: userProfile)
+        authenticatedSession.userList.addItem(user, with: userID)
     }
 
     public var description: String {
@@ -112,13 +111,12 @@ public struct SCRemoveUserCommand: SCCommand {
 		username = words[0]
 	}
 	
-    public func execute(on client: Client) {
-        client.inAuthenticatedState { authenticatedClient, _ in
-            guard let userID = authenticatedClient.id(forPlayerNamed: username) else {
-                return
-            }
-            authenticatedClient.userList.removeItem(withID: userID)
+    public func execute(on connection: ThreadUnsafeConnection) {
+        guard case let .authenticated(authenticatedSession) = connection.session else { return }
+        guard let userID = authenticatedSession.id(forPlayerNamed: username) else {
+            return
         }
+        authenticatedSession.userList.removeItem(withID: userID)
 	}
 	
     public var description: String {
@@ -149,27 +147,26 @@ public struct SCClientStatusCommand: SCCommand {
 		status = User.Status(rawValue: statusValue)
 	}
 	
-    public func execute(on client: Client) {
-        client.inAuthenticatedState { authenticatedClient, _ in
-            guard let userID = authenticatedClient.id(forPlayerNamed: username),
-                  let user = authenticatedClient.userList.items[userID] else {
-                return
-            }
-            
-            // Update battleroom before we update the status, so we can access the previous status
-            if let battleroom = authenticatedClient.battleroom,
-               userID == battleroom.battle.founderID,
-               user.status.isIngame != status.isIngame,
-               status.isIngame {
-                battleroom.startGame()
-            }
-            
-            user.status = status
-            
-            authenticatedClient.userList.respondToUpdatesOnItem(identifiedBy: userID)
+    public func execute(on connection: ThreadUnsafeConnection) {
+        guard case let .authenticated(authenticatedSession) = connection.session,
+              let userID = authenticatedSession.id(forPlayerNamed: username),
+              let user = authenticatedSession.userList.items[userID] else {
+            return
         }
-	}
-	
+
+        // Update battleroom before we update the status, so we can access the previous status
+        if let battleroom = authenticatedSession.battleroom,
+           userID == battleroom.battle.founderID,
+           user.status.isIngame != status.isIngame,
+           status.isIngame {
+            battleroom.startGame()
+        }
+
+        user.status = status
+
+        authenticatedSession.userList.respondToUpdatesOnItem(identifiedBy: userID)
+    }
+
     public var description: String {
 		return "CLIENTSTATUS \(username) \(status.rawValue)"
 	}

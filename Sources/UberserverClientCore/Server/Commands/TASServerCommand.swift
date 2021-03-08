@@ -36,14 +36,12 @@ public struct TASServerCommand: SCCommand {
     public var description: String {
         return "TASSERVER \(protocolVersion) \(springVersion) \(udpPort) \(lanMode ? 1 : 0)"
     }
-
-    public func execute(on client: Client) {
-        client.inConnectedState { connection in
-            if protocolVersion == "unknown" {
-                connection.setProtocol(.tasServer(version: 0.38))
-            } else if let version = Float(String(protocolVersion.prefix(while: { "0.123456789".contains($0) }))) {
-                connection.setProtocol(.tasServer(version: version))
-            }
+    
+    public func execute(on connection: ThreadUnsafeConnection) {
+        if protocolVersion == "unknown" {
+            connection.setProtocol(.tasServer(version: 0.38))
+        } else if let version = Float(String(protocolVersion.prefix(while: { "0.123456789".contains($0) }))) {
+            connection.setProtocol(.tasServer(version: version))
         }
     }
 }

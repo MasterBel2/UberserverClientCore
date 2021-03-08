@@ -35,7 +35,7 @@ public struct SCIgnoreCommand: SCCommand {
         reason = sentences.count == 1 ? sentences[0] : nil
     }
 
-    public func execute(on client: Client) {
+    public func execute(on connection: ThreadUnsafeConnection) {
         #warning("todo")
     }
 
@@ -67,7 +67,7 @@ public struct SCUnignoreCommand: SCCommand {
         self.username = words[0]
     }
 
-    public func execute(on client: Client) {
+    public func execute(on connection: ThreadUnsafeConnection) {
         #warning("todo")
     }
 
@@ -86,7 +86,7 @@ public struct SCIgnoreListBegin: SCCommand {
 
     public init?(description: String) {}
 
-    public func execute(on client: Client) {
+    public func execute(on connection: ThreadUnsafeConnection) {
         #warning("todo")
     }
 
@@ -117,7 +117,7 @@ public struct SCIgnoreListCommand: SCCommand {
         reason = sentences.count == 1 ? sentences[0] : nil
     }
 
-    public func execute(on client: Client) {
+    public func execute(on connection: ThreadUnsafeConnection) {
         #warning("todo")
     }
 
@@ -140,7 +140,7 @@ public struct SCCIgnoreListEndCommand: SCCommand {
 
     public init?(description: String) {}
 
-    public func execute(on client: Client) {
+    public func execute(on connection: ThreadUnsafeConnection) {
         #warning("todo")
     }
 

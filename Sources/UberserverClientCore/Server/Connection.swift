@@ -9,95 +9,277 @@
 import Foundation
 import ServerAddress
 
-public protocol ReceivesTASServerUpdates {
+public protocol ReceivesConnectionUpdates {
     /// Indicates that the server has sent information about its protocol, which may be used to determine available features.
-    func connection(_ connection: Connection, willUseCommandProtocolWithFeatureAvailability availability: ProtocolFeatureAvailability)
-
-    /// Indicates that the connection has been instructed to disconnect from the server, and connect to a new address.
-    func connection(_ connection: Connection, willRedirectTo newAddress: ServerAddress)
-    /// Indicates that the connection has successfully connected to a new server after being instructed to redirect.
-    func connection(_ connection: Connection, didSuccessfullyRedirectTo newAddress: ServerAddress)
+    func connection(_ connection: ThreadUnsafeConnection, willUseCommandProtocolWithFeatureAvailability availability: ProtocolFeatureAvailability)
 
     /// Indicates the connection will attempt to connect to a server following this call.
-    func connection(_ connection: Connection, willConnectTo newAddress: ServerAddress)
+    func connection(_ connection: ThreadUnsafeConnection, willConnectTo newAddress: ServerAddress)
     /// Indicates the connection has initiated communication with a server.
-    func connection(_ connection: Connection, didSuccessfullyConnectTo newAddress: ServerAddress)
+    func connection(_ connection: ThreadUnsafeConnection, didSuccessfullyConnectTo newAddress: ServerAddress)
 
     /// Indicates the connectioon has ended communication with the server.
-    func connectionDidDisconnect(_ connection: Connection)
+    func connectionDidDisconnect(_ connection: ThreadUnsafeConnection)
 
     /// Indicates the connection has become authenticated with the server, and provides
     /// an `AuthenticatedClient` object that will describe the server's state.
-    func connection(_ connection: Connection, didBecomeAuthenticated authenticatedClient: AuthenticatedClient)
+    func connection(_ connection: ThreadUnsafeConnection, didBecomeAuthenticated authenticatedClient: AuthenticatedSession)
     /// Indicates the connection is no longer authenticated with the server, and will no longer
     /// receive information about its state.
-    func connectionDidBecomeUnauthenticated(_ connection: Connection)
+    func connectionDidBecomeUnauthenticated(_ connection: ThreadUnsafeConnection)
+
+    /// Indicates the interval since the last Ping and its responding Pong, in microseconds.
+    func connection(_ connection: ThreadUnsafeConnection, didReceivePongAfter delay: Int)
 }
 
-public extension ReceivesTASServerUpdates {
-    func connection(_ connection: Connection, willUseCommandProtocolWithFeatureAvailability availability: ProtocolFeatureAvailability) {}
+public extension ReceivesConnectionUpdates {
+    func connection(_ connection: ThreadUnsafeConnection, willUseCommandProtocolWithFeatureAvailability availability: ProtocolFeatureAvailability) {}
     
-    func connection(_ connection: Connection, willRedirectTo newAddress: ServerAddress) {}
-    func connection(_ connection: Connection, didSuccessfullyRedirectTo newAddress: ServerAddress) {}
-    
-    func connection(_ connection: Connection, willConnectTo newAddress: ServerAddress) {}
-    func connection(_ connection: Connection, didSuccessfullyConnectTo newAddress: ServerAddress) {}
-    
-    func connectionDidDisconnect(_ connection: Connection) {}
+    func connectionDidDisconnect(_ connection: ThreadUnsafeConnection) {}
 
-    func connection(_ connection: Connection, didBecomeAuthenticated authenticatedClient: AuthenticatedClient) {}
-    func connectionDidBecomeUnauthenticated(_ connection: Connection) {}
+    func connection(_ connection: ThreadUnsafeConnection, didBecomeAuthenticated authenticatedClient: AuthenticatedSession) {}
+    func connection(_ connection: ThreadUnsafeConnection, didBecomeUnauthenticated unauthenticatedClient: UnauthenticatedSession) {}
+
+    func connection(_ connection: ThreadUnsafeConnection, didReceivePongAfter delay: Int) {}
 }
 
-/// Handles the socket connection to a TASServer.
+public typealias ThreadUnsafeConnection = Connection._Connection
+
+/// Handles the socket connection to a lobbyserver.
 ///
 /// Lobbyserver protocol is described at http://springrts.com/dl/LobbyProtocol
 /// See here for an implementation in C++ https://github.com/cleanrock/flobby/tree/master/src/model
-public final class Connection: NSObject, SocketDelegate, UpdateNotifier {
+public final class Connection: SocketDelegate {
 
-    // MARK: - Associated Objects
-
-    /// The TASServer's delegate object.
-    private unowned var client: Client
-    public let userAuthenticationController: UserAuthenticationController
-    public internal(set) var authenticatedClient: AuthenticatedClient? {
-        didSet {
-            if let authenticatedClient = authenticatedClient {
-                applyActionToChainedObjects({ $0.connection(self, didBecomeAuthenticated: authenticatedClient) })
-            } else {
-                applyActionToChainedObjects({ $0.connectionDidBecomeUnauthenticated(self) })
-            }
+    /// Stores state relating to the authenticated/unauthenticated session with the server.
+    public var session: Session {
+        get {
+            return _connection.sync(block: { return $0.session })
+        }
+        set {
+            _connection.sync(block: { $0.session = newValue })
         }
     }
 
-    // MARK: - Command handling
+    var specificCommandHandlers: [Int : (SCCommand) -> Bool] {
+        get {
+            return _connection.sync(block: { return $0.specificCommandHandlers })
+        }
+        set {
+            _connection.sync(block: { $0.specificCommandHandlers = newValue })
+        }
+    }
 
-    /// A dictionary specifying data structures relating to the server commands that the command handler will handle.
-    private var incomingCommands: [String : SCCommand.Type] = [:]
-    /// Blocks to be executed when a command with a specific ID is received. Return true if the expected response has been received.
-    ///
-    /// internal access provided due to a current bug where command IDs don't properly register the "ACCEPTED"/"DENIED" commands, see `SCLoginAcceptedCommand.execute(on:)` and `SCLoginDeniedCommand.execute(on:)`.
-    var specificCommandHandlers: [Int : (SCCommand) -> (Bool)] = [:]
+    public private(set) var featureAvailability: ProtocolFeatureAvailability? {
+        get {
+            return _connection.sync(block: { return $0.featureAvailability })
+        }
+        set {
+            _connection.sync(block: { $0.featureAvailability = newValue })
+        }
+    }
+
+    /**
+     Contains the state for `Connection`, such that it can be forced to operate on a single thread.
+
+     If you need to store a reference to `_Connection`, make sure it is `ThreadLocked`.
+     */
+    public class _Connection: UpdateNotifier {
+
+        init(queue: DispatchQueue, socket: Socket, client: Client, resourceManager: ResourceManager, cacheDirectory: URL, preferencesController: PreferencesController) {
+            self.queue = queue
+            self.socket = socket
+            self.client = client
+            self.resourceManager = resourceManager
+            self.cacheDirectory = cacheDirectory
+
+            self.session = .unauthenticated(UnauthenticatedSession(preferencesController: preferencesController))
+        }
+
+        deinit {
+            socket.close()
+        }
+
+        /// Stores state relating to the authenticated/unauthenticated session with the server.
+        public internal(set) var session: Session {
+            didSet {
+                switch session {
+                case let .authenticated(session):
+                    applyActionToChainedObjects({ $0.connection(self, didBecomeAuthenticated: session) })
+                case let .unauthenticated(session):
+                    applyActionToChainedObjects({ $0.connection(self, didBecomeUnauthenticated: session) })
+                }
+            }
+        }
+
+        // MARK: - Cache
+
+        /// The directory where all cache information associated with the connected server should be written.
+        public let cacheDirectory: URL
+
+        // MARK: - Update Notifier
+
+        public var objectsWithLinkedActions: [() -> ReceivesConnectionUpdates?] = []
+
+        // MARK: - Dependencies
+
+        /// The client that owns this connection.
+        private unowned var client: Client
+        /// The resource manager providing resource information to this connection.
+        let resourceManager: ResourceManager
+
+        // MARK: - Thread-safety
+
+        /// _Connection is queue-locked on the queue. Use this only for async calls.
+        public let queue: DispatchQueue
+
+        // MARK: - Socket connection
+
+        /// The socket that connects to the remote server.
+        let socket: Socket
+
+        /// The ID of the next message to be sent to the server, corresponding to the number of messages previously sent.
+        private var idOfNextCommand = 0
+
+        /// Sends a command to the connected server.
+        ///
+        /// The command's specificHandler will
+        public func send(_ command: CSCommand, specificHandler: ((SCCommand) -> (Bool))? = nil) {
+            cancelPing()
+            schedulePing()
+
+            Logger.log("Sending: #\(idOfNextCommand) " + command.description, tag: .General)
+
+            specificCommandHandlers[idOfNextCommand] = specificHandler
+            socket.send(message: "#\(idOfNextCommand) \(command.description)\n")
+
+            idOfNextCommand += 1
+        }
+
+        /// The time the last ping was received, in microseconds.
+        public private(set) var lastPingTime: Int?
+
+        func setLastPingTime(_ pingTime: Int) {
+            lastPingTime = pingTime
+            applyActionToChainedObjects({ $0.connection(self, didReceivePongAfter: pingTime) })
+        }
+
+        private(set) var pingTimer = Timer()
+
+        private var currentPingWorkItem: DispatchWorkItem?
+
+        /// Sends a keepalive message and queues the next.
+        private func schedulePing() {
+            let workItem = DispatchWorkItem(qos: .utility, flags: .enforceQoS, block: { [weak self] in
+                guard let self = self else { return }
+                self.pingTimer = Timer()
+                self.send(CSPingCommand(), specificHandler: { [weak self] response in
+                    guard let self = self else { return true }
+                    if response is SCPongCommand {
+                        self.setLastPingTime(self.pingTimer.intervalFromStart)
+                        return true
+                    }
+                    return false
+                })
+                self.schedulePing()
+            })
+            currentPingWorkItem = workItem
+            // A delay of 30 seconds is reccomended by TASServer documentation.
+            // After 60 seconds the server will terminate the connection.
+            queue.asyncAfter(deadline: DispatchTime.now() + DispatchTimeInterval.nanoseconds(30), execute: workItem)
+        }
+
+        /// Cancels the next ping operation.
+        private func cancelPing() {
+            currentPingWorkItem?.cancel()
+        }
+
+        /// A dictionary specifying which commands will be processed.
+        private var incomingCommands: [String : SCCommand.Type] = [:]
+
+        /// Blocks to be executed when a command with a specific ID is received. Return true if the expected response has been received.
+        ///
+        /// internal access provided due to a current bug where command IDs don't properly register the "ACCEPTED"/"DENIED" commands, see `SCLoginAcceptedCommand.execute(on:)` and `SCLoginDeniedCommand.execute(on:)`.
+        var specificCommandHandlers: [Int : (SCCommand) -> (Bool)] = [:]
+
+        /// A message was received over the socket.
+        func socket(_ socket: Socket, didReceive message: String) {
+            let messages = message.components(separatedBy: "\n")
+
+            for message in messages where message != "" {
+                Logger.log("Received: " + message, tag: .General)
+
+                let components = message.components(separatedBy: " ")
+                let messageID = components.first.flatMap({ (id: String) -> Int? in
+                    if id.first == "#" {
+                        return Int(id.dropFirst())
+                    } else {
+                        return nil
+                    }
+                })
+
+                let commandIndex = (messageID != nil) ? 1 : 0
+                let description = components.dropFirst(1 + commandIndex).joined(separator: " ")
+
+                guard components.count > (commandIndex + 1),
+                      let recognisedCommand = incomingCommands[components[commandIndex].uppercased()],
+                      let command = recognisedCommand.init(description: description) else {
+                    Logger.log("Failed to decode command", tag: .ServerError)
+                    continue
+                }
+
+                if let messageID = messageID {
+                    if let specificHandler = specificCommandHandlers[messageID],
+                       specificHandler(command) {
+                        specificCommandHandlers.removeValue(forKey: messageID)
+                    }
+                }
+                command.execute(on: self)
+            }
+        }
+
+        func socket(_ socket: Socket, didFailWithError error: Error?) {
+            applyActionToChainedObjects({ $0.connectionDidDisconnect(self) })
+        }
+
+        func redirect(to newAddress: ServerAddress) {
+            client.redirect(to: newAddress)
+        }
+
+        // MARK: - Protocol
+
+        /// Describes the features available with the connected server.
+        var featureAvailability: ProtocolFeatureAvailability?
+
+        func setProtocol(_ serverProtocol: ServerProtocol) {
+            let featureAvailability = ProtocolFeatureAvailability(serverProtocol: serverProtocol)
+
+            switch serverProtocol {
+            case .unknown:
+                incomingCommands = Connection.protocolInfoCommands
+            case .tasServer:
+                incomingCommands = Connection.tasServerSCCommands
+            default:
+                break
+            }
+
+            applyActionToChainedObjects({ $0.connection(self, willUseCommandProtocolWithFeatureAvailability: featureAvailability) })
+
+            self.featureAvailability = featureAvailability
+        }
+    }
+
+    private let _connection: QueueLocked<_Connection>
 
     // MARK: - Connection Properties
 
-    /// The socket that connects to the remote server.
-    private(set) var socket: Socket
-    /// The delay after which the keepalive "PING" should be sent in order to maintain the server connection.
-    /// A delay of 30 seconds is reccomended by TASServer documentation.
-    private static let keepaliveDelay: TimeInterval = 30
-
     /// The address the client is connected to.
     public var address: ServerAddress {
-        return socket.address
+        return _connection.sync(block: { return $0.socket.address })
     }
 
-    /// A directory in which various clients may store information relating to the server they are connected to.
-    private let baseCacheDirectory: URL
     /// A directory in which the client associated with this connection may store information relating to the server it is connected to.
-    public var cacheDirectory: URL {
-        return baseCacheDirectory.appendingPathComponent(address.description)
-    }
+    public let cacheDirectory: URL
 
     // MARK: - Lifecycle
 
@@ -105,121 +287,62 @@ public final class Connection: NSObject, SocketDelegate, UpdateNotifier {
     ///
     /// - parameter address: The IP address or domain name of the server, along with the port it should connect on.
     /// - parameter defaultProtocol: The protocol the connection will assume the server will communicate with. Use `.unknown` for the client to detect the protocol.
-    init(address: ServerAddress, client: Client, userAuthenticationController: UserAuthenticationController, baseCacheDirectory: URL, defaultProtocol: ServerProtocol = .unknown) {
-        self.baseCacheDirectory = baseCacheDirectory
-        self.userAuthenticationController = userAuthenticationController
-        
-        socket = Socket(address: address)
-        self.client = client
-        super.init()
+    init?(address: ServerAddress, client: Client, resourceManager: ResourceManager, preferencesController: PreferencesController, baseCacheDirectory: URL, defaultProtocol: ServerProtocol = .unknown) {
+        guard let socket = Socket(address: address) else {
+            return nil
+        }
+        let queue = DispatchQueue(label: "com.believeandrise.connection", qos: .userInteractive, target: DispatchQueue.global(qos: .userInteractive))
 
-        socket.delegate = self
-        setProtocol(defaultProtocol)
-    }
-    
-    deinit {
-        disconnect()
-    }
+        _connection = QueueLocked(
+            lockedObject: _Connection(
+                queue: queue,
+                socket: socket,
+                client: client,
+                resourceManager: resourceManager,
+                cacheDirectory: baseCacheDirectory.appendingPathComponent(address.description),
+                preferencesController: preferencesController
+            ),
+            queue: queue
+        )
 
-    // MARK: - Connection to Servers
+        self.cacheDirectory = baseCacheDirectory.appendingPathComponent(address.description)
 
-    /// Initiates the socket connection and begins the keepalive loop.
-    func connect() {
-        applyActionToChainedObjects({ $0.connection(self, willConnectTo: address) })
-        socket.connect()
-        applyActionToChainedObjects({ $0.connection(self, didSuccessfullyConnectTo: address) })
-        perform(#selector(Connection.sendPing), with: nil, afterDelay: 30)
-    }
-
-    /// Terminates the connection to the server, and with it the keepalive loop.
-    func disconnect() {
-        NSObject.cancelPreviousPerformRequests(withTarget: self, selector: #selector(Connection.sendPing), object: nil)
-        socket.disconnect()
-    }
-
-    /// Closes the connection to one server, and connects to the new address
-    func redirect(to serverAddress: ServerAddress, defaultProtocol: ServerProtocol = .unknown) {
-
-        applyActionToChainedObjects({ $0.connection(self, willRedirectTo: serverAddress) })
-
-        disconnect()
-
-        socket = Socket(address: serverAddress)
-        socket.delegate = self
         setProtocol(defaultProtocol)
 
-        connect()
-
-        applyActionToChainedObjects({ $0.connection(self, didSuccessfullyRedirectTo: serverAddress) })
+        socket.delegate = self
+        socket.open()
     }
 
     // MARK: - Handling Messages
 
-    /// The ID of the next message to be sent to the server, corresponding to the number of messages previously sent.
-    private var count = 0
     /// Sends an encoded command over the socket and delays the keepalive to avoid sending superfluous messages to the server.
     ///
     /// Command handlers should not contain any strong references to objects in the case a command is never responded to.
     public func send(_ command: CSCommand, specificHandler: ((SCCommand) -> (Bool))? = nil) {
-        Logger.log("Sending: #\(count) " + command.description, tag: .General)
-        NSObject.cancelPreviousPerformRequests(withTarget: self, selector: #selector(Connection.sendPing), object: nil)
-
-        specificCommandHandlers[count] = specificHandler
-        socket.send(message: "#\(count) \(command.description)\n")
-
-        perform(#selector(Connection.sendPing), with: nil, afterDelay: Connection.keepaliveDelay)
-
-        count += 1
+        _connection.sync(block: { $0.send(command, specificHandler: specificHandler) })
     }
 
-    /// Sends a keepalive message and queues the next.
-    @objc private func sendPing() {
-        socket.send(message: "PING\n")
-        perform(#selector(Connection.sendPing), with: nil, afterDelay: Connection.keepaliveDelay)
-    }
-
-    // MARK: - SocketDelegate
+    // MARK: - Socket Events
 
     /// A message was received over the socket.
     func socket(_ socket: Socket, didReceive message: String) {
-        let messages = message.components(separatedBy: "\n")
-
-        for message in messages where message != "" {
-            Logger.log("Received: " + message, tag: .General)
-            let components = message.components(separatedBy: " ")
-            let messageID = components.first.flatMap({ (id: String) -> Int? in
-                if id.first == "#" {
-                    return Int(id.dropFirst())
-                } else {
-                    return nil
-                }
-            })
-            let commandIndex = (messageID != nil) ? 1 : 0
-            let description = components.dropFirst(1 + commandIndex).joined(separator: " ")
-            guard components.count > (commandIndex + 1),
-                  let recognisedCommand = incomingCommands[components[commandIndex].uppercased()],
-                  let command = recognisedCommand.init(description: description) else {
-                Logger.log("Failed to decode command", tag: .ServerError)
-                continue
-            }
-            if let messageID = messageID {
-                if let specificHandler = specificCommandHandlers[messageID],
-                   specificHandler(command) {
-                    specificCommandHandlers.removeValue(forKey: messageID)
-                }
-            }
-            command.execute(on: client)
-        }
+        _connection.sync(block: { $0.socket(socket, didReceive: message)})
     }
 
     /// The socket will no longer receive information from the server.
-    func socketDidClose(_ socket: Socket) {
-        client.reset()
-        setProtocol(.unknown)
-        applyActionToChainedObjects({ $0.connectionDidDisconnect(self) })
+    func socket(_ socket: Socket, didFailWithError error: Error?) {
+        _connection.sync(block: { $0.socket(socket, didFailWithError: error) })
     }
 
-    // MARK: - Protocol
+    // MARK: - Session
+
+    /// States the possible sessions that may be maintained with the server.
+    public enum Session {
+        case authenticated(AuthenticatedSession)
+        case unauthenticated(UnauthenticatedSession)
+    }
+
+    // MARK: - Server Protocol
 
     /// Identifies a protocol that the command handler can handle.
     enum ServerProtocol {
@@ -228,34 +351,14 @@ public final class Connection: NSObject, SocketDelegate, UpdateNotifier {
         case zeroKServer
     }
 
-    /// Describes the features available with the connected server.
-    public private(set) var featureAvailability: ProtocolFeatureAvailability?
-
     /// Sets a protocol that has been identified such that following commands may be processed.
     func setProtocol(_ serverProtocol: ServerProtocol) {
-        let featureAvailability = ProtocolFeatureAvailability(serverProtocol: serverProtocol)
-        
-        switch serverProtocol {
-        case .unknown:
-            incomingCommands = [
-                "TASSERVER" : TASServerCommand.self
-            ]
-        case .tasServer:
-            incomingCommands = Connection.tasServerSCCommands
-        default:
-            break
-        }
-
-        applyActionToChainedObjects({ $0.connection(self, willUseCommandProtocolWithFeatureAvailability: featureAvailability) })
-
-        self.featureAvailability = featureAvailability
+        _connection.sync(block: { $0.setProtocol(serverProtocol) })
     }
-    
-    // MARK: - UpdateNotifier
 
-    public var objectsWithLinkedActions: [() -> ReceivesTASServerUpdates?] = []
-    
-    // MARK: - Protocol commands
+    private static let protocolInfoCommands: [String : SCCommand.Type] = [
+            "TASSERVER" : TASServerCommand.self
+    ]
 
     /// A set of commands expected to be received when using the TASServer protocol.
     private static let tasServerSCCommands: [String : SCCommand.Type] = [

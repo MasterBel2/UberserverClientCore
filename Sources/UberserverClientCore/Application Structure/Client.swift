@@ -10,10 +10,16 @@ import Foundation
 import ServerAddress
 
 public protocol ReceivesClientUpdates {
+    /// Indicates that the client will attempt to establish a connection to the given address.
+    func client(_ client: Client, willConnectTo address: ServerAddress)
     /// Indicates that the client has created a `Connection` object that it will use to connect to a server.
-    func client(_ client: Client, didPrepare connection: Connection)
+    func client(_ client: Client, successfullyEstablishedConnection connection: Connection)
+    ///
+    func client(_ client: Client, willRedirectFrom oldServerAddress: ServerAddress, to newServerAddress: ServerAddress)
+    ///
+    func client(_ client: Client, didSuccessfullyRedirectTo newConnection: Connection)
     /// Indicates that the client is about to destroy its connection object, usually directly after the connection disconnects from a server.
-    func client(_ client: Client, willDestroy connection: Connection)
+    func clientDisconnectedFromServer(_ client: Client)
 }
 
 public extension ReceivesClientUpdates {
@@ -28,62 +34,6 @@ public extension ReceivesClientUpdates {
  A the `connection` property may be initialized by calling the `connect(to serverAddress:)` instance method.
  */
 public final class Client: UpdateNotifier {
-    
-    // MARK: - Client State
-
-    /// Executes a block if the client is not connected to a server, logging an error on failure.
-    public func inDisconnectedState<ReturnType>(_ block: () -> ReturnType, file: String = #file, function: String = #function, line: Int = #line) -> ReturnType? {
-        if connection == nil {
-            return block()
-        } else {
-            Logger.log("\(file):\(line) \(function): Client is not disconnected.", tag: .ClientStateError)
-            return nil
-        }
-    }
-
-    /// Executes a block if the client is connected to a server, logging an error on failure.
-    public func inConnectedState<ReturnType>(_ block: (Connection) -> ReturnType, file: String = #file, function: String = #function, line: Int = #line) -> ReturnType? {
-        if let connection = connection {
-            return block(connection)
-        } else {
-            Logger.log("\(file):\(line) \(function): Client is not connected to a server.", tag: .ClientStateError)
-            return nil
-        }
-    }
-
-    /// Executes a block if the client is authenticated with a server, logging an error on failure.
-    public func inAuthenticatedState<ReturnType>(_ block: (AuthenticatedClient, Connection) -> ReturnType, file: String = #file, function: String = #function, line: Int = #line) -> ReturnType? {
-        let result = inConnectedState({ (connection: Connection) -> ReturnType? in
-            if let authenticatedClient = connection.authenticatedClient {
-                return block(authenticatedClient, connection)
-            } else {
-                return nil
-            }
-        })
-        if let result = result {
-            return result
-        } else {
-            Logger.log("\(file):\(line) \(function): User is not authenticated.", tag: .ClientStateError)
-            return nil
-        }
-    }
-
-    /// Executes a block if the client is in a battleroom, logging an error on failure.
-    public func inBattleroomState<ReturnType>(_ block: (Battleroom, AuthenticatedClient, Connection) -> ReturnType, file: String = #file, function: String = #function, line: Int = #line) -> ReturnType? {
-        let result = inAuthenticatedState { (authenticatedClient: AuthenticatedClient, connection: Connection) -> ReturnType? in
-            if let battleroom = authenticatedClient.battleroom {
-                return block(battleroom, authenticatedClient, connection)
-            } else {
-                return nil
-            }
-        }
-        if let result = result {
-            return result
-        } else {
-            Logger.log("\(file):\(line) \(function): User is not in a battleroom.", tag: .ClientStateError)
-            return nil
-        }
-    }
 
     // MARK: - System data
 
@@ -94,33 +44,18 @@ public final class Client: UpdateNotifier {
     
     public var objectsWithLinkedActions: [() -> ReceivesClientUpdates?] = []
 
-    // MARK: - Controlling specific data & interactions
-
-    ///
-    public let accountInfoController = AccountInfoController()
-
-    /// The The
-    public let userAuthenticationController: UserAuthenticationController
-
     // MARK: -
 
     public private(set) var connection: Connection?
 
     // MARK: - Creating a Client
 
-    public init(system: System, userAuthenticationController: UserAuthenticationController, address: ServerAddress? = nil, resourceManager: ResourceManager) {
+    public init(system: System, address: ServerAddress? = nil, resourceManager: ResourceManager) {
 
         // Initialise values
 
         self.system = system
         self.resourceManager = resourceManager
-
-        self.userAuthenticationController = userAuthenticationController
-
-        // Configuration
-
-        accountInfoController.client = self
-        userAuthenticationController.client = self
 
         // Initialise server
         if let address = address {
@@ -130,32 +65,33 @@ public final class Client: UpdateNotifier {
 
     // MARK: - Managing the Client's Connection
 
-    func reset() {
-        if let connection = connection {
-            applyActionToChainedObjects({ $0.client(self, willDestroy: connection) })
-            connection.disconnect()
-            self.connection = nil
-        }
-
-        accountInfoController.invalidate()
+    func disconnect() {
+        connection = nil
     }
-	
+
+    /// Establishes a connection to the given address.
+    ///
+    /// Client will notify all objects waiting for an update when the connection has been successfully established by calling `client(_ client:successfullyEstablishedConnection:)`
 	public func connect(to address: ServerAddress) {
-        if let connection = connection {
-            connection.redirect(to: address)
-        } else {
-            let connection = Connection(
-                address: address,
-                client: self,
-                userAuthenticationController: userAuthenticationController,
-                baseCacheDirectory: system.configDirectory
-            )
-            applyActionToChainedObjects({ $0.client(self, didPrepare: connection) })
-            connection.connect()
-            
-            self.connection = connection
+        guard let connection = Connection(
+            address: address,
+            client: self,
+            resourceManager: resourceManager,
+            preferencesController: PreferencesController.default,
+            baseCacheDirectory: system.configDirectory
+        ) else {
+            return
         }
+        applyActionToChainedObjects({ $0.client(self, successfullyEstablishedConnection: connection) })
+
+        self.connection = connection
 	}
+
+    /// Destroys the current connection and connects to the new address.
+    public func redirect(to address: ServerAddress) {
+        connection = nil
+        connect(to: address)
+    }
 
     // MARK: - Receiving Messages from the Server
 
@@ -169,31 +105,5 @@ public final class Client: UpdateNotifier {
         }
     }
 
-    func didReceiveMessageFromServer(_ message: String) {
-        if message.hasPrefix("Registration date:") {
-            let components = message.components(separatedBy: " ")
-            guard components.count >= 6 else {
-                accountInfoController.setRegistrationDate(.none)
-                return
-            }
-            let dateString = components[2..<5].joined(separator: " ")
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "MMM DD, YYYY"
-            guard let date = dateFormatter.date(from: dateString) else { return }
-            accountInfoController.setRegistrationDate(date)
-        } else if message.hasPrefix("Email address:") {
-            let components = message.components(separatedBy: " ")
-            if components.count == 3,
-                components[2] != "",
-                components[2] != "None" {
-                accountInfoController.setEmail(components[2])
-            } else {
-                accountInfoController.setEmail("No email provided")
-            }
-        } else if message.hasPrefix("Ingame time:") {
-            let ingameTimeString = message.components(separatedBy: " ")[2]
-            guard let ingameTime = Int(ingameTimeString) else { return }
-            accountInfoController.setIngameHours(ingameTime)
-        }
-    }
+    func didReceiveMessageFromServer(_ message: String) {}
 }

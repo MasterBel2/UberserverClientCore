@@ -60,9 +60,9 @@ struct SCLoginAcceptedCommand: SCCommand {
     }
 
     /// Uberserver does not handle command IDs properly, so this hacks around that (since we know that we don't send a second command handler before login completes).
-    func execute(on client: Client) {
-        client.connection?.specificCommandHandlers.first?.value(self)
-        client.connection?.specificCommandHandlers = [:]
+    public func execute(on connection: ThreadUnsafeConnection) {
+        _ = connection.specificCommandHandlers.first?.value(self)
+        connection.specificCommandHandlers = [:]
     }
 }
 
@@ -89,9 +89,9 @@ struct SCLoginDeniedCommand: SCCommand {
 	}
 
     /// Uberserver does not handle command IDs properly, so this hacks around that (since we know that we don't send a second command handler before login completes).
-	func execute(on client: Client) {
-        client.connection?.specificCommandHandlers.first?.value(self)
-        client.connection?.specificCommandHandlers = [:]
+    public func execute(on connection: ThreadUnsafeConnection) {
+        _ = connection.specificCommandHandlers.first?.value(self)
+        connection.specificCommandHandlers = [:]
     }
 
 	var description: String {
@@ -122,9 +122,7 @@ struct SCRegistrationDeniedCommand: SCCommand {
 		self.reason = sentences[0]
 	}
 	
-	func execute(on client: Client) {
-		client.receivedError(.registrationDenied(reason: reason))
-	}
+    public func execute(on connection: ThreadUnsafeConnection) {}
 	
 	var description: String {
 		return "REGISTRATIONDENIED \(reason)"
@@ -149,9 +147,7 @@ struct SCRegistrationAcceptedCommand: SCCommand {
 	
 	init?(description: String) {}
 	
-	func execute(on client: Client) {
-		#warning("Display some kind of success")
-	}
+    public func execute(on connection: ThreadUnsafeConnection) {}
 	
 	var description: String {
 		return "REGISTRATIONACCEPTED"
@@ -171,8 +167,7 @@ struct SCLoginInfoEndCommand: SCCommand {
 	init?(description: String) {
 	}
 	
-	func execute(on client: Client) {
-	}
+    public func execute(on connection: ThreadUnsafeConnection) {}
 	
 	var description: String {
 		return "LOGININFOEND"
@@ -199,8 +194,8 @@ struct SCAgreementCommand: SCCommand {
 		self.agreement = sentences[0]
 	}
 	
-	func execute(on client: Client) {
-		#warning("Update agreement")
+    public func execute(on connection: ThreadUnsafeConnection) {
+		#warning("TODO: Update agreement")
 	}
 	
 	var description: String {
@@ -221,8 +216,8 @@ struct SCAgreementEndCommand: SCCommand {
 	init?(description: String) {
 	}
 	
-	func execute(on client: Client) {
-		#warning("Display agreement now")
+    public func execute(on connection: ThreadUnsafeConnection) {
+		#warning("TODO: Display agreement now")
 	}
 	
 	var description: String {
@@ -243,9 +238,7 @@ struct SCChangeEmailRequestAcceptedCommand: SCCommand {
 	init?(description: String) {
 	}
 	
-	func execute(on client: Client) {
-		#warning("Should display some kind of success here")
-	}
+    public func execute(on connection: ThreadUnsafeConnection) {}
 	
 	var description: String {
 		return "CHANGEEMAILREQUESTACCEPTED"
@@ -272,9 +265,7 @@ struct SCChangeEmailRequestDeniedCommand: SCCommand {
 		self.errorMessage = sentences[0]
 	}
 	
-	func execute(on client: Client) {
-		client.receivedError(.changeEmailRequestDenied(errorMessage: errorMessage))
-	}
+    public func execute(on connection: ThreadUnsafeConnection) {}
 	
 	var description: String {
 		return "CHANGEEMAILREQUESTDENIED \(errorMessage)"
@@ -294,9 +285,7 @@ struct SCChangeEmailAcceptedCommand: SCCommand {
 	init?(description: String) {
 	}
 	
-	func execute(on client: Client) {
-		#warning("Should display some kind of success here")
-	}
+    public func execute(on connection: ThreadUnsafeConnection) {}
 	
 	var description: String {
 		return "CHANGEEMAILACCEPTED"
@@ -323,9 +312,7 @@ struct SCChangeEmailDeniedCommand: SCCommand {
 		self.errorMessage = sentences[0]
 	}
 	
-	func execute(on client: Client) {
-		client.receivedError(.changeEmailDenied(errorMessage: errorMessage))
-	}
+    public func execute(on connection: ThreadUnsafeConnection) {}
 	
 	var description: String {
 		return "CHANGEEMAILDENIED \(errorMessage)"
@@ -347,8 +334,7 @@ struct SCResendVerificationAcceptedCommand: SCCommand {
 	}
 
     /// Noop: this is a response and does not need an action.
-	func execute(on client: Client) {
-	}
+    public func execute(on connection: ThreadUnsafeConnection) {}
 	
 	var description: String {
 		return "RESENDVERIFICATIONACCEPTED"
@@ -375,9 +361,7 @@ struct SCResendVerificationDeniedCommand: SCCommand {
 		self.errorMessage = sentences[0]
 	}
 	
-	func execute(on client: Client) {
-		client.receivedError(.resendVerificationDenied(errorMessage: errorMessage))
-	}
+    public func execute(on connection: ThreadUnsafeConnection) {}
 	
 	var description: String {
 		return "RESENDVERIFICATIONDENIED \(errorMessage)"
@@ -397,9 +381,7 @@ struct SCResetPasswordRequestAcceptedCommand: SCCommand {
 	init?(description: String) {
 	}
 	
-	func execute(on client: Client) {
-		#warning("Should display some kind of success here")
-	}
+    public func execute(on connection: ThreadUnsafeConnection) {}
 	
 	var description: String {
 		return "RESETPASSWORDREQUESTACCEPTED"
@@ -425,9 +407,7 @@ struct SCResetPasswordRequestDeniedCommand: SCCommand {
 		self.errorMessage = sentences[0]
 	}
 	
-	func execute(on client: Client) {
-		client.receivedError(.resetPasswordRequestDenied(errorMessage: errorMessage))
-	}
+    public func execute(on connection: ThreadUnsafeConnection) {}
 	
 	var description: String {
 		return "RESETPASSWORDREQUESTDENIED \(errorMessage)"
@@ -448,9 +428,7 @@ struct SCResetPasswordAcceptedCommand: SCCommand {
 	
 	init?(description: String) {}
 	
-	func execute(on client: Client) {
-		#warning("Should display some kind of success here")
-	}
+    public func execute(on connection: ThreadUnsafeConnection) {}
 	
 	var description: String {
 		return "RESETPASSWORDACCEPTED"
@@ -477,9 +455,7 @@ struct SCResetPasswordDeniedCommand: SCCommand {
 		errorMessage = sentences[0]
 	}
 	
-	func execute(on client: Client) {
-		client.receivedError(.resetPasswordDenied(errorMessage: errorMessage))
-	}
+    public func execute(on connection: ThreadUnsafeConnection) {}
 	
 	var description: String {
 		return "RESETPASSWORDDENIED \(errorMessage)"
