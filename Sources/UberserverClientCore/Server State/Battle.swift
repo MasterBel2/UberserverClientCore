@@ -119,7 +119,7 @@ public final class Battle: UpdateNotifier {
             applyActionToChainedObjects({ $0.loadedEngine(engine) })
         }
     }
-    
+
     public func loadGame() {
         gameArchive = resourceManager.archiveLoader.modArchives.first(where: { $0.name == gameName })
         if let gameArchive = gameArchive {
@@ -127,7 +127,7 @@ public final class Battle: UpdateNotifier {
         }
     }
     
-    /// Updates sync status, and loads minimap if the map is found.
+    /// Attempts to load the map archive.
     public func loadMap() {
         resourceManager.loadMap(named: mapIdentification.name, checksum: mapIdentification.hash, preferredVersion: engineVersion, shouldDownload: shouldAutomaticallyDownloadMap) { [weak self] result in
             guard let self = self else {
