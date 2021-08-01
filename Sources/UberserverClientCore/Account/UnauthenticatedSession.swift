@@ -36,13 +36,18 @@ public final class UnauthenticatedSession {
     // MARK: - LoginDataSource
 
     /// Returns a list of usernames that have been previously used to log in to this server, if any.
-    public func prefillableUsernames(serverAddress: ServerAddress) -> [String] {
-        (try? credentialsManager.usernames(forServerWithAddress: serverAddress.description)) ?? []
+    public var prefillableUsernames: [String] {
+        guard let serverAddress = connection?.address,
+              let usernames = try? credentialsManager.usernames(forServerWithAddress: serverAddress.description) else {
+            return []
+        }
+        return usernames
     }
 
     /// Returns the last credentials used to log into the server, if any.
-    public func lastCredentialsPair(serverAddress: ServerAddress) -> Credentials? {
-        guard let lastUsername = preferencesController.lastUsername(for: serverAddress.description) else {
+    public var lastCredentialsPair: Credentials? {
+        guard let serverAddress = connection?.address,
+            let lastUsername = preferencesController.lastUsername(for: serverAddress.description) else {
             return nil
         }
         return try? credentialsManager.credentials(forServerWithAddress: serverAddress.description, username: lastUsername)
