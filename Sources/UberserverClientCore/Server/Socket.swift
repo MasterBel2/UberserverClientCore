@@ -9,6 +9,10 @@
 import Foundation
 import ServerAddress
 
+private enum SocketError: Error {
+    case failedToSetStreamProperty(property: Any?, key: Stream.PropertyKey)
+}
+
 /// A set of functions that may be implemented by a Socket's delegate.
 protocol SocketDelegate: AnyObject {
 	func socket(_ socket: Socket, didReceive message: String)
@@ -73,6 +77,15 @@ final class Socket: NSObject, StreamDelegate {
         outputStream.open()
 
         isOpen = true
+    }
+
+    func setStreamProperty(_ property: Any?, forKey key: Stream.PropertyKey) throws {
+        guard inputStream.setProperty(property, forKey: key),
+              outputStream.setProperty(property, forKey: key) else {
+            inputStream.setProperty(nil, forKey: key)
+            outputStream.setProperty(nil, forKey: key)
+            throw SocketError.failedToSetStreamProperty(property: property, key: key)
+        }
     }
 
     /// Closes the socket.

@@ -38,10 +38,27 @@ public struct TASServerCommand: SCCommand {
     }
     
     public func execute(on connection: ThreadUnsafeConnection) {
-        if protocolVersion == "unknown" {
-            connection.setProtocol(.tasServer(version: 0.38))
-        } else if let version = Float(String(protocolVersion.prefix(while: { "0.123456789".contains($0) }))) {
-            connection.setProtocol(.tasServer(version: version))
+        let protocolFloat: Float
+
+        if let version = Float(String(protocolVersion.prefix(while: { "0.123456789".contains($0) }))) {
+            protocolFloat = version
+        } else {
+            // Default to latest available version
+            protocolFloat = 0.38
+        }
+
+        connection.setProtocol(.tasServer(version: protocolFloat))
+
+        if ProtocolFeature.TASServer.crypto0_37.isAvailable(in: protocolFloat) {
+            // TODO
+        } else if ProtocolFeature.TASServer.crypto0_38.isAvailable(in: protocolFloat) {
+            connection.send(CSSTLSCommand(), specificHandler: { response in
+                if response is SCOKCommand {
+                    try? connection.socket.setStreamProperty(StreamSocketSecurityLevel.tlSv1, forKey: .socketSecurityLevelKey)
+                    return true
+                }
+                return false
+            })
         }
     }
 }

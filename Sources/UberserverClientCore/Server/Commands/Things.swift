@@ -122,6 +122,24 @@ public struct SCJSONCommand: SCCommand {
 }
 
 /**
+ Requests permission to start a TLS connection to the server.
+ */
+public struct CSSTLSCommand: CSCommand {
+    public init() {}
+
+    public init?(description: String) {}
+
+    public var description: String {
+        return "STLS"
+    }
+
+    public func execute(on server: LobbyServer) {
+        // TODO
+    }
+}
+
+
+/**
 Sent as the response to a STLS command. The client now can now start the tls connection. The server will send again the greeting TASSERVER.
 */
 public struct SCOKCommand: SCCommand {
@@ -135,8 +153,8 @@ public struct SCOKCommand: SCCommand {
     public init?(description: String) {}
 	
     public func execute(on connection: ThreadUnsafeConnection) {
-		#warning("TODO")
-	}
+        // Handled by specific handler
+    }
 	
     public var description: String {
 		return "OK"
