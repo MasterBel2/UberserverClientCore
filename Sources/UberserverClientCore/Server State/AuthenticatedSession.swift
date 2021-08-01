@@ -61,7 +61,7 @@ public class AuthenticatedSession: UpdateNotifier {
         }
     }
 
-    let accountInfoController = AccountInfoController()
+    public let accountInfoController = AccountInfoController()
 
     // MARK: - Creating an AuthenticatedClient
     
@@ -79,6 +79,10 @@ public class AuthenticatedSession: UpdateNotifier {
     /// The ID of the account the user has used to connect to the server.
     public var myID: Int? {
         return id(forPlayerNamed: username)
+    }
+
+    public var myUser: User? {
+        return myID.flatMap({ userList.items[$0] })
     }
 
     /// Returns ID of a player, if they are online.
