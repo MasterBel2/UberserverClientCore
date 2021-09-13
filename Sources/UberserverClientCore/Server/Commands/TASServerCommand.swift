@@ -52,12 +52,32 @@ public struct TASServerCommand: SCCommand {
 
         connection.setProtocol(.tasServer(version: protocolFloat))
 
+
+        print(protocolFloat)
+        print(ProtocolFeature.TASServer.crypto0_38.isAvailable(in: protocolFloat))
+
         if ProtocolFeature.TASServer.crypto0_37.isAvailable(in: protocolFloat) {
             // TODO
         } else if ProtocolFeature.TASServer.crypto0_38.isAvailable(in: protocolFloat) {
             connection.send(CSSTLSCommand(), specificHandler: { response in
                 if response is SCOKCommand {
-                    try? connection.socket.setStreamProperty(StreamSocketSecurityLevel.tlSv1, forKey: .socketSecurityLevelKey)
+                    do {
+                        let sslSettings = NSMutableDictionary()
+
+                        sslSettings.setObject(StreamSocketSecurityLevel.negotiatedSSL, forKey: kCFStreamSSLLevel as NSString)
+                        sslSettings.setObject(connection.socket.address.description as NSString, forKey: kCFStreamSSLPeerName as NSString)
+                        sslSettings.setObject(kCFBooleanFalse, forKey: kCFStreamSSLValidatesCertificateChain as NSString)
+
+
+                        try connection.socket.setStreamProperty(
+                            sslSettings,
+                            forKey: kCFStreamPropertySSLSettings as Stream.PropertyKey
+                        )
+                        connection.socket.open()
+
+                    } catch {
+                        print(error)
+                    }
                     return true
                 }
                 return false

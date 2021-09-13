@@ -71,15 +71,21 @@ final class Socket: NSObject, StreamDelegate {
     ///
     /// Note the socket cannot be re-opened after it is closed.
     func open() {
-        guard !isOpen else { return }
+//        guard !isOpen else { return }
 
         inputStream.open()
         outputStream.open()
 
-        isOpen = true
+//        isOpen = true
+    }
+
+    func setStreamValue(_ value: Any?, forKey: String) {
+        inputStream.setValue(value, forKey: forKey)
+        outputStream.setValue(value, forKey: forKey)
     }
 
     func setStreamProperty(_ property: Any?, forKey key: Stream.PropertyKey) throws {
+        
         guard inputStream.setProperty(property, forKey: key),
               outputStream.setProperty(property, forKey: key) else {
             inputStream.setProperty(nil, forKey: key)
@@ -125,7 +131,7 @@ final class Socket: NSObject, StreamDelegate {
 			
 		case Stream.Event.hasBytesAvailable:
 			guard let input = stream as? InputStream else { break }
-			
+
 			var byte: UInt8 = 0
 			while input.hasBytesAvailable {
 				let bytesRead = input.read(&byte, maxLength: 1)
