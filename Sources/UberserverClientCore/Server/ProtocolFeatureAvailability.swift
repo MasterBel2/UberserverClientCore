@@ -53,7 +53,7 @@ struct ProtocolFeature {
     private init(protocolName: String, version: Float) {
         self.protocolName = protocolName
         firstVersion = version
-        lastVersion = nil
+        lastVersion = version
     }
 
     enum TASServer {
