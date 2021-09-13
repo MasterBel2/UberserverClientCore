@@ -186,7 +186,7 @@ public final class Connection: SocketDelegate {
             currentPingWorkItem = workItem
             // A delay of 30 seconds is reccomended by TASServer documentation.
             // After 60 seconds the server will terminate the connection.
-            queue.asyncAfter(deadline: DispatchTime.now() + DispatchTimeInterval.nanoseconds(30), execute: workItem)
+            queue.asyncAfter(deadline: DispatchTime.now() + DispatchTimeInterval.seconds(30), execute: workItem)
         }
 
         /// Cancels the next ping operation.
