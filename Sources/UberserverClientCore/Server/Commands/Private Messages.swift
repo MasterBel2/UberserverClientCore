@@ -10,6 +10,9 @@ import Foundation
 
 /// Send a private chat message to an other client.
 public struct CSSayPrivateCommand: CSCommand {
+
+    public static let title = "SAYPRIVATE"
+
     let intendedRecipient: String
     let message: String
 
@@ -20,8 +23,8 @@ public struct CSSayPrivateCommand: CSCommand {
 
     // MARK: CSCommand
 
-    public init?(description: String) {
-        guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 1) else {
+    public init?(payload: String) {
+        guard let (words, sentences) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 1) else {
             return nil
         }
 
@@ -33,8 +36,8 @@ public struct CSSayPrivateCommand: CSCommand {
         // TODO
     }
 
-    public var description: String {
-        return "SAYPRIVATE \(intendedRecipient) \(message)"
+    public var payload: String {
+        return "\(intendedRecipient) \(message)"
     }
 }
 
@@ -42,6 +45,8 @@ public struct CSSayPrivateCommand: CSCommand {
 ///
 /// This notifies the client that the server sent the private message on to its intended recipient.
 public struct SCSayPrivateCommand: SCCommand {
+
+    public static let title = "SAYPRIVATE"
 	
 	let username: String
 	let message: String
@@ -55,8 +60,8 @@ public struct SCSayPrivateCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-    public init?(description: String) {
-		guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 1) else {
+    public init?(payload: String) {
+		guard let (words, sentences) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 1) else {
 			return nil
 		}
 		username = words[0]
@@ -82,13 +87,15 @@ public struct SCSayPrivateCommand: SCCommand {
         )
     }
 
-    public var description: String {
-		return "SAYPRIVATE \(username) \(message)"
+    public var payload: String {
+		return "\(username) \(message)"
 	}
 }
 
 /// Sends a private message on to its intended recipient.
 public struct SCSaidPrivateCommand: SCCommand {
+
+    public static let title = "SAIDPRIVATE"
 	
 	/// The username of the message's sender.
 	let username: String
@@ -104,8 +111,8 @@ public struct SCSaidPrivateCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-    public init?(description: String) {
-		guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 1) else {
+    public init?(payload: String) {
+		guard let (words, sentences) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 1) else {
 			return nil
 		}
 		username = words[0]
@@ -134,12 +141,14 @@ public struct SCSaidPrivateCommand: SCCommand {
         )
 	}
 	
-    public var description: String {
-		return "SAIDPRIVATE \(username) \(message)"
+    public var payload: String {
+		return "\(username) \(message)"
 	}
 }
 
 public struct SCSayPrivateEXCommand: SCCommand {
+
+    public static let title = "SAYPRIVATEEX"
 	
 	let username: String
 	let message: String
@@ -153,8 +162,8 @@ public struct SCSayPrivateEXCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-    public init?(description: String) {
-		guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 1) else {
+    public init?(payload: String) {
+		guard let (words, sentences) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 1) else {
 			return nil
 		}
         username = words[0]
@@ -181,12 +190,14 @@ public struct SCSayPrivateEXCommand: SCCommand {
         )
     }
 
-    public var description: String {
-        return "SAYPRIVATEEX \(username) \(message)"
+    public var payload: String {
+        return "\(username) \(message)"
     }
 }
 
 public struct SCSaidPrivateEXCommand: SCCommand {
+
+    public static let title = "SAIDPRIVATEEX"
 	
 	let username: String
 	let message: String
@@ -200,8 +211,8 @@ public struct SCSaidPrivateEXCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-    public init?(description: String) {
-		guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 1) else {
+    public init?(payload: String) {
+		guard let (words, sentences) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 1) else {
             return nil
         }
         username = words[0]
@@ -226,7 +237,7 @@ public struct SCSaidPrivateEXCommand: SCCommand {
         )
     }
 
-    public var description: String {
-        return "SAIDPRIVATEEX \(username) \(message)"
+    public var payload: String {
+        return "\(username) \(message)"
     }
 }

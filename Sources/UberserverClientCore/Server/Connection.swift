@@ -219,11 +219,11 @@ public final class Connection: SocketDelegate {
                 })
 
                 let commandIndex = (messageID != nil) ? 1 : 0
-                let description = components.dropFirst(1 + commandIndex).joined(separator: " ")
+                let payload = components.dropFirst(1 + commandIndex).joined(separator: " ")
 
                 guard components.count > (commandIndex + 1),
                       let recognisedCommand = incomingCommands[components[commandIndex].uppercased()],
-                      let command = recognisedCommand.init(description: description) else {
+                      let command = recognisedCommand.init(payload: payload) else {
                     Logger.log("Failed to decode command", tag: .ServerError)
                     continue
                 }
@@ -357,110 +357,115 @@ public final class Connection: SocketDelegate {
     }
 
     private static let protocolInfoCommands: [String : SCCommand.Type] = [
-            "TASSERVER" : TASServerCommand.self
+        "TASSERVER" : TASServerCommand.self
     ]
 
     /// A set of commands expected to be received when using the TASServer protocol.
-    private static let tasServerSCCommands: [String : SCCommand.Type] = [
-        "TASSERVER" : TASServerCommand.self,
-        "REDIRECT" : SCRedirectCommand.self,
-        "MOTD" : MOTDCommand.self,
-        "SERVERMSG" : SCServerMessageCommand.self,
-        "SERVERMSGBOX" : SCServerMessageBoxCommand.self,
-        "COMPFLAGS" : SCCompFlagsCommand.self,
-        "FAILED" : SCFailedCommand.self,
-        "JSON" : SCJSONCommand.self,
-        "PONG" : SCPongCommand.self,
-        "OK" : SCOKCommand.self,
+    private static let tasServerSCCommands: [String : SCCommand.Type] = {
+        var dict: [String : SCCommand.Type] = [:]
+        [
+            TASServerCommand.self,
+            SCRedirectCommand.self,
+            MOTDCommand.self,
+            SCServerMessageCommand.self,
+            SCServerMessageBoxCommand.self,
+            SCCompFlagsCommand.self,
+            SCFailedCommand.self,
+            SCJSONCommand.self,
+            SCPongCommand.self,
+            SCOKCommand.self,
 
-        // Interaction commands
-        "RING" : SCRingCommand.self,
-        "IGNORE" : SCIgnoreCommand.self,
-        "UNIGNORE" : SCUnignoreCommand.self,
-        "IGNORELIST" : SCIgnoreListCommand.self,
-        "IGNORELISTEND" : SCCIgnoreListEndCommand.self,
+            // Interaction commands
+            SCRingCommand.self,
+            SCIgnoreCommand.self,
+            SCUnignoreCommand.self,
+            SCIgnoreListCommand.self,
+            SCCIgnoreListEndCommand.self,
 
-        // Account commands
-        "ACCEPTED" : SCLoginAcceptedCommand.self,
-        "DENIED" : SCLoginDeniedCommand.self,
-        "LOGININFOEND" : SCLoginInfoEndCommand.self,
-        "REGISTRATIONDENIED" : SCRegistrationDeniedCommand.self,
-        "REGISTRATIONACCEPTED" : SCRegistrationAcceptedCommand.self,
-        "AGREEMENT" : SCAgreementCommand.self,
-        "AGREEMENTEND" : SCAgreementEndCommand.self,
-        "CHANGEEMAILREQUESTACCEPTED" : SCChangeEmailRequestAcceptedCommand.self,
-        "CHANGEEMAILREQUESTDENIED" : SCChangeEmailRequestDeniedCommand.self,
-        "CHANGEEMAILACCEPTED" : SCChangeEmailAcceptedCommand.self,
-        "CHANGEEMAILDENIED" : SCChangeEmailDeniedCommand.self,
-        "RESENDVERIFICATIONACCEPTED" : SCResendVerificationAcceptedCommand.self,
-        "RESENDVERIFICATIONDENIED" : SCResendVerificationDeniedCommand.self,
-        "RESETPASSWORDREQUESTACCEPTED" : SCResetPasswordRequestAcceptedCommand.self,
-        "RESETPASSWORDREQUESTDENIED" : SCResetPasswordRequestDeniedCommand.self,
-        "RESETPASSWORDACCEPTED" : SCResetPasswordAcceptedCommand.self,
-        "RESETPASSWORDDENIED" : SCResetPasswordDeniedCommand.self,
+            // Account commands
+            SCLoginAcceptedCommand.self,
+            SCLoginDeniedCommand.self,
+            SCLoginInfoEndCommand.self,
+            SCRegistrationDeniedCommand.self,
+            SCRegistrationAcceptedCommand.self,
+            SCAgreementCommand.self,
+            SCAgreementEndCommand.self,
+            SCChangeEmailRequestAcceptedCommand.self,
+            SCChangeEmailRequestDeniedCommand.self,
+            SCChangeEmailAcceptedCommand.self,
+            SCChangeEmailDeniedCommand.self,
+            SCResendVerificationAcceptedCommand.self,
+            SCResendVerificationDeniedCommand.self,
+            SCResetPasswordRequestAcceptedCommand.self,
+            SCResetPasswordRequestDeniedCommand.self,
+            SCResetPasswordAcceptedCommand.self,
+            SCResetPasswordDeniedCommand.self,
 
-        // User commands
-        "ADDUSER" : SCAddUserCommand.self,
-        "REMOVEUSER" : SCRemoveUserCommand.self,
-        "CLIENTSTATUS" : SCClientStatusCommand.self,
+            // User commands
+            SCAddUserCommand.self,
+            SCRemoveUserCommand.self,
+            SCClientStatusCommand.self,
 
-        // Client bridging commands
-        "BRIDGECLIENTFROM" : SCBridgeClientFromCommand.self,
-        "UNBRIDGECLIENTFROM" : SCUnbridgeClientFromCommand.self,
-        "JOINEDFROM" : SCJoinedFromCommand.self,
-        "LEFTFROM" : SCLeftFromCommand.self,
-        "SAIDFROM" : SCSaidFromCommand.self,
-        "CLIENTSFROM" : SCClientsFromCommand.self,
+            // Client bridging commands
+            SCBridgeClientFromCommand.self,
+            SCUnbridgeClientFromCommand.self,
+            SCJoinedFromCommand.self,
+            SCLeftFromCommand.self,
+            SCSaidFromCommand.self,
+            SCClientsFromCommand.self,
 
-        // Channel commands
-        "JOIN" : SCJoinCommand.self,
-        "JOINED" : SCJoinedCommand.self,
-        "JOINFAILED" : SCJoinFailedCommand.self,
-        "CLIENTS" : SCClientsCommand.self,
-        "CHANNELTOPIC" : SCChannelTopicCommand.self,
-        "CHANNELMESSAGE" : SCChannelMessageCommand.self,
-        "SAID" : SCSaidCommand.self,
-        "SAIDEX" : SCSaidExCommand.self,
-        "CHANNEL" : SCChannelCommand.self,
-        "ENDOFCHANNELS" : SCEndOfChannelsCommand.self,
+            // Channel commands
+            SCJoinCommand.self,
+            SCJoinedCommand.self,
+            SCJoinFailedCommand.self,
+            SCClientsCommand.self,
+            SCChannelTopicCommand.self,
+            SCChannelMessageCommand.self,
+            SCSaidCommand.self,
+            SCSaidExCommand.self,
+            SCChannelCommand.self,
+            SCEndOfChannelsCommand.self,
 
-        // Private Message Commands
-        "SAYPRIVATE" : SCSayPrivateCommand.self,
-        "SAYPRIVATEEX" : SCSayPrivateEXCommand.self,
-        "SAIDPRIVATE" : SCSaidPrivateCommand.self,
-        "SAIDPRIVATEEX" : SCSaidPrivateEXCommand.self,
+            // Private Message Commands
+            SCSayPrivateCommand.self,
+            SCSayPrivateEXCommand.self,
+            SCSaidPrivateCommand.self,
+            SCSaidPrivateEXCommand.self,
 
-        // Battle commands
-        "BATTLEOPENED" : SCBattleOpenedCommand.self,
-        "BATTLECLOSED" : SCBattleClosedCommand.self,
-        "JOINEDBATTLE" : SCJoinedBattleCommand.self,
-        "LEFTBATTLE" : SCLeftBattleCommand.self,
-        "JOINBATTLE" : SCJoinBattleCommand.self,
-        "JOINBATTLEFAILED" : SCJoinBattleFailedCommand.self,
-        "FORCEQUITBATTLE" : SCForceQuitBattleCommand.self,
-        "CLIENTBATTLESTATUS" : SCClientBattleStatusCommand.self,
-        // Commented out, since we do not respond to this command.
-        // Since we know when we've joined a battle, we don't need to
-        // send our status.
-//                "REQUESTBATTLESTATUS" : SCRequestBattleStatusCommand.self,
-        "UPDATEBATTLEINFO" : SCUpdateBattleInfoCommand.self,
-        "ADDBOT" : SCAddBotCommand.self,
-        "REMOVEBOT" : SCRemoveBotCommand.self,
-        "ADDSTARTRECT" : SCAddStartRectCommand.self,
-        "REMOVESTARTRECT" : SCRemoveStartRectCommand.self,
-        "SETSCRIPTTAGS" : SCSetScriptTagsCommand.self,
-        "REMOVESCRIPTTAGS" : SCRemoveScriptTagsCommand.self,
-        "DISABLEUNITS" : SCDisableUnitsCommand.self,
-        "ENABLEUNITS" : SCEnableUnitsCommand.self,
+            // Battle commands
+            SCBattleOpenedCommand.self,
+            SCBattleClosedCommand.self,
+            SCJoinedBattleCommand.self,
+            SCLeftBattleCommand.self,
+            SCJoinBattleCommand.self,
+            SCJoinBattleFailedCommand.self,
+            SCForceQuitBattleCommand.self,
+            SCClientBattleStatusCommand.self,
+            // Commented out, since we do not respond to this command.
+            // Since we know when we've joined a battle, we don't need to
+            // send our status.
+    //                "REQUESTBATTLESTATUS" : SCRequestBattleStatusCommand.self,
+            SCUpdateBattleInfoCommand.self,
+            SCAddBotCommand.self,
+            SCRemoveBotCommand.self,
+            SCAddStartRectCommand.self,
+            SCRemoveStartRectCommand.self,
+            SCSetScriptTagsCommand.self,
+            SCRemoveScriptTagsCommand.self,
+            SCDisableUnitsCommand.self,
+            SCEnableUnitsCommand.self,
 
-        "HOSTPORT" : SCHostPortCommand.self,
-        "UDPSOURCEPORT" : SCUDPSourcePortCommand.self,
+            SCHostPortCommand.self,
+            SCUDPSourcePortCommand.self,
 
-        // Hosting commands
-        "OPENBATTLE" : SCOpenBattleCommand.self,
-        "OPENBATTLEFAILED" : SCOpenBattleFailedCommand.self,
-        "JOINBATTLEREQUEST" : SCJoinBattleRequestCommand.self,
-        "CLIENTIPPORT" : SCClientIPPortCommand.self,
-        "KICKFROMBATTLE" : SCKickFromBattleCommand.self,
-    ]
+            // Hosting commands
+            SCOpenBattleCommand.self,
+            SCOpenBattleFailedCommand.self,
+            SCJoinBattleRequestCommand.self,
+            SCClientIPPortCommand.self,
+            SCKickFromBattleCommand.self,
+        ].forEach({ dict[$0.title] = $0 })
+
+        return dict
+    }()
 }

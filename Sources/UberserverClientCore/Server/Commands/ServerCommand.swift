@@ -9,11 +9,15 @@
 import Foundation
 
 struct CSLoginCommand: CSCommand {
+
+    static let title = "LOGIN"
+
     func execute(on server: LobbyServer) {
         #warning("TODO")
     }
 
-    init?(description: String) {
+    init?(payload: String) {
+        #warning("Command decoding not implemented")
         return nil
     }
 
@@ -27,28 +31,38 @@ struct CSLoginCommand: CSCommand {
 	let password: String
     let compatabilityFlags: Set<CompatabilityFlag>
 
-	var description: String {
+	var payload: String {
 		let encodedPassword = password.md5().base64Encoded() // TODO: Error checking
-        return "LOGIN \(username) \(encodedPassword) 0 * BelieveAndRise Alpha\t0\t" + (compatabilityFlags.map { $0.rawValue }).joined(separator: " ")
+        return "\(username) \(encodedPassword) 0 * BelieveAndRise Alpha\t0\t" + (compatabilityFlags.map { $0.rawValue }).joined(separator: " ")
 	}
 }
 
 struct CSRegisterCommand: CSCommand {
+
+    static let title = "REGISTER"
+
     func execute(on server: LobbyServer) {
         #warning("TODO")
     }
 
-    init?(description: String) { return nil }
+    init?(payload: String) {
+        guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 0),
+              words.count == 2 else {
+            return nil
+        }
+        username = words[0]
+        encodedPassword = words[1]
+    }
 
     init(username: String, password: String) {
         self.username = username
-        self.password = password
+        self.encodedPassword = password.md5().base64Encoded()
     }
 
 	let username: String
-	let password: String
-	var description: String {
-		let encodedPassword = password.md5().base64Encoded()
-		return "REGISTER \(username) \(encodedPassword)"
+	let encodedPassword: String
+
+	var payload: String {
+		return "\(username) \(encodedPassword)"
 	}
 }

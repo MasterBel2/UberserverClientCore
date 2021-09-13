@@ -10,6 +10,8 @@ import Foundation
 import ServerAddress
 
 public struct SCCompFlagsCommand: SCCommand {
+
+    public static let title = "COMPFLAGS"
 	
 	let compatabilityFlags: [CompatabilityFlag]
 	private let unrecognisedFlags: [String]
@@ -23,8 +25,8 @@ public struct SCCompFlagsCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-    public init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 0, sentenceCount: 0, optionalWords: 1000) else {
+    public init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 0, sentenceCount: 0, optionalWords: 1000) else {
 			return nil
 		}
 		compatabilityFlags = words.compactMap({ CompatabilityFlag(rawValue: $0) })
@@ -37,12 +39,14 @@ public struct SCCompFlagsCommand: SCCommand {
 		debugOnlyPrint("Unrecognised flags: \(unrecognisedFlags.joined(separator: " "))")
 	}
 	
-    public var description: String {
-		return "COMPFLAGS \(compatabilityFlags.map({$0.rawValue}).joined(separator: " "))"
+    public var payload: String {
+		return compatabilityFlags.map({$0.rawValue}).joined(separator: " ")
 	}
 }
 
 public struct SCRedirectCommand: SCCommand {
+
+    public static let title = "REDIRECT"
 	
 	let ip: String
 	let port: Int
@@ -56,8 +60,8 @@ public struct SCRedirectCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-    public init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 2, sentenceCount: 0),
+    public init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 0),
 			let port = Int(words[1]) else {
 			return nil
 		}
@@ -69,13 +73,15 @@ public struct SCRedirectCommand: SCCommand {
         connection.redirect(to: ServerAddress(location: ip, port: port))
 	}
 	
-    public var description: String {
-		return "REDIRECT \(ip) \(port)"
+    public var payload: String {
+        return "\(ip) \(port)"
 	}
 }
 
 
 public struct SCFailedCommand: SCCommand {
+
+    public static let title = "FAILED"
 	
 	// MARK: - Manual Construction
 	
@@ -83,19 +89,19 @@ public struct SCFailedCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-    public init?(description: String) {}
+    public init?(payload: String) {}
 	
     public func execute(on connection: ThreadUnsafeConnection) {}
 	
-    public var description: String {
-		return "FAILED"
-	}
+    public var payload: String { return "" }
 }
 
 /**
 A command used to send information to clients in JSON format. (Currently rarely used.)
 */
 public struct SCJSONCommand: SCCommand {
+
+    public static let title = "JSON"
 	
 	let json: String
 	
@@ -107,8 +113,8 @@ public struct SCJSONCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-    public init?(description: String) {
-		json = description
+    public init?(payload: String) {
+		json = payload
 	}
 	
     public func execute(on connection: ThreadUnsafeConnection) {
@@ -116,8 +122,8 @@ public struct SCJSONCommand: SCCommand {
         #warning("todo")
 	}
 	
-    public var description: String {
-		return "JSON " + json
+    public var payload: String {
+		return json
 	}
 }
 
@@ -125,13 +131,14 @@ public struct SCJSONCommand: SCCommand {
  Requests permission to start a TLS connection to the server.
  */
 public struct CSSTLSCommand: CSCommand {
+
+    public static let title = "STLS"
+
     public init() {}
 
-    public init?(description: String) {}
+    public init?(payload: String) {}
 
-    public var description: String {
-        return "STLS"
-    }
+    public var payload: String { return "" }
 
     public func execute(on server: LobbyServer) {
         // TODO
@@ -143,6 +150,8 @@ public struct CSSTLSCommand: CSCommand {
 Sent as the response to a STLS command. The client now can now start the tls connection. The server will send again the greeting TASSERVER.
 */
 public struct SCOKCommand: SCCommand {
+
+    public static let title = "OK"
 	
 	// MARK: - Manual Construction
 	
@@ -150,13 +159,11 @@ public struct SCOKCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-    public init?(description: String) {}
+    public init?(payload: String) {}
 	
     public func execute(on connection: ThreadUnsafeConnection) {
         // Handled by specific handler
     }
 	
-    public var description: String {
-		return "OK"
-	}
+    public var payload: String { return "" }
 }

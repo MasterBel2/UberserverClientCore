@@ -16,14 +16,16 @@ import Foundation
  */
 public struct CSMyStatusCommand: CSCommand {
 
+    public static let title = "MYSTATUS"
+
     let status: User.Status
 
     init(status: User.Status) {
         self.status = status
     }
 
-    public init?(description: String) {
-        guard let statusInt = Int(description) else {
+    public init?(payload: String) {
+        guard let statusInt = Int(payload) else {
                 return nil
         }
         self.status = User.Status(rawValue: statusInt)
@@ -33,8 +35,8 @@ public struct CSMyStatusCommand: CSCommand {
         // TODO
     }
 
-    public var description: String {
-        return "MYSTATUS \(status.rawValue)"
+    public var payload: String {
+        return String(status.rawValue)
     }
 }
 
@@ -43,6 +45,8 @@ public struct CSMyStatusCommand: CSCommand {
  connected to the server.
  */
 public struct SCAddUserCommand: SCCommand {
+
+    public static let title = "ADDUSER"
 
     /// The username of the user just joined the server
     let username: String
@@ -66,8 +70,8 @@ public struct SCAddUserCommand: SCCommand {
 
     // MARK: - SCCommand
 
-    public init?(description: String) {
-        guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 3, sentenceCount: 1),
+    public init?(payload: String) {
+        guard let (words, sentences) = try? wordsAndSentences(for: payload, wordCount: 3, sentenceCount: 1),
             let userID = Int(words[2]) else {
             return nil
         }
@@ -85,14 +89,16 @@ public struct SCAddUserCommand: SCCommand {
         authenticatedSession.userList.addItem(user, with: userID)
     }
 
-    public var description: String {
-        return "ADDUSER \(username) \(country) \(userID) \(lobbyID)"
-//        return "ADDUSER \(username) \(country) \(cpu) \(userID) \(lobbyID)"
+    public var payload: String {
+        return "\(username) \(country) \(userID) \(lobbyID)"
+//        return "\(username) \(country) \(cpu) \(userID) \(lobbyID)"
     }
 
 }
 
 public struct SCRemoveUserCommand: SCCommand {
+
+    public static let title = "REMOVEUSER"
 	
 	let username: String
 	
@@ -104,8 +110,8 @@ public struct SCRemoveUserCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-    public init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 0) else {
+    public init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0) else {
 			return nil
 		}
 		username = words[0]
@@ -119,12 +125,14 @@ public struct SCRemoveUserCommand: SCCommand {
         authenticatedSession.userList.removeItem(withID: userID)
 	}
 	
-    public var description: String {
-		return "REMOVEUSER \(username)"
+    public var payload: String {
+		return username
 	}
 }
 
 public struct SCClientStatusCommand: SCCommand {
+
+    public static let title = "CLIENTSTATUS"
 	
 	let username: String
 	let status: User.Status
@@ -138,8 +146,8 @@ public struct SCClientStatusCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-    public init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 2, sentenceCount: 0),
+    public init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 0),
 		let statusValue = Int(words[1]) else {
 			return nil
 		}
@@ -167,8 +175,8 @@ public struct SCClientStatusCommand: SCCommand {
         authenticatedSession.userList.respondToUpdatesOnItem(identifiedBy: userID)
     }
 
-    public var description: String {
-		return "CLIENTSTATUS \(username) \(status.rawValue)"
+    public var payload: String {
+		return "\(username) \(status.rawValue)"
 	}
 }
 

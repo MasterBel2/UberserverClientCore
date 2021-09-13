@@ -9,6 +9,8 @@
 import Foundation
 
 struct SCBridgeClientFromCommand: SCCommand {
+
+    static let title = "BRIDGECLIENTFROM"
 	
 	let location: String
 	let externalID: Int
@@ -24,8 +26,8 @@ struct SCBridgeClientFromCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 3, sentenceCount: 0),
+	init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 3, sentenceCount: 0),
 			let externalID = Int(words[2]) else {
 			fatalError()
 			return nil
@@ -39,12 +41,14 @@ struct SCBridgeClientFromCommand: SCCommand {
 		#warning("TODO")
 	}
 	
-	var description: String {
-		return "BRIDGECLIENTFROM \(location) \(externalID) \(externalUsername)"
+	var payload: String {
+		return "\(location) \(externalID) \(externalUsername)"
 	}
 }
 
 struct SCUnbridgeClientFromCommand: SCCommand {
+
+    static let title = "UNBRIDGECLIENTFROM"
 	
 	let location: String
 	let externalID: Int
@@ -60,8 +64,8 @@ struct SCUnbridgeClientFromCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 3, sentenceCount: 0),
+	init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 3, sentenceCount: 0),
 			let externalID = Int(words[2]) else {
 			fatalError()
 			return nil
@@ -75,12 +79,14 @@ struct SCUnbridgeClientFromCommand: SCCommand {
 		#warning("TODO")
 	}
 	
-	var description: String {
-		return "UNBRIDGECLIENTFROM \(location) \(externalID) \(externalUsername)"
+	var payload: String {
+		return "\(location) \(externalID) \(externalUsername)"
 	}
 }
 
 struct SCJoinedFromCommand: SCCommand {
+
+    static let title = "JOINEDFROM"
 	
 	let channelName: String
 	let bridge: String
@@ -96,8 +102,8 @@ struct SCJoinedFromCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 3, sentenceCount: 0) else {
+	init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 3, sentenceCount: 0) else {
 			return nil
 		}
 		channelName = words[0]
@@ -109,12 +115,14 @@ struct SCJoinedFromCommand: SCCommand {
 		#warning("TODO")
 	}
 	
-	var description: String {
-		return "JOINEDFROM \(channelName) \(bridge) \(username)"
+	var payload: String {
+		return "\(channelName) \(bridge) \(username)"
 	}
 }
 
 struct SCLeftFromCommand: SCCommand {
+
+    static let title = "LEFTFROM"
 	
 	let channelName: String
 	let username: String
@@ -128,8 +136,8 @@ struct SCLeftFromCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 2, sentenceCount: 0) else {
+	init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 0) else {
 			return nil
 		}
 		channelName = words[0]
@@ -140,12 +148,14 @@ struct SCLeftFromCommand: SCCommand {
 		#warning("todo")
 	}
 	
-	var description: String {
-		return "LEFTFROM"
+	var payload: String {
+		return "\(channelName) \(username)"
 	}
 }
 
 struct SCSaidFromCommand: SCCommand {
+
+    static let title = "SAIDFROM"
 	
 	let channelName: String
 	let username: String
@@ -161,8 +171,8 @@ struct SCSaidFromCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
-		guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 2, sentenceCount: 0, optionalSentences: 1) else {
+	init?(payload: String) {
+		guard let (words, sentences) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 0, optionalSentences: 1) else {
 			return nil
 		}
 		
@@ -175,8 +185,8 @@ struct SCSaidFromCommand: SCCommand {
 		#warning("todo")
 	}
 	
-	var description: String {
-		var string = "SAIDFROM \(channelName) \(username)"
+	var payload: String {
+		var string = "\(channelName) \(username)"
 		if let message = message {
 			string += " \(message)"
 		}
@@ -185,6 +195,8 @@ struct SCSaidFromCommand: SCCommand {
 }
 
 struct SCClientsFromCommand: SCCommand {
+
+    static let title = "CLIENTSFROM"
 
     let channelName: String
 	let bridge: String
@@ -200,8 +212,8 @@ struct SCClientsFromCommand: SCCommand {
 
     // MARK: - SCCommand
 
-    init?(description: String) {
-        guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 2, sentenceCount: 1) else {
+    init?(payload: String) {
+        guard let (words, sentences) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 1) else {
             return nil
         }
         channelName = words[0]
@@ -209,8 +221,8 @@ struct SCClientsFromCommand: SCCommand {
         clients = sentences[0].components(separatedBy: " ")
     }
 
-    var description: String {
-        return "CLIENTSFROM \(channelName) \(bridge) \(clients.joined(separator: " "))"
+    var payload: String {
+        return "\(channelName) \(bridge) \(clients.joined(separator: " "))"
     }
 
     func execute(on connection: ThreadUnsafeConnection) {

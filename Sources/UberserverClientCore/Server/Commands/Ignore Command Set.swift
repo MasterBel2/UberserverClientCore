@@ -15,6 +15,8 @@ Tells the client that the user has been ignored (usually as a result of the IGNO
 */
 public struct SCIgnoreCommand: SCCommand {
 
+    public static let title = "IGNORE"
+
     let username: String
     let reason: String?
 
@@ -27,8 +29,8 @@ public struct SCIgnoreCommand: SCCommand {
 
     // MARK: - SCCommand
 
-    public init?(description: String) {
-        guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 0, optionalSentences: 1) else {
+    public init?(payload: String) {
+        guard let (words, sentences) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0, optionalSentences: 1) else {
             return nil
         }
         username = words[0]
@@ -39,8 +41,8 @@ public struct SCIgnoreCommand: SCCommand {
         #warning("todo")
     }
 
-    public var description: String {
-        var string = "IGNORE \(username)"
+    public var payload: String {
+        var string = username
         if let reason = reason {
             string += " \(reason)"
         }
@@ -49,6 +51,8 @@ public struct SCIgnoreCommand: SCCommand {
 }
 
 public struct SCUnignoreCommand: SCCommand {
+
+    public static let title = "UNIGNORE"
 
     let username: String
 
@@ -60,8 +64,8 @@ public struct SCUnignoreCommand: SCCommand {
 
     // MARK: - SCCommand
 
-    public init?(description: String) {
-        guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 0) else {
+    public init?(payload: String) {
+        guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0) else {
             return nil
         }
         self.username = words[0]
@@ -71,12 +75,14 @@ public struct SCUnignoreCommand: SCCommand {
         #warning("todo")
     }
 
-    public var description: String {
-        return "UNIGNORE \(username)"
+    public var payload: String {
+        return username
     }
 }
 
 public struct SCIgnoreListBegin: SCCommand {
+
+    public static let title = "IGNORELISTBEGIN"
 
     // MARK: - Manual Construction
 
@@ -84,18 +90,18 @@ public struct SCIgnoreListBegin: SCCommand {
 
     // MARK: - SCCommand
 
-    public init?(description: String) {}
+    public init?(payload: String) {}
 
     public func execute(on connection: ThreadUnsafeConnection) {
         #warning("todo")
     }
 
-    public var description: String {
-        return "IGNORELISTBEGIN"
-    }
+    public var payload: String { return "" }
 }
 
 public struct SCIgnoreListCommand: SCCommand {
+
+    public static let title = "IGNORELIST"
 
     let username: String
     let reason: String?
@@ -109,8 +115,8 @@ public struct SCIgnoreListCommand: SCCommand {
 
     // MARK: - SCCommand
 
-    public init?(description: String) {
-        guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 0, optionalSentences: 1) else {
+    public init?(payload: String) {
+        guard let (words, sentences) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0, optionalSentences: 1) else {
             return nil
         }
         username = words[0]
@@ -121,16 +127,15 @@ public struct SCIgnoreListCommand: SCCommand {
         #warning("todo")
     }
 
-    public var description: String {
-        var string = "IGNORE \(username)"
-        if let reason = reason {
-            string += " \(reason)"
-        }
-        return string
+    public var payload: String {
+        #warning("todo")
+        return ""
     }
 }
 
 public struct SCCIgnoreListEndCommand: SCCommand {
+
+    public static let title = "IGNORELISTEND"
 
     // MARK: - Manual Construction
 
@@ -138,13 +143,11 @@ public struct SCCIgnoreListEndCommand: SCCommand {
 
     // MARK: - SCCommand
 
-    public init?(description: String) {}
+    public init?(payload: String) {}
 
     public func execute(on connection: ThreadUnsafeConnection) {
         #warning("todo")
     }
 
-    public var description: String {
-        return "IGNORELISTEND"
-    }
+    public var payload: String { return "" }
 }

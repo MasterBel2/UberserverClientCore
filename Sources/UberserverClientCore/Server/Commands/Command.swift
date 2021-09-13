@@ -13,13 +13,18 @@ import Foundation
  to a server should be prefixed with "CS". See `CSCommand` and `SCCommand`.
  */
 public protocol Command: CustomStringConvertible {
-    init?(description: String)
-    func updateDisplay(for client: Client)
+    init?(payload: String)
+    static var title: String { get }
+    var payload: String { get }
 }
 
-extension Command {
-    public func updateDisplay(for client: Client) {} 
+public extension Command {
+    var description: String {
+        return "\(Self.title) \(payload)"
+    }
 }
+
+
 
 /**
  Represents the structure of a lobby server.

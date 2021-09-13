@@ -10,18 +10,16 @@ import Foundation
 
 /// See https://springrts.com/dl/LobbyProtocol/ProtocolDescription.html#MOTD:server
 public struct MOTDCommand: SCCommand {
-    let payload: String
+    public static let title = "MOTD"
 
-    init(payload: String) {
+    public let payload: String
+
+    public init(payload: String) {
         self.payload = payload
     }
 
-    public init?(description: String) {
-        payload = description
-    }
-
-    public var description: String {
-        return "MOTD \(payload)"
+    public init?(_payload: String) {
+        payload = _payload
     }
 
     public func execute(on connection: ThreadUnsafeConnection) {
@@ -36,6 +34,8 @@ A general purpose message sent by the server. The lobby client program should di
 `SERVERMSG Server is going down in 5 minutes for a restart, due to a new update.`
 */
 public struct SCServerMessageCommand: SCCommand {
+
+    public static let title = "SERVERMSG"
 	
 	/// The server's message.
 	let message: String
@@ -48,8 +48,8 @@ public struct SCServerMessageCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-    public init?(description: String) {
-		guard let (_, sentences) = try? wordsAndSentences(for: description, wordCount: 0, sentenceCount: 1) else {
+    public init?(payload: String) {
+		guard let (_, sentences) = try? wordsAndSentences(for: payload, wordCount: 0, sentenceCount: 1) else {
 			return nil
 		}
 		message = sentences[0]
@@ -61,12 +61,14 @@ public struct SCServerMessageCommand: SCCommand {
         #warning("TODO")
 	}
 	
-    public var description: String {
-		return "SERVERMSG \(message)"
+    public var payload: String {
+		return message
 	}
 }
 
 public struct SCServerMessageBoxCommand: SCCommand {
+
+    public static let title = "SERVERMSGBOX"
 	
 	let message: String
 	let url: URL?
@@ -80,8 +82,8 @@ public struct SCServerMessageBoxCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-    public init?(description: String) {
-		guard let (_, sentences) = try? wordsAndSentences(for: description, wordCount: 0, sentenceCount: 1, optionalSentences: 1) else {
+    public init?(payload: String) {
+		guard let (_, sentences) = try? wordsAndSentences(for: payload, wordCount: 0, sentenceCount: 1, optionalSentences: 1) else {
 			return nil
 		}
 		message = sentences[0]
@@ -92,8 +94,8 @@ public struct SCServerMessageBoxCommand: SCCommand {
 		#warning("TODO")
 	}
 	
-    public var description: String {
-		var string = "SERVERMSGBOX \(message)"
+    public var payload: String {
+		var string = message
 		if let url = url {
 			string += " \(url)"
 		}

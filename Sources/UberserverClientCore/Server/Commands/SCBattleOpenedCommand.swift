@@ -10,6 +10,9 @@ import Foundation
 
 /// See https://springrts.com/dl/LobbyProtocol/ProtocolDescription.html#BATTLEOPENED:server
 public struct SCBattleOpenedCommand: SCCommand {
+
+    public static let title = "BATTLEOPENED"
+
     private let battleID: Int
 
     private let isReplay: Bool
@@ -31,7 +34,7 @@ public struct SCBattleOpenedCommand: SCCommand {
 
     // MARK: - Lifecycle
     
-    public init?(description: String) {
+    public init?(payload: String) {
         do {
             // 10 words:
             // battleID type natType founder ip port maxPlayers passworded rank mapHash
@@ -39,7 +42,7 @@ public struct SCBattleOpenedCommand: SCCommand {
             // 6 sentences:
             // {engineName} {engineVersion} {map} {title} {gameName} {channel}
 
-            let (words, sentences) = try wordsAndSentences(for: description, wordCount: 10, sentenceCount: 6)
+            let (words, sentences) = try wordsAndSentences(for: payload, wordCount: 10, sentenceCount: 6)
 
             guard let battleID = Int(words[0]),
                 let port = Int(words[5]),
@@ -117,7 +120,7 @@ public struct SCBattleOpenedCommand: SCCommand {
 
     // MARK: - String representation
 
-    public var description: String {
+    public var payload: String {
         #warning("TODO")
         return ""
     }
@@ -132,6 +135,8 @@ public struct SCBattleOpenedCommand: SCCommand {
  */
 public struct SCOpenBattleCommand: SCCommand {
 
+    public static let title = "OPENBATTLE"
+
     /// The ID of the opened battle.
 	public let battleID: Int
 	
@@ -143,8 +148,8 @@ public struct SCOpenBattleCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-    public init?(description: String) {
-		guard let battleID = Int(description) else {
+    public init?(payload: String) {
+		guard let battleID = Int(payload) else {
 			return nil
 		}
 		self.battleID = battleID
@@ -154,13 +159,15 @@ public struct SCOpenBattleCommand: SCCommand {
 		#warning("TODO")
 	}
 	
-    public var description: String {
-		return "OPENBATTLE \(battleID)"
+    public var payload: String {
+		return String(battleID)
 	}
 	
 }
 
 public struct SCOpenBattleFailedCommand: SCCommand {
+
+    public static let title = "OPENBATTLEFAILED"
 	
 	public let reason: String
 	
@@ -172,18 +179,21 @@ public struct SCOpenBattleFailedCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-    public init?(description: String) {
-		reason = description
+    public init?(payload: String) {
+		reason = payload
 	}
 	
     public func execute(on connection: ThreadUnsafeConnection) {}
 	
-    public var description: String {
-		return "OPENBATTLEFAILED \(reason)"
+    public var payload: String {
+		return reason
 	}
 }
 
 public struct CSOpenBattleCommand: CSCommand {
+
+    public static let title = "OPENBATTLE"
+
     let isReplay: Bool
     let natType: Battle.NATType
     let password: String?
@@ -215,8 +225,8 @@ public struct CSOpenBattleCommand: CSCommand {
         self.gameName = gameName
     }
 
-    public init?(description: String) {
-        guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 8, sentenceCount: 5),
+    public init?(payload: String) {
+        guard let (words, sentences) = try? wordsAndSentences(for: payload, wordCount: 8, sentenceCount: 5),
               let port = Int(words[3]),
               let maxPlayers = Int(words[4]),
               let gameHash = Int32(words[5]),
@@ -250,8 +260,8 @@ public struct CSOpenBattleCommand: CSCommand {
         self.gameName = sentences[4]
     }
 
-    public var description: String {
-        return "OPENBATTLE \(isReplay ? "1" : "0") \(String(natType.rawValue)) \(password ?? "*") \(String(port)) \(String(maxPlayers)) \(String(gameHash)) \(String(rank)) \(String(mapHash)) \([engineName, engineVersion, mapName, title, gameName].joined(separator: "\t"))"
+    public var payload: String {
+        return "\(isReplay ? "1" : "0") \(String(natType.rawValue)) \(password ?? "*") \(String(port)) \(String(maxPlayers)) \(String(gameHash)) \(String(rank)) \(String(mapHash)) \([engineName, engineVersion, mapName, title, gameName].joined(separator: "\t"))"
     }
 
     public func execute(on server: LobbyServer) {
@@ -260,6 +270,9 @@ public struct CSOpenBattleCommand: CSCommand {
 }
 
 public struct CSUpdateBattleInfoCommand: CSCommand {
+
+    public static let title = "UPDATEBATTLEINFO"
+
     let spectatorCount: Int
     let locked: Bool
     let mapName: String
@@ -272,8 +285,8 @@ public struct CSUpdateBattleInfoCommand: CSCommand {
         self.mapName = mapName
     }
 
-    public init?(description: String) {
-        guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 3, sentenceCount: 1),
+    public init?(payload: String) {
+        guard let (words, sentences) = try? wordsAndSentences(for: payload, wordCount: 3, sentenceCount: 1),
               let spectatorCount = Int(words[0]),
               let mapHash = Int32(words[2]) else {
             return nil
@@ -284,8 +297,8 @@ public struct CSUpdateBattleInfoCommand: CSCommand {
         self.mapName = sentences[0]
     }
 
-    public var description: String {
-        return "UPDATEBATTLEINFO \(spectatorCount) \(locked ? "1" : "0") \(mapHash) \(mapName)"
+    public var payload: String {
+        return "\(spectatorCount) \(locked ? "1" : "0") \(mapHash) \(mapName)"
     }
 
     public func execute(on server: LobbyServer) {

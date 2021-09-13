@@ -12,11 +12,14 @@ import Foundation
  Requests metadata about the currently logged in account. The server will respond with server messages describing the account.
  */
 struct CSGetUserInfoCommand: CSCommand {
-    init() {}
-    init?(description: String) {}
 
-    var description: String {
-        return "GETUSERINFO"
+    static let title = "GETUSERINFO"
+
+    init() {}
+    init?(payload: String) {}
+
+    var payload: String {
+        return ""
     }
 
     func execute(on server: LobbyServer) {
@@ -36,6 +39,8 @@ struct CSGetUserInfoCommand: CSCommand {
  */
 struct SCLoginAcceptedCommand: SCCommand {
 
+    static let title = "ACCEPTED"
+
     // MARK: Properties
 
     let username: String
@@ -48,15 +53,15 @@ struct SCLoginAcceptedCommand: SCCommand {
 
     // MARK: SCCommand
 
-    init?(description: String) {
-        guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 0) else {
+    init?(payload: String) {
+        guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0) else {
             return nil
         }
         username = words[0]
     }
 
-    var description: String {
-        return "ACCEPTED \(username)"
+    var payload: String {
+        return username
     }
 
     /// Uberserver does not handle command IDs properly, so this hacks around that (since we know that we don't send a second command handler before login completes).
@@ -70,6 +75,8 @@ struct SCLoginAcceptedCommand: SCCommand {
 Sent as a response to a failed LOGIN command.
 */
 struct SCLoginDeniedCommand: SCCommand {
+
+    static let title = "DENIED"
 	
 	let reason: String
 	
@@ -81,8 +88,8 @@ struct SCLoginDeniedCommand: SCCommand {
 	
 	// MARK: SCCommand
 	
-	init?(description: String) {
-		guard let (_ , sentences) = try? wordsAndSentences(for: description, wordCount: 0, sentenceCount: 1) else {
+	init?(payload: String) {
+		guard let (_ , sentences) = try? wordsAndSentences(for: payload, wordCount: 0, sentenceCount: 1) else {
 			return nil
 		}
 		self.reason = sentences[0]
@@ -94,8 +101,8 @@ struct SCLoginDeniedCommand: SCCommand {
         connection.specificCommandHandlers = [:]
     }
 
-	var description: String {
-		return "DENIED \(reason)"
+	var payload: String {
+		return reason
 	}
 }
 
@@ -104,6 +111,8 @@ struct SCLoginDeniedCommand: SCCommand {
 Sent in response to a REGISTER command, if registration has been refused.
 */
 struct SCRegistrationDeniedCommand: SCCommand {
+
+    static let title = "REGISTRATIONDENIED"
 	
 	let reason: String
 	
@@ -115,8 +124,8 @@ struct SCRegistrationDeniedCommand: SCCommand {
 	
 	// MARK: SCCommand
 	
-	init?(description: String) {
-		guard let (_, sentences) = try? wordsAndSentences(for: description, wordCount: 0, sentenceCount: 1) else {
+	init?(payload: String) {
+		guard let (_, sentences) = try? wordsAndSentences(for: payload, wordCount: 0, sentenceCount: 1) else {
 			return nil
 		}
 		self.reason = sentences[0]
@@ -124,8 +133,8 @@ struct SCRegistrationDeniedCommand: SCCommand {
 	
     public func execute(on connection: ThreadUnsafeConnection) {}
 	
-	var description: String {
-		return "REGISTRATIONDENIED \(reason)"
+	var payload: String {
+		return reason
 	}
 }
 
@@ -138,6 +147,8 @@ If email verification is enabled, sending of this command notifies that the serv
 Upon reciept of this command, a lobby client would normally be expected to reply with a LOGIN attempt (but this is not a requirement of the protocol).
 */
 struct SCRegistrationAcceptedCommand: SCCommand {
+
+    static let title = "REGISTRATIONACCEPTED"
 	
 	// MARK: Manual Construction
 	
@@ -145,17 +156,17 @@ struct SCRegistrationAcceptedCommand: SCCommand {
 	
 	// MARK: SCCommand
 	
-	init?(description: String) {}
+	init?(payload: String) {}
 	
     public func execute(on connection: ThreadUnsafeConnection) {}
 	
-	var description: String {
-		return "REGISTRATIONACCEPTED"
-	}
+	var payload: String { return "" }
 }
 
 
 struct SCLoginInfoEndCommand: SCCommand {
+
+    static let title = "LOGININFOEND"
 	
 	// MARK: Manual Construction
 	
@@ -164,18 +175,18 @@ struct SCLoginInfoEndCommand: SCCommand {
 	
 	// MARK: SCCommand
 	
-	init?(description: String) {
+	init?(payload: String) {
 	}
 	
     public func execute(on connection: ThreadUnsafeConnection) {}
 	
-	var description: String {
-		return "LOGININFOEND"
-	}
+	var payload: String { return "" }
 }
 
 
 struct SCAgreementCommand: SCCommand {
+
+    static let title = "AGREEMENT"
 	
 	let agreement: String
 	
@@ -187,8 +198,8 @@ struct SCAgreementCommand: SCCommand {
 	
 	// MARK: SCCommand
 	
-	init?(description: String) {
-		guard let (_, sentences) = try? wordsAndSentences(for: description, wordCount: 0, sentenceCount: 1) else {
+	init?(payload: String) {
+		guard let (_, sentences) = try? wordsAndSentences(for: payload, wordCount: 0, sentenceCount: 1) else {
 			return nil
 		}
 		self.agreement = sentences[0]
@@ -198,13 +209,15 @@ struct SCAgreementCommand: SCCommand {
 		#warning("TODO: Update agreement")
 	}
 	
-	var description: String {
-		return "AGREEMENT \(agreement)"
+	var payload: String {
+		return agreement
 	}
 }
 
 
 struct SCAgreementEndCommand: SCCommand {
+
+    static let title = "AGREEMENTEND"
 	
 	// MARK: Manual Construction
 	
@@ -213,20 +226,20 @@ struct SCAgreementEndCommand: SCCommand {
 	
 	// MARK: SCCommand
 	
-	init?(description: String) {
+	init?(payload: String) {
 	}
 	
     public func execute(on connection: ThreadUnsafeConnection) {
 		#warning("TODO: Display agreement now")
 	}
 	
-	var description: String {
-		return "AGREEMENTEND"
-	}
+	var payload: String { return "" }
 }
 
 
 struct SCChangeEmailRequestAcceptedCommand: SCCommand {
+
+    static let title = "CHANGEEMAILREQUESTACCEPTED"
 	
 	// MARK: Manual Construction
 	
@@ -235,18 +248,18 @@ struct SCChangeEmailRequestAcceptedCommand: SCCommand {
 	
 	// MARK: SCCommand
 	
-	init?(description: String) {
+	init?(payload: String) {
 	}
 	
     public func execute(on connection: ThreadUnsafeConnection) {}
 	
-	var description: String {
-		return "CHANGEEMAILREQUESTACCEPTED"
-	}
+	var payload: String { return "" }
 }
 
 
 struct SCChangeEmailRequestDeniedCommand: SCCommand {
+
+    static let title = "CHANGEEMAILREQUESTDENIED"
 	
 	let errorMessage: String
 	
@@ -258,8 +271,8 @@ struct SCChangeEmailRequestDeniedCommand: SCCommand {
 	
 	// MARK: SCCommand
 	
-	init?(description: String) {
-		guard let (_, sentences) = try? wordsAndSentences(for: description, wordCount: 0, sentenceCount: 1) else {
+	init?(payload: String) {
+		guard let (_, sentences) = try? wordsAndSentences(for: payload, wordCount: 0, sentenceCount: 1) else {
 			return nil
 		}
 		self.errorMessage = sentences[0]
@@ -267,13 +280,15 @@ struct SCChangeEmailRequestDeniedCommand: SCCommand {
 	
     public func execute(on connection: ThreadUnsafeConnection) {}
 	
-	var description: String {
-		return "CHANGEEMAILREQUESTDENIED \(errorMessage)"
+	var payload: String {
+		return errorMessage
 	}
 }
 
 
 struct SCChangeEmailAcceptedCommand: SCCommand {
+
+    static let title = "CHANGEEMAILACCEPTED"
 	
 	// MARK: Manual Construction
 	
@@ -282,18 +297,18 @@ struct SCChangeEmailAcceptedCommand: SCCommand {
 	
 	// MARK: SCCommand
 	
-	init?(description: String) {
+	init?(payload: String) {
 	}
 	
     public func execute(on connection: ThreadUnsafeConnection) {}
 	
-	var description: String {
-		return "CHANGEEMAILACCEPTED"
-	}
+	var payload: String { return "" }
 }
 
 
 struct SCChangeEmailDeniedCommand: SCCommand {
+
+    static let title = "CHANGEEMAILDENIED"
 	
 	let errorMessage: String
 	
@@ -305,8 +320,8 @@ struct SCChangeEmailDeniedCommand: SCCommand {
 	
 	// MARK: SCCommand
 	
-	init?(description: String) {
-		guard let (_, sentences) = try? wordsAndSentences(for: description, wordCount: 0, sentenceCount: 1) else {
+	init?(payload: String) {
+		guard let (_, sentences) = try? wordsAndSentences(for: payload, wordCount: 0, sentenceCount: 1) else {
 			return nil
 		}
 		self.errorMessage = sentences[0]
@@ -314,13 +329,15 @@ struct SCChangeEmailDeniedCommand: SCCommand {
 	
     public func execute(on connection: ThreadUnsafeConnection) {}
 	
-	var description: String {
-		return "CHANGEEMAILDENIED \(errorMessage)"
+	var payload: String {
+		return errorMessage
 	}
 }
 
 
 struct SCResendVerificationAcceptedCommand: SCCommand {
+
+    static let title = "RESENDVERIFICATIONACCEPTED"
 	
 	// MARK: Manual Construction
 	
@@ -329,20 +346,20 @@ struct SCResendVerificationAcceptedCommand: SCCommand {
 	
 	// MARK: SCCommand
 	
-	init?(description: String) {
+	init?(payload: String) {
 		#warning("Should display some kind of success here")
 	}
 
     /// Noop: this is a response and does not need an action.
     public func execute(on connection: ThreadUnsafeConnection) {}
 	
-	var description: String {
-		return "RESENDVERIFICATIONACCEPTED"
-	}
+	var payload: String { return "" }
 }
 
 
 struct SCResendVerificationDeniedCommand: SCCommand {
+
+    static let title = "RESENDVERIFICATIONDENIED"
 	
 	let errorMessage: String
 	
@@ -354,8 +371,8 @@ struct SCResendVerificationDeniedCommand: SCCommand {
 	
 	// MARK: SCCommand
 	
-	init?(description: String) {
-		guard let (_, sentences) = try? wordsAndSentences(for: description, wordCount: 0, sentenceCount: 1) else {
+	init?(payload: String) {
+		guard let (_, sentences) = try? wordsAndSentences(for: payload, wordCount: 0, sentenceCount: 1) else {
 			return nil
 		}
 		self.errorMessage = sentences[0]
@@ -363,13 +380,14 @@ struct SCResendVerificationDeniedCommand: SCCommand {
 	
     public func execute(on connection: ThreadUnsafeConnection) {}
 	
-	var description: String {
-		return "RESENDVERIFICATIONDENIED \(errorMessage)"
+	var payload: String {
+		return errorMessage
 	}
 }
 
 struct SCResetPasswordRequestAcceptedCommand: SCCommand {
 
+    static let title = "RESETPASSWORDREQUESTACCEPTED"
 	
 	// MARK: Manual Construction
 	
@@ -378,17 +396,17 @@ struct SCResetPasswordRequestAcceptedCommand: SCCommand {
 	
 	// MARK: SCCommand
 	
-	init?(description: String) {
+	init?(payload: String) {
 	}
 	
     public func execute(on connection: ThreadUnsafeConnection) {}
 	
-	var description: String {
-		return "RESETPASSWORDREQUESTACCEPTED"
-	}
+	var payload: String { return "" }
 }
 
 struct SCResetPasswordRequestDeniedCommand: SCCommand {
+
+    static let title = "RESETPASSWORDREQUESTDENIED"
 	
 	let errorMessage: String
 	
@@ -400,8 +418,8 @@ struct SCResetPasswordRequestDeniedCommand: SCCommand {
 	
 	// MARK: SCCommand
 	
-	init?(description: String) {
-		guard let (_, sentences) = try? wordsAndSentences(for: description, wordCount: 0, sentenceCount: 1) else {
+	init?(payload: String) {
+		guard let (_, sentences) = try? wordsAndSentences(for: payload, wordCount: 0, sentenceCount: 1) else {
 			return nil
 		}
 		self.errorMessage = sentences[0]
@@ -409,8 +427,8 @@ struct SCResetPasswordRequestDeniedCommand: SCCommand {
 	
     public func execute(on connection: ThreadUnsafeConnection) {}
 	
-	var description: String {
-		return "RESETPASSWORDREQUESTDENIED \(errorMessage)"
+	var payload: String {
+		return errorMessage
 	}
 }
 
@@ -419,6 +437,8 @@ struct SCResetPasswordRequestDeniedCommand: SCCommand {
  Notifies that client that their password was changed, in response to RESETPASSWORD. The new password will be emailed to the client.
 */
 struct SCResetPasswordAcceptedCommand: SCCommand {
+
+    static let title = "RESETPASSWORDACCEPTED"
 	
 	// MARK: Manual Construction
 	
@@ -426,17 +446,17 @@ struct SCResetPasswordAcceptedCommand: SCCommand {
 	
 	// MARK: SCCommand
 	
-	init?(description: String) {}
+	init?(payload: String) {}
 	
     public func execute(on connection: ThreadUnsafeConnection) {}
 	
-	var description: String {
-		return "RESETPASSWORDACCEPTED"
-	}
+	var payload: String { return "" }
 }
 
 
 struct SCResetPasswordDeniedCommand: SCCommand {
+
+    static let title = "RESETPASSWORDDENIED"
 	
 	let errorMessage: String
 	
@@ -448,8 +468,8 @@ struct SCResetPasswordDeniedCommand: SCCommand {
 	
 	// MARK: SCCommand
 	
-	init?(description: String) {
-		guard let (_, sentences) = try? wordsAndSentences(for: description, wordCount: 0, sentenceCount: 1) else {
+	init?(payload: String) {
+		guard let (_, sentences) = try? wordsAndSentences(for: payload, wordCount: 0, sentenceCount: 1) else {
 			return nil
 		}
 		errorMessage = sentences[0]
@@ -457,8 +477,8 @@ struct SCResetPasswordDeniedCommand: SCCommand {
 	
     public func execute(on connection: ThreadUnsafeConnection) {}
 	
-	var description: String {
-		return "RESETPASSWORDDENIED \(errorMessage)"
+	var payload: String {
+		return errorMessage
 	}
 }
 

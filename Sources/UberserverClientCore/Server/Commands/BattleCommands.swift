@@ -12,6 +12,8 @@ import Foundation
  Sent by a client requesting to join a battle.
 */
 struct CSJoinBattleCommand: CSCommand {
+
+    static let title = "JOINBATTLE"
 	
 	let battleID: Int
 	let password: String?
@@ -29,8 +31,8 @@ struct CSJoinBattleCommand: CSCommand {
 	
 	// MARK: - CSCommand
 	
-	init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 0, optionalWords: 2, optionalSentences: 0),
+	init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0, optionalWords: 2, optionalSentences: 0),
 			let battleID = Int(words[0]) else {
 			return nil
 		}
@@ -48,8 +50,8 @@ struct CSJoinBattleCommand: CSCommand {
 		#warning("TODO")
 	}
 	
-	var description: String {
-		return "JOINBATTLE \(battleID) \(password ?? "") \(scriptPassword ?? "")"
+	var payload: String {
+		return "\(battleID) \(password ?? "") \(scriptPassword ?? "")"
 	}
 }
 
@@ -61,6 +63,8 @@ When this command is by the founder of a battle, it notifies that the battle is 
 If sent by the founder, the server responds with a BATTLECLOSED command.
 */
 struct CSLeaveBattleCommand: CSCommand {
+
+    static let title = "LEAVEBATTLE"
 	
 	// MARK: - Manual Construction
 	
@@ -68,13 +72,11 @@ struct CSLeaveBattleCommand: CSCommand {
 	
 	// MARK: - CSCommand
 	
-	init?(description: String) {}
+	init?(payload: String) {}
 	
 	func execute(on server: LobbyServer) {}
 	
-	var description: String {
-		return "LEAVEBATTLE"
-	}
+	var payload: String { return "" }
 }
 
 /**
@@ -102,6 +104,8 @@ struct CSLeaveBattleCommand: CSCommand {
  */
 struct CSMyBattleStatusCommand: CSCommand {
 
+    static let title = "MYBATTLESTATUS"
+
     let battleStatus: Battleroom.UserStatus
     let color: Int32
 
@@ -114,8 +118,8 @@ struct CSMyBattleStatusCommand: CSCommand {
 
     // MARK: - CSCommand
 
-    init?(description: String) {
-        guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 2, sentenceCount: 0),
+    init?(payload: String) {
+        guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 0),
             let statusAsInt = Int(words[0]),
             let battleStatus = Battleroom.UserStatus(statusValue: statusAsInt),
             let color = Int32(words[1]) else {
@@ -128,8 +132,8 @@ struct CSMyBattleStatusCommand: CSCommand {
         #warning("Serverside: TODO")
     }
 
-    var description: String {
-        return "MYBATTLESTATUS \(battleStatus.integerValue) \(color)"
+    var payload: String {
+        return "\(battleStatus.integerValue) \(color)"
     }
 }
 
@@ -143,6 +147,8 @@ struct CSMyBattleStatusCommand: CSCommand {
  If the battle has natType>0, the server will also send the clients IP port to the host, via the CLIENTIPPORT command. Someone who knows more about this should write more!
 */
 struct SCJoinBattleCommand: SCCommand {
+
+    static let title = "JOINBATTLE"
 	
 	let battleID: Int
 	let hashCode: Int32
@@ -158,8 +164,8 @@ struct SCJoinBattleCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 3, sentenceCount: 0),
+	init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 3, sentenceCount: 0),
 		let battleID = Int(words[0]),
 		let hashCode = Int32(words[1]) else {
 			return nil
@@ -170,8 +176,8 @@ struct SCJoinBattleCommand: SCCommand {
         channelName = words[2]
 	}
 	
-	var description: String {
-		return "JOINBATTLE \(battleID) \(hashCode) \(channelName)"
+	var payload: String {
+		return "\(battleID) \(hashCode) \(channelName)"
 	}
     
     public func execute(on connection: ThreadUnsafeConnection) {
@@ -210,6 +216,8 @@ struct SCJoinBattleCommand: SCCommand {
  Notifies a client that their request to JOINBATTLE was denied.
 */
 struct SCJoinBattleFailedCommand: SCCommand {
+
+    static let title = "JOINBATTLEFAILED"
 	
 	let reason: String
 	
@@ -221,18 +229,20 @@ struct SCJoinBattleFailedCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
-		self.reason = description
+	init?(payload: String) {
+		self.reason = payload
 	}
 	
     func execute(on connection: ThreadUnsafeConnection) {}
 	
-	var description: String {
-		return "JOINBATTLEFAILED \(reason)"
+	var payload: String {
+		return reason
 	}
 }
 
 struct SCClientBattleStatusCommand: SCCommand {
+
+    static let title = "CLIENTBATTLESTATUS"
 	
 	let username: String
 	let battleStatus: Battleroom.UserStatus
@@ -248,8 +258,8 @@ struct SCClientBattleStatusCommand: SCCommand {
 	
 	// MARK: - SCClientBattleStatusCommand
 	
-	init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 3, sentenceCount: 0),
+	init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 3, sentenceCount: 0),
 			let statusAsInt = Int(words[1]),
 			let battleStatus = Battleroom.UserStatus(statusValue: statusAsInt),
 			let teamColor = Int32(words[2]) else {
@@ -268,12 +278,14 @@ struct SCClientBattleStatusCommand: SCCommand {
         battleroom.colors[userID] = teamColor
     }
 
-    var description: String {
-        return "CLIENTBATTLESTATUS \(username) \(battleStatus.integerValue) \(teamColor)"
+    var payload: String {
+        return "\(username) \(battleStatus.integerValue) \(teamColor)"
 	}
 }
 
 struct SCRequestBattleStatusCommand: SCCommand {
+
+    static let title = "REQUESTBATTLESTATUS"
 	
 	// MARK: - Manual Construction
 	
@@ -281,7 +293,7 @@ struct SCRequestBattleStatusCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {}
+	init?(payload: String) {}
 
     func execute(on connection: ThreadUnsafeConnection) {
         guard case let .authenticated(authenticatedSession) = connection.session,
@@ -294,12 +306,12 @@ struct SCRequestBattleStatusCommand: SCCommand {
         ))
     }
 
-    var description: String {
-        return "REQUESTBATTLESTATUS"
-    }
+    var payload: String { return "" }
 }
 
 struct SCAddBotCommand: SCCommand {
+
+    static let title = "ADDBOT"
 	
 	let battleID: Int
 	let name: String
@@ -321,8 +333,8 @@ struct SCAddBotCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
-		guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 5, sentenceCount: 1),
+	init?(payload: String) {
+		guard let (words, sentences) = try? wordsAndSentences(for: payload, wordCount: 5, sentenceCount: 1),
 			let battleID = Int(words[0]),
 			let statusValue = Int(words[3]),
 			let battleStatus = Battleroom.UserStatus(statusValue: statusValue),
@@ -349,12 +361,14 @@ struct SCAddBotCommand: SCCommand {
         battleroom.bots.append(bot)
 	}
 	
-	var description: String {
-		return "ADDBOT \(battleID) \(name) \(owner) \(battleStatus.integerValue) \(teamColor) \(aiDll)"
+	var payload: String {
+		return "\(battleID) \(name) \(owner) \(battleStatus.integerValue) \(teamColor) \(aiDll)"
 	}
 }
 
 struct SCRemoveBotCommand: SCCommand {
+
+    static let title = "REMOVEBOT"
 	
 	let botName: String
 	
@@ -366,8 +380,8 @@ struct SCRemoveBotCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 0) else {
+	init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0) else {
 			return nil
 		}
 		self.botName = words[0]
@@ -381,12 +395,14 @@ struct SCRemoveBotCommand: SCCommand {
         battleroom.bots = battleroom.bots.filter { $0.name != botName }
 	}
 	
-	var description: String {
-		return "REMOVEBOT \(botName)"
+	var payload: String {
+		return botName
 	}
 }
 
 struct SCUpdateBotCommand: SCCommand {
+
+    static let title = "UPDATEBOT"
 	
 	let battleID: Int
 	let name: String
@@ -404,8 +420,8 @@ struct SCUpdateBotCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 4, sentenceCount: 0),
+	init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 4, sentenceCount: 0),
 			let battleID = Int(words[0]),
 			let statusValue = Int(words[2]),
 			let battleStatus = Battleroom.UserStatus(statusValue: statusValue),
@@ -428,8 +444,8 @@ struct SCUpdateBotCommand: SCCommand {
         bot.color = teamColor
 	}
 	
-	var description: String {
-		return "UPDATEBOT \(name)"
+	var payload: String {
+		return name
 	}
 }
 
@@ -450,6 +466,8 @@ public struct StartRect {
 }
 
 struct SCAddStartRectCommand: SCCommand {
+
+    static let title = "ADDSTARTRECT"
 	
 	let allyNo: Int
 	let rect: StartRect
@@ -463,8 +481,8 @@ struct SCAddStartRectCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 5, sentenceCount: 0) else {
+	init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 5, sentenceCount: 0) else {
 			return nil
 		}
 		let integers = words.compactMap { Int($0) }
@@ -488,12 +506,14 @@ struct SCAddStartRectCommand: SCCommand {
         battleroom.addStartRect(rect, for: allyNo)
 	}
 	
-	var description: String {
-		return "ADDSTARTRECT \(allyNo) \(rect.left) \(rect.top) \(rect.right) \(rect.bottom)"
+	var payload: String {
+		return "\(allyNo) \(rect.left) \(rect.top) \(rect.right) \(rect.bottom)"
 	}
 }
 
 struct SCRemoveStartRectCommand: SCCommand {
+
+    static let title = "REMOVESTARTRECT"
 	
 	let allyNo: Int
 	
@@ -505,8 +525,8 @@ struct SCRemoveStartRectCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 0),
+	init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0),
 			let allyNo = Int(words[0]) else {
 			return nil
 		}
@@ -522,12 +542,14 @@ struct SCRemoveStartRectCommand: SCCommand {
 
 	}
 	
-	var description: String {
-		return "REMOVESTARTRECT \(allyNo)"
+	var payload: String {
+		return String(allyNo)
 	}
 }
 
 struct SCSetScriptTagsCommand: SCCommand {
+
+    static let title = "SETSCRIPTTAGS"
 
 	let tags: [ScriptTag]
 
@@ -539,8 +561,8 @@ struct SCSetScriptTagsCommand: SCCommand {
 
 	// MARK: - SCCommand
 
-	init?(description: String) {
-        tags = description.split(separator: "\t").compactMap({ ScriptTag(String($0)) })
+	init?(payload: String) {
+        tags = payload.split(separator: "\t").compactMap({ ScriptTag(String($0)) })
 	}
 
     public func execute(on connection: ThreadUnsafeConnection) {
@@ -565,8 +587,8 @@ struct SCSetScriptTagsCommand: SCCommand {
         }
     }
 
-	var description: String {
-        return "SETSCRIPTTAGS \(tags.map({ $0.description }).joined(separator: "\t"))"
+	var payload: String {
+        return tags.map({ $0.description }).joined(separator: "\t")
 	}
 }
 
@@ -594,6 +616,8 @@ struct ScriptTag: CustomStringConvertible {
 
 struct SCRemoveScriptTagsCommand: SCCommand {
 
+    static let title = "REMOVESCRIPTTAGS"
+
 	let keys: [[String]]
 
 	// MARK: - Manual Construction
@@ -604,8 +628,8 @@ struct SCRemoveScriptTagsCommand: SCCommand {
 
 	// MARK: - SCCommand
 
-	init?(description: String) {
-        keys = description.split(separator: "\t").map({ $0.split(separator: "/").map({ String($0) }) })
+	init?(payload: String) {
+        keys = payload.split(separator: "\t").map({ $0.split(separator: "/").map({ String($0) }) })
 	}
 
     func execute(on connection: ThreadUnsafeConnection) {
@@ -629,11 +653,13 @@ struct SCRemoveScriptTagsCommand: SCCommand {
         }
     }
 
-    var description: String {
-        return "REMOVESCRIPTTAGS \(keys.map({ $0.joined(separator: "/") }).joined(separator: " "))"
+    var payload: String {
+        return keys.map({ $0.joined(separator: "/") }).joined(separator: " ")
     }
 }
 struct SCJoinBattleRequestCommand: SCCommand {
+
+    static let title = "JOINBATTLEREQUEST"
 	
 	let username: String
 	let ip: String
@@ -647,8 +673,8 @@ struct SCJoinBattleRequestCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 2, sentenceCount: 0) else {
+	init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 0) else {
 			return nil
 		}
 		username = words[0]
@@ -659,12 +685,14 @@ struct SCJoinBattleRequestCommand: SCCommand {
 		#warning("TODO")
 	}
 	
-	var description: String {
-		return "JOINBATTLEREQUEST \(username) \(ip)"
+	var payload: String {
+		return "\(username) \(ip)"
 	}
 }
 
 struct SCJoinedBattleCommand: SCCommand {
+
+    static let title = "JOINEDBATTLE"
 	
 	let battleID: Int
 	let username: String
@@ -680,8 +708,8 @@ struct SCJoinedBattleCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 2, sentenceCount: 0, optionalWords: 1),
+	init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 0, optionalWords: 1),
 			let battleID = Int(words[0]) else {
 			return nil
 		}
@@ -700,8 +728,8 @@ struct SCJoinedBattleCommand: SCCommand {
         authenticatedSession.battleList.respondToUpdatesOnItem(identifiedBy: battleID)
     }
 	
-	var description: String {
-		var string = "JOINEDBATTLE \(battleID) \(username)"
+	var payload: String {
+		var string = "\(battleID) \(username)"
 		if let scriptPassword = scriptPassword {
 			string += " \(scriptPassword)"
 		}
@@ -713,6 +741,8 @@ struct SCJoinedBattleCommand: SCCommand {
  Sent by the server to all users when a client left a battle (or got disconnected from the server). 
  */
 struct SCLeftBattleCommand: SCCommand {
+
+    static let title = "LEFTBATTLE"
 	
 	let battleID: Int
 	let username: String
@@ -726,8 +756,8 @@ struct SCLeftBattleCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 2, sentenceCount: 0),
+	init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 0),
 			let battleID = Int(words[0]) else {
 			return nil
 		}
@@ -745,8 +775,8 @@ struct SCLeftBattleCommand: SCCommand {
         authenticatedSession.battleList.respondToUpdatesOnItem(identifiedBy: battleID)
     }
 	
-	var description: String {
-		return "LEFTBATTLE \(battleID) \(username)"
+	var payload: String {
+		return "\(battleID) \(username)"
 	}
 }
 
@@ -756,6 +786,8 @@ struct SCLeftBattleCommand: SCCommand {
  When a battle host sends a `CSLeaveBattleCommand`, the server will respond with a `SCBattleClosedCommand`.
  */
 struct SCBattleClosedCommand: SCCommand {
+
+    static let title = "BATTLECLOSED"
 	
 	let battleID: Int
 	
@@ -767,8 +799,8 @@ struct SCBattleClosedCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 0),
+	init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0),
 			let battleID = Int(words[0]) else {
 			return nil
 		}
@@ -786,13 +818,15 @@ struct SCBattleClosedCommand: SCCommand {
         authenticatedSession.battleList.removeItem(withID: battleID)
 	}
 	
-	var description: String {
-		return "BATTLECLOSED \(battleID)"
+	var payload: String {
+		return String(battleID)
 	}
 }
 
 /// Sent as a response to a client's UDP packet (used with "hole punching" NAT traversal technique).
 struct SCUDPSourcePortCommand: SCCommand {
+
+    static let title = "UDPSOURCEPORT"
 	
 	let port: Int
 	
@@ -804,8 +838,8 @@ struct SCUDPSourcePortCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 0),
+	init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0),
 			let port = Int(words[0]) else {
 			return nil
 		}
@@ -816,12 +850,14 @@ struct SCUDPSourcePortCommand: SCCommand {
 		#warning("todo")
 	}
 	
-	var description: String {
-		return "UDPSOURCEPORT \(port)"
+	var payload: String {
+		return String(port)
 	}
 }
 
 struct SCClientIPPortCommand: SCCommand {
+
+    static let title = "CLIENTIPPORT"
 	
 	let username: String
 	let ip: String
@@ -837,8 +873,8 @@ struct SCClientIPPortCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 3, sentenceCount: 0),
+	init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 3, sentenceCount: 0),
 			let port = Int(words[2]) else {
 			return nil
 		}
@@ -851,8 +887,8 @@ struct SCClientIPPortCommand: SCCommand {
 		#warning("todo")
 	}
 	
-	var description: String {
-		return "HOSTPORT \(port)"
+	var payload: String {
+		return String(port)
 	}
 }
 
@@ -860,6 +896,8 @@ struct SCClientIPPortCommand: SCCommand {
 
 /// Sent by the server to all clients participating in the battle, except for the host, notifying them about the (possibly new) host port.
 struct SCHostPortCommand: SCCommand {
+
+    static let title = "HOSTPORT"
 	
 	let port: Int
 	
@@ -871,8 +909,8 @@ struct SCHostPortCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 0),
+	init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0),
 			let port = Int(words[0]) else {
 			return nil
 		}
@@ -883,8 +921,8 @@ struct SCHostPortCommand: SCCommand {
 		#warning("todo")
 	}
 	
-	var description: String {
-		return "HOSTPORT \(port)"
+	var payload: String {
+		return String(port)
 	}
 }
 
@@ -892,6 +930,8 @@ struct SCHostPortCommand: SCCommand {
  Sent by the server to all registered clients, telling them some of the parameters of the battle changed. A battle's internal changes, like starting metal, energy, starting position etc., are sent only to clients participating in the battle (via the SETSCRIPTTAGS command). 
 */
 struct SCUpdateBattleInfoCommand: SCCommand {
+
+    static let title = "UPDATEBATTLEINFO"
 	
 	let battleID: Int
 	let spectatorCount: Int
@@ -911,8 +951,8 @@ struct SCUpdateBattleInfoCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
-		guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 4, sentenceCount: 1),
+	init?(payload: String) {
+		guard let (words, sentences) = try? wordsAndSentences(for: payload, wordCount: 4, sentenceCount: 1),
 			let battleID = Int(words[0]),
 			let spectatorCount = Int(words[1]),
 			let mapHash = Int32(words[3]) else {
@@ -936,13 +976,15 @@ struct SCUpdateBattleInfoCommand: SCCommand {
         authenticatedSession.battleList.respondToUpdatesOnItem(identifiedBy: battleID)
     }
 
-	var description: String {
-		return "UPDATEBATTLEINFO \(battleID) \(spectatorCount) \(locked ? 1 : 0) \(mapHash) \(mapName)"
+	var payload: String {
+		return "\(battleID) \(spectatorCount) \(locked ? 1 : 0) \(mapHash) \(mapName)"
 	}
 }
 
 /// Sent by the server to notify the battle host that the named user should be kicked from the battle in progress.
 struct SCKickFromBattleCommand: SCCommand {
+
+    static let title = "KICKFROMBATTLE"
 	
 	let battleID: Int
 	let username: String
@@ -956,8 +998,8 @@ struct SCKickFromBattleCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 2, sentenceCount: 0),
+	init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 0),
 			let battleID = Int(words[0]) else {
 			return nil
 		}
@@ -973,8 +1015,8 @@ struct SCKickFromBattleCommand: SCCommand {
         }
 	}
 	
-	var description: String {
-		return "KICKFROMBATTLE \(battleID) \(username)"
+	var payload: String {
+		return "\(battleID) \(username)"
 	}
 }
 
@@ -984,6 +1026,8 @@ Sent to a client that was kicked from their current battle by the battle founder
 The client does not need to send LEAVEBATTLE, as removal has already been done by the server. The only purpose of this command is to notify the client that they were kicked. (The client will also recieve a corresponding LEFTBATTLE notification.)
 */
 struct SCForceQuitBattleCommand: SCCommand {
+
+    static let title = "FORCEQUITBATTLE"
 	
 	// MARK: - Manual Construction
 	
@@ -991,7 +1035,7 @@ struct SCForceQuitBattleCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {}
+	init?(payload: String) {}
 	
     func execute(on connection: ThreadUnsafeConnection) {
         guard case let .authenticated(authenticatedSession) = connection.session else { return }
@@ -1001,15 +1045,15 @@ struct SCForceQuitBattleCommand: SCCommand {
         }
     }
 
-    var description: String {
-        return "FORCEQUITBATTLE"
-    }
+    var payload: String { return "" }
 }
 
 /**
 Sent by the server to all clients in a battle, telling them that some units have been added to disabled units list. Also see the DISABLEUNITS command.
 */
 struct SCDisableUnitsCommand: SCCommand {
+
+    static let title = "DISABLEUNITS"
 	
 	let units: [String]
 	
@@ -1021,8 +1065,8 @@ struct SCDisableUnitsCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 0, optionalWords: 1000) else {
+	init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0, optionalWords: 1000) else {
 			return nil
 		}
 		units = words
@@ -1033,8 +1077,8 @@ struct SCDisableUnitsCommand: SCCommand {
         authenticatedSession.battleroom?.disabledUnits.append(contentsOf: units)
 	}
 	
-	var description: String {
-		return "DISABLEUNITS \(units.joined(separator: " "))"
+	var payload: String {
+		return units.joined(separator: " ")
 	}
 }
 
@@ -1042,6 +1086,8 @@ struct SCDisableUnitsCommand: SCCommand {
 Sent by the server to all clients in a battle, telling them that some units have been added to enabled units list. Also see the DISABLEUNITS command.
 */
 struct SCEnableUnitsCommand: SCCommand {
+
+    static let title = "ENABLEUNITS"
 	
 	let units: [String]
 	
@@ -1053,8 +1099,8 @@ struct SCEnableUnitsCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
-		guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 0, optionalWords: 1000) else {
+	init?(payload: String) {
+		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0, optionalWords: 1000) else {
 			return nil
 		}
 		units = words
@@ -1065,8 +1111,8 @@ struct SCEnableUnitsCommand: SCCommand {
         authenticatedClient.battleroom?.disabledUnits.removeAll(where: { units.contains($0) })
     }
 	
-	var description: String {
-		return "ENABLEUNITS \(units.joined(separator: " "))"
+	var payload: String {
+		return units.joined(separator: " ")
 	}
 }
 
@@ -1074,6 +1120,8 @@ struct SCEnableUnitsCommand: SCCommand {
 Sent to notify a client that another user requested that a "ring" sound be played to them.
 */
 struct SCRingCommand: SCCommand {
+
+    static let title = "RING"
 	
 	let username: String
 	
@@ -1085,15 +1133,15 @@ struct SCRingCommand: SCCommand {
 	
 	// MARK: - SCCommand
 	
-	init?(description: String) {
-		username = description
+	init?(payload: String) {
+		username = payload
 	}
 	
     func execute(on connection: ThreadUnsafeConnection) {
 		#warning("todo")
 	}
 	
-	var description: String {
-		return "RING \(username)"
+	var payload: String {
+		return username
 	}
 }

@@ -20,6 +20,8 @@ import Foundation
  */
 struct CSChangeEmailRequestCommand: CSCommand {
 
+    static let title = "CHANGEEMAILREQUEST"
+
     /// The requested email address, which will have the verification code sent to it.
     let newEmail: String
 
@@ -30,15 +32,15 @@ struct CSChangeEmailRequestCommand: CSCommand {
         self.newEmail = newEmail
     }
 
-    init?(description: String) {
-        guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 0) else {
+    init?(payload: String) {
+        guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0) else {
             return nil
         }
         newEmail = words[0]
     }
 
-    var description: String {
-        return "CHANGEEMAILREQUEST \(newEmail)"
+    var payload: String {
+        return newEmail
     }
 
     func execute(on server: LobbyServer) {
@@ -54,6 +56,9 @@ struct CSChangeEmailRequestCommand: CSCommand {
  `CSChangeEmailDenied` or `CSChangeEmailAccepted`
  */
 struct CSChangeEmailWithoutVerificationCommand: CSCommand {
+
+    static let title = "CHANGEEMAIL"
+
     let newEmail: String
 
     /**
@@ -63,15 +68,15 @@ struct CSChangeEmailWithoutVerificationCommand: CSCommand {
         self.newEmail = newEmail
     }
 
-    init?(description: String) {
-        guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 0) else {
+    init?(payload: String) {
+        guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0) else {
             return nil
         }
         newEmail = words[0]
     }
 
-    var description: String {
-        return "CHANGEEMAIL \(newEmail)"
+    var payload: String {
+        return newEmail
     }
 
     func execute(on server: LobbyServer) {
@@ -87,6 +92,9 @@ struct CSChangeEmailWithoutVerificationCommand: CSCommand {
  `CSChangeEmailDenied` or `CSChangeEmailAccepted`
  */
 struct CSChangeEmailWithVerificationCommand: CSCommand {
+
+    static let title = "CHANGEEMAIL"
+
     let newEmail: String
     let verificationCode: String
 
@@ -99,16 +107,16 @@ struct CSChangeEmailWithVerificationCommand: CSCommand {
         self.verificationCode = verificationCode
     }
 
-    init?(description: String) {
-        guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 2, sentenceCount: 0) else {
+    init?(payload: String) {
+        guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 0) else {
             return nil
         }
         newEmail = words[0]
         self.verificationCode = words[1]
     }
 
-    var description: String {
-        return "CHANGEEMAIL \(newEmail) \(verificationCode)"
+    var payload: String {
+        return "\(newEmail) \(verificationCode)"
     }
 
     func execute(on server: LobbyServer) {
@@ -123,6 +131,8 @@ struct CSChangeEmailWithVerificationCommand: CSCommand {
  */
 struct CSChangePasswordCommand: CSCommand {
 
+    static let title = "CHANGEPASSWORD"
+
     let oldPassword: String
     let newPassword: String
 
@@ -131,16 +141,16 @@ struct CSChangePasswordCommand: CSCommand {
         self.newPassword = newPassword
     }
 
-    init?(description: String) {
-        guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 2, sentenceCount: 0) else {
+    init?(payload: String) {
+        guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 0) else {
             return nil
         }
         oldPassword = words[0]
         newPassword = words[1]
     }
 
-    var description: String {
-        return "CHANGEPASSWORD \(oldPassword) \(newPassword)"
+    var payload: String {
+        return "\(oldPassword) \(newPassword)"
     }
 
     func execute(on server: LobbyServer) {
@@ -161,6 +171,8 @@ struct CSChangePasswordCommand: CSCommand {
 
  */
 struct CSRenameAccountCommand: CSCommand {
+    static let title = "RENAMEACCOUNT"
+
     /// The new username for the account.
     let newUsername: String
 
@@ -168,15 +180,15 @@ struct CSRenameAccountCommand: CSCommand {
         self.newUsername = newUsername
     }
 
-    init?(description: String) {
-        guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 0) else {
+    init?(payload: String) {
+        guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0) else {
             return nil
         }
         newUsername = words[0]
     }
 
-    var description: String {
-        return "RENAMEACCOUNT \(newUsername)"
+    var payload: String {
+        return "\(newUsername)"
     }
 
     func execute(on server: LobbyServer) {

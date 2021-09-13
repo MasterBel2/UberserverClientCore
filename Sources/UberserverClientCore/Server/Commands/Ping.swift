@@ -13,12 +13,13 @@ import Foundation
  Clients should send PING once every 30 seconds, if no other data is being sent to the server. For details, see the notes above on keep-alive signals.
  */
 struct CSPingCommand: CSCommand {
-    init?(description: String) {}
+
+    static let title = "PING"
+
+    init?(payload: String) {}
     init() {}
 
-    var description: String {
-        return "PING"
-    }
+    var payload: String { return "" }
 
     func execute(on server: LobbyServer) {
         // TODO
@@ -29,12 +30,13 @@ struct CSPingCommand: CSCommand {
  Sent as the response to a [PING](https://springrts.com/dl/LobbyProtocol/ProtocolDescription.html#PING:client) command.
  */
 struct SCPongCommand: SCCommand {
-    init?(description: String) {}
+
+    static let title = "PONG"
+    
+    init?(payload: String) {}
     init() {}
 
-    var description: String {
-        return "PONG"
-    }
+    var payload: String { return "" }
 
     public func execute(on connection: ThreadUnsafeConnection) {}
 }

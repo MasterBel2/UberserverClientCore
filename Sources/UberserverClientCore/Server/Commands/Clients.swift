@@ -40,6 +40,8 @@ private func addUsersToChannel(named channelName: String, on connection: ThreadU
  */
 struct SCClientsCommand: SCCommand {
 
+    static let title = "CLIENTS"
+
     let channelName: String
     let clients: [String]
 
@@ -52,16 +54,16 @@ struct SCClientsCommand: SCCommand {
 
     // MARK: - SCCommand
 
-    init?(description: String) {
-        guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 1, sentenceCount: 1) else {
+    init?(payload: String) {
+        guard let (words, sentences) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 1) else {
             return nil
         }
         channelName = words[0]
         clients = sentences[0].components(separatedBy: " ")
     }
 
-    var description: String {
-        return "CLIENTS \(channelName) \(clients.joined(separator: " "))"
+    var payload: String {
+        return "\(channelName) \(clients.joined(separator: " "))"
     }
 
     func execute(on connection: ThreadUnsafeConnection) {
@@ -73,6 +75,8 @@ struct SCClientsCommand: SCCommand {
  Sent to all clients in a channel (except the new client) when a new user joins the channel.
  */
 struct SCJoinedCommand: SCCommand {
+
+    static let title = "JOINED"
 
     let channelName: String
     let username: String
@@ -86,16 +90,16 @@ struct SCJoinedCommand: SCCommand {
 
     // MARK: - SCCommand
 
-    init?(description: String) {
-        guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 2, sentenceCount: 0) else {
+    init?(payload: String) {
+        guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 0) else {
             return nil
         }
         channelName = words[0]
         username = words[1]
     }
 
-    var description: String {
-        return "JOINED \(channelName) \(username)"
+    var payload: String {
+        return "\(channelName) \(username)"
     }
 
     func execute(on connection: ThreadUnsafeConnection) {
@@ -108,6 +112,8 @@ struct SCJoinedCommand: SCCommand {
  channel.
  */
 struct SCLeftCommand: SCCommand {
+
+    static let title = "LEFT"
 
     let channelName: String
     let username: String
@@ -123,8 +129,8 @@ struct SCLeftCommand: SCCommand {
 
     // MARK: - SCCommand
 
-    init?(description: String) {
-        guard let (words, sentences) = try? wordsAndSentences(for: description, wordCount: 2, sentenceCount: 1) else {
+    init?(payload: String) {
+        guard let (words, sentences) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 1) else {
             return nil
         }
         channelName = words[0]
@@ -132,8 +138,8 @@ struct SCLeftCommand: SCCommand {
         reason = sentences[0]
     }
     
-    var description: String {
-        return "LEFT \(channelName) \(username) \(reason)"
+    var payload: String {
+        return "\(channelName) \(username) \(reason)"
     }
     
     func execute(on connection: ThreadUnsafeConnection) {

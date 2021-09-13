@@ -9,6 +9,9 @@
 import Foundation
 
 public struct TASServerCommand: SCCommand {
+
+    public static let title = "TASSERVER"
+
     /// The lobby protocol version used by the server. Should log in only if this version is
     /// supported.
     let protocolVersion: String
@@ -23,8 +26,8 @@ public struct TASServerCommand: SCCommand {
 
     // MARK: - SCCommand
 
-    public init?(description: String) {
-        guard let (words, _) = try? wordsAndSentences(for: description, wordCount: 4, sentenceCount: 0) else {
+    public init?(payload: String) {
+        guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 4, sentenceCount: 0) else {
             return nil
         }
         protocolVersion = words[0]
@@ -33,8 +36,8 @@ public struct TASServerCommand: SCCommand {
         lanMode = words[3] == "1"
     }
 
-    public var description: String {
-        return "TASSERVER \(protocolVersion) \(springVersion) \(udpPort) \(lanMode ? 1 : 0)"
+    public var payload: String {
+        return "\(protocolVersion) \(springVersion) \(udpPort) \(lanMode ? 1 : 0)"
     }
     
     public func execute(on connection: ThreadUnsafeConnection) {
