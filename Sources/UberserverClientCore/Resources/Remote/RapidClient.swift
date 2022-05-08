@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import SWCompression
 
 /**
  A downloader that retrieves resources from Rapid.
@@ -131,7 +132,7 @@ final class RapidClient: Downloader, DownloaderDelegate {
 			delegate?.downloader(self, downloadDidFailWithError: nil)
             return
         }
-        guard let unzippedData = data.gunzip() else {
+        guard let unzippedData = try? GzipArchive.unarchive(archive: data) else {
             print("Failed to unzip file")
 			delegate?.downloader(self, downloadDidFailWithError: nil)
             return
@@ -252,7 +253,7 @@ final class RapidClient: Downloader, DownloaderDelegate {
         guard let data = FileManager.default.contents(atPath: url.path) else {
             return nil
         }
-        guard let unzippedData = data.gunzip() else {
+        guard let unzippedData = try? GzipArchive.unarchive(archive: data) else {
             return nil
         }
         guard let stringValue = String(data: unzippedData, encoding: .utf8) else {

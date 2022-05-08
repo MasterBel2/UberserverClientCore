@@ -8,6 +8,7 @@
 
 import Foundation
 import SpringRTSReplayHandling
+import SWCompression
 
 /// Handles loading of replays from the file system.
 public final class ReplayController {
@@ -33,9 +34,10 @@ public final class ReplayController {
             if replays.items.contains(where: {$0.value.fileURL == replayURL }) { continue }
             loadQueue.async { [weak self] in
                 do {
-                if let self = self,
-                    let data = self.fileManager.contents(atPath: replayURL.path)?.gunzip() {
-                    let replay = try Replay(data: data, fileURL: replayURL)
+                    if let self = self,
+                       let compressedData = self.fileManager.contents(atPath: replayURL.path),
+                       let data = try? GzipArchive.unarchive(archive: compressedData) {
+                        let replay = try Replay(data: data, fileURL: replayURL)
                         // Concurrently updating the list is a sure fire way to corrupt it. So we'll
                         self.updateQueue.async { [weak self] in
                             self?.replays.addItem(replay, with: Int.random(in: Int.min...Int.max))

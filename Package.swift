@@ -19,7 +19,8 @@ let package = Package(
         .package(url: "https://github.com/MasterBel2/ServerAddress", .branch("master")),
         .package(url: "https://github.com/MasterBel2/CountryCode", .branch("master")),
         .package(url: "https://github.com/MasterBel2/SpringRTSStartScriptHandling", .branch("master")),
-        .package(url: "https://github.com/MasterBel2/SpringRTSReplayHandling", .branch("master"))
+        .package(url: "https://github.com/MasterBel2/SpringRTSReplayHandling", .branch("master")),
+        .package(url: "https://github.com/tsolomko/SWCompression.git", from: "4.7.0")
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
     ],
@@ -28,10 +29,15 @@ let package = Package(
         // Targets can depend on other targets in this package, and on products in packages this package depends on.
         .target(
             name: "UberserverClientCore",
-            dependencies: ["ServerAddress", "CountryCode", "SpringRTSStartScriptHandling", "SpringRTSReplayHandling"]),
+            dependencies: [
+                "ServerAddress",
+                "CountryCode",
+                "SpringRTSStartScriptHandling",
+                "SpringRTSReplayHandling",
+                "SWCompression"
+            ]),
         .testTarget(
             name: "UberserverClientCoreTests",
             dependencies: ["UberserverClientCore"]),
     ]
 )
-    

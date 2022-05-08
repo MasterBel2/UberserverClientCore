@@ -2,6 +2,15 @@
   "object": {
     "pins": [
       {
+        "package": "BitByteData",
+        "repositoryURL": "https://github.com/tsolomko/BitByteData",
+        "state": {
+          "branch": null,
+          "revision": "c119e12decae8f56066df3345a4ac1a05b2f06d5",
+          "version": "2.0.1"
+        }
+      },
+      {
         "package": "CountryCode",
         "repositoryURL": "https://github.com/MasterBel2/CountryCode",
         "state": {
@@ -24,7 +33,7 @@
         "repositoryURL": "https://github.com/MasterBel2/SpringRTSReplayHandling",
         "state": {
           "branch": "master",
-          "revision": "8be932ed51caa3f20fd6640214aa6e3cf6521a01",
+          "revision": "bdee84343a18ac505013703af1c71b7d2e79da21",
           "version": null
         }
       },
@@ -35,6 +44,15 @@
           "branch": "master",
           "revision": "10508af9fb293f6fa3257711fa3b3b744c53fc0f",
           "version": null
+        }
+      },
+      {
+        "package": "SWCompression",
+        "repositoryURL": "https://github.com/tsolomko/SWCompression.git",
+        "state": {
+          "branch": null,
+          "revision": "4ad6940f2990f2d9f27b39d013c7a64b602d9c50",
+          "version": "4.8.0"
         }
       }
     ]
