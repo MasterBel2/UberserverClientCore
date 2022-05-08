@@ -7,14 +7,11 @@
 //
 
 import Foundation
-import CommonCrypto
+import Crypto
 
 extension String {
 	/// Converts the string to md5-encrypted data.
 	func md5() -> Data {
-        let data = Data(self.utf8)
-		var digest = [UInt8](repeating: 0, count: Int(CC_MD5_DIGEST_LENGTH))
-		CC_MD5((data as NSData).bytes, CC_LONG(data.count), &digest)
-		return Data(digest)
+        return Data(Insecure.MD5.hash(data: Data(utf8)))
 	}
 }

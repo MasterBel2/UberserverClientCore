@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "UberserverClientCore",
     platforms: [
-        .macOS(.v10_11),
+        .macOS(.v10_15),
         .iOS(.v9)
     ],
     products: [
@@ -20,7 +20,8 @@ let package = Package(
         .package(url: "https://github.com/MasterBel2/CountryCode", .branch("master")),
         .package(url: "https://github.com/MasterBel2/SpringRTSStartScriptHandling", .branch("master")),
         .package(url: "https://github.com/MasterBel2/SpringRTSReplayHandling", .branch("master")),
-        .package(url: "https://github.com/tsolomko/SWCompression.git", from: "4.7.0")
+        .package(url: "https://github.com/tsolomko/SWCompression", from: "4.7.0"),
+        .package(url: "https://github.com/apple/swift-crypto", "1.0.0" ..< "3.0.0")
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
     ],
@@ -34,7 +35,8 @@ let package = Package(
                 "CountryCode",
                 "SpringRTSStartScriptHandling",
                 "SpringRTSReplayHandling",
-                "SWCompression"
+                "SWCompression",
+                .product(name: "Crypto", package: "swift-crypto")
             ]),
         .testTarget(
             name: "UberserverClientCoreTests",
