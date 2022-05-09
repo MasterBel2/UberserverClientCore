@@ -18,7 +18,7 @@ public enum ValueRelation {
 
     init<T: Comparable>(value1: T, value2: T) {
         if value1 < value2 {
-            self = .firstIsGreaterThanSecond
+            self = .firstIsLesserThanSecond
         } else if value1 == value2 {
             self = .firstAndSecondAreEqual
         } else {

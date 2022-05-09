@@ -108,20 +108,29 @@ public final class List<ListItem>: ListProtocol, UpdateNotifier {
 
     public var sortDirection: SortDirection = .descending {
         didSet {
-            switch sortDirection {
-            case .descending:
-                _forwardSortCondition = .firstIsGreaterThanSecond
-                _reverseSortCondition = .firstIsLesserThanSecond
-            case .ascending:
-                _forwardSortCondition = .firstIsLesserThanSecond
-                _reverseSortCondition = .firstIsGreaterThanSecond
-            }
             sortFromScratch()
         }
     }
 
-    private var _forwardSortCondition: ValueRelation = .firstIsGreaterThanSecond
-    private var _reverseSortCondition: ValueRelation = .firstIsLesserThanSecond
+//    private var _forwardSortCondition: ValueRelation = .firstIsGreaterThanSecond
+//    private var _reverseSortCondition: ValueRelation = .firstIsLesserThanSecond
+    private var firstShouldAppearBeforeSecond: ValueRelation {
+        switch sortDirection {
+        case .ascending:
+            return .firstIsLesserThanSecond
+        case .descending:
+            return .firstIsGreaterThanSecond
+        }
+    }
+
+    private var secondShouldAppearBeforeFirst: ValueRelation {
+        switch sortDirection {
+        case .ascending:
+            return .firstIsGreaterThanSecond
+        case .descending:
+            return .firstIsLesserThanSecond
+        }
+    }
 	
 	/// Describes how the list should sort its items. Re-sorts the list on update.
     public var sorter: ListSorter {
@@ -139,7 +148,7 @@ public final class List<ListItem>: ListProtocol, UpdateNotifier {
 
     /// Sorts the list.
     private func sortFromScratch() {
-        sortedItemsByID.sort(by: { sorter.relation(betweenItemIdentifiedBy: $0, andItemIdentifiedBy: $1) == _forwardSortCondition })
+        sortedItemsByID.sort(by: { sorter.relation(betweenItemIdentifiedBy: $0, andItemIdentifiedBy: $1) == firstShouldAppearBeforeSecond })
         for (index, itemID) in sortedItemsByID.enumerated() {
             itemIndicies[itemID] = index
         }
@@ -202,9 +211,8 @@ public final class List<ListItem>: ListProtocol, UpdateNotifier {
     /// selected sorting method.
     func addItem(_ item: ListItem, with id: Int) {
         items[id] = item
-        for index in 0..<sortedItemCount {
-            let idAtIndex = sortedItemsByID[index]
-            if sorter.relation(betweenItemIdentifiedBy: id, andItemIdentifiedBy: idAtIndex) != _forwardSortCondition {
+        for (index, idAtIndex) in sortedItemsByID.enumerated() {
+            if sorter.relation(betweenItemIdentifiedBy: id, andItemIdentifiedBy: idAtIndex) == firstShouldAppearBeforeSecond {
                 // Update the location of the items this displaces. Must happen before we sort the
                 // so that we can identify them by their current location.
                 for indexToUpdate in index..<sortedItemCount {
@@ -241,7 +249,7 @@ public final class List<ListItem>: ListProtocol, UpdateNotifier {
         var indexesToUpdate: [Int] = []
         var newIndex = index
 
-        for (relationToMove, offset) in [(_forwardSortCondition, 1), (_reverseSortCondition, -1)] {
+        for (relationToMove, offset) in [(firstShouldAppearBeforeSecond, -1), (secondShouldAppearBeforeFirst, 1)] {
             var nextIndex: Int {
                 return newIndex + offset
             }
