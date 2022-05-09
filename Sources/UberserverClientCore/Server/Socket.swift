@@ -26,7 +26,9 @@ final class TCPClientSocket: TCPClientDelegate {
 
     let address: ServerAddress
 
-    private var client: TCPClient?
+    private(set) var client: TCPClient?
+
+    var tlsEnabled: Bool { return client?.tlsEnabled == true }
 
     init?(address: ServerAddress) {
         self.address = address

@@ -13,6 +13,21 @@ final class TCPClient {
     let channel: NIO.Channel
     private let eventLoopGroup: EventLoopGroup
 
+    private(set) var tlsEnabled: Bool = false
+
+    func enableTLS() throws {
+        guard !tlsEnabled else { return }
+
+        var configuration = TLSConfiguration.makeClientConfiguration()
+        configuration.certificateVerification = .none
+        let sslContext = try! NIOSSLContext(configuration: configuration)
+        let handler = try NIOSSLClientHandler(context: sslContext, serverHostname: nil)
+
+        try channel.pipeline.addHandler(handler, position: .first).wait()
+
+        tlsEnabled = true
+    }
+
     func stop() {
         _ = channel.close()
     }
@@ -23,16 +38,16 @@ final class TCPClient {
         self.channel = channel
     }
 
-    static func run(host: String, port: Int, delegate: TCPClientDelegate) throws -> TCPClient {
-        print("Starting client…")
 
-//        let configuration = TLSConfiguration.makeClientConfiguration()
-        let handler = Handler()
-        handler.delegate = delegate
+    static func run(host: String, port: Int, delegate: TCPClientDelegate) throws -> TCPClient {
 
         let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         let bootstrap = ClientBootstrap(group: eventLoopGroup)
             .channelInitializer { channel in
+
+                let handler = Handler()
+                handler.delegate = delegate
+
                 return channel.pipeline.addHandler(handler)
             }
 
@@ -41,45 +56,6 @@ final class TCPClient {
             eventLoopGroup: eventLoopGroup
         )
     }
-//    let sslContext = try NIOSSLContext(configuration: configuration)
-//    guard let handler = try? NIOSSLClientHandler(context: sslContext, serverHostname: nil) else {
-//        fatalError("Failed to construct NIOSSLClientHandler")
-//    }
-
-//    private class tlsUpgradeHandler: RemovableChannelHandler, ChannelOutboundHandler {
-//        typealias OutboundIn = ByteBuffer
-//        typealias OutboundOut = ByteBuffer
-//
-//        private var messageBuffer: [String] = []
-//
-//        private var removeSelf: (() -> Void)?
-//
-//        func removeHandler(context: ChannelHandlerContext, removalToken: ChannelHandlerContext.RemovalToken) {
-//            removeSelf = {
-//                context.leavePipeline(removalToken: removalToken)
-//            }
-//        }
-//
-//        func flushAndRemove(context: ChannelHandlerContext) {
-//
-//            messageBuffer.forEach({ message in
-//                let byteBuffer = ByteBuffer(string: message)
-//                context.writeAndFlush(byteBuffer)
-//            })
-//
-//        }
-//
-//        // Conformance
-//
-//        func read(context: ChannelHandlerContext) {
-//            <#code#>
-//        }
-//
-//        func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
-//            <#code#>
-//        }
-//
-//    }
 
     private class Handler: ChannelInboundHandler {
         typealias InboundIn = ByteBuffer
@@ -89,6 +65,7 @@ final class TCPClient {
 
         func errorCaught(context: ChannelHandlerContext, error: Error) {
             delegate?.socketError(error)
+            print(error)
         }
 
         func channelRead(context: ChannelHandlerContext, data: NIOAny) {
