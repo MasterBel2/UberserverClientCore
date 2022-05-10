@@ -33,6 +33,7 @@ public final class Channel {
         self.sendAction = sendAction
         userlist = List<User>(title: title, property: { $0.status.rank }, parent: rootList)
         messageList = List<ChatMessage>(title: title, property: { $0.time })
+        messageList.sortDirection = .ascending
     }
 
     // MARK: - Messages
