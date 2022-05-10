@@ -33,7 +33,7 @@ public struct QueueLocked<LockedObject> {
     }
     
     private let lockedObject: LockedObject
-    private let queue: DispatchQueue
+    public let queue: DispatchQueue
     
     public func sync<ReturnType>(block: (LockedObject) -> ReturnType) -> ReturnType {
         return queue.sync {
