@@ -8,9 +8,9 @@
 import Foundation
 
 public class WeakOwned<OwnedObject: AnyObject> {
-    weak private(set) var object: OwnedObject?
+    weak public private(set) var object: OwnedObject?
 
-    init(_ object: OwnedObject) {
+    public init(_ object: OwnedObject) {
         self.object = object
     }
 }
