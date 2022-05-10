@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import CountryCode
 
 public final class User {
 	
@@ -30,11 +31,13 @@ public final class User {
         public let username: String
         /// A string identifying which lobby client the user is using
         public var lobbyID: String
+        public let country: CountryCode?
 
-        public init(id: Int, fullUsername: String, lobbyID: String) {
+        public init(id: Int, fullUsername: String, lobbyID: String, country: CountryCode?) {
             self.id = id
             self.lobbyID = lobbyID
             self.fullUsername = fullUsername
+            self.country = country
 
             guard let regex = try? NSRegularExpression(pattern: "\\[.+?\\]") else {
                 self.clans = []

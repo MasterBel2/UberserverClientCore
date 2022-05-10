@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import CountryCode
 /**
  Sent by a client to inform the server about his changed status.
 
@@ -84,7 +85,7 @@ public struct SCAddUserCommand: SCCommand {
 
     public func execute(on connection: ThreadUnsafeConnection) {
         guard case let .authenticated(authenticatedSession) = connection.session else { return }
-        let userProfile = User.Profile(id: userID, fullUsername: username, lobbyID: lobbyID)
+        let userProfile = User.Profile(id: userID, fullUsername: username, lobbyID: lobbyID, country: CountryCode(rawValue: country))
         let user = User(profile: userProfile)
         authenticatedSession.userList.addItem(user, with: userID)
     }
