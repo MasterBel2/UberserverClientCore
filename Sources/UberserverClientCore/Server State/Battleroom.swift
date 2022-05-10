@@ -106,7 +106,7 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
 
     // MARK: - Information about the Local Client
 
-    let myID: Int
+    public let myID: Int
 
     public var myBattleStatus: Battleroom.UserStatus {
         return userStatuses[myID] ?? UserStatus(
