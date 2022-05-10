@@ -92,7 +92,7 @@ public final class RemoteResourceFetcher: DownloaderDelegate, UpdateNotifier {
 
 	/// Searches the SpringFiles API for a resource.
     private func searchSpringFiles(for resource: Resource, completionHandler: @escaping ([SpringArchiveInfo]?) -> Void) {
-        guard let url = URL(string: "https://api.springfiles.com/json.php?category=\(resource.category)&torrent=true&springname=\(resource.name.replacingOccurrences(of: " ", with: "%20"))") else {
+        guard let url = URL(string: "https://springfiles.springrts.com/json.php?category=\(resource.category)&torrent=true&springname=\(resource.name.replacingOccurrences(of: " ", with: "%20"))") else {
             return
         }
         let taskID = UUID()
