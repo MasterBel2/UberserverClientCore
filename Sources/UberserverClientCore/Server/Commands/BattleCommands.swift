@@ -456,13 +456,26 @@ public struct StartRect {
 	public let bottom: Int
 	
 	public func scaled<F: FloatingPoint>() -> (x: F, y: F, width: F, height: F) {
-		let floatLeft = F(left)
-		let floatRight = F(right)
-		let floatTop = F(top)
-		let floatBottom = F(bottom)
-		// y = 0 correlates to bottom = 200.
-		return (x: floatLeft / 200, y: (200 - floatBottom) / 200, width: (floatRight - floatLeft) / 200, height: (floatBottom - floatTop) / 200)
+//		let floatLeft = F(left)
+//		let floatRight = F(right)
+//		let floatTop = F(top)
+//		let floatBottom = F(bottom)
+//		// y = 0 correlates to bottom = 200.
+//		return (x: floatLeft / 200, y: (200 - floatBottom) / 200, width: (floatRight - floatLeft) / 200, height: (floatBottom - floatTop) / 200)
+
+        return (
+            x: F(x) / 200,
+            y: F(y) / 200,
+            width: F(width) / 200,
+            height: F(height) / 200
+        )
 	}
+
+    public var x: Int { return left }
+    public var width: Int { return right - left }
+    public var y: Int { return top }
+    /// SpringRTS's coordinate system starts in the top-left of the
+    public var height: Int { return bottom - top }
 }
 
 struct SCAddStartRectCommand: SCCommand {
@@ -725,6 +738,9 @@ struct SCJoinedBattleCommand: SCCommand {
             return
         }
         battle.userList.addItemFromParent(id: userID)
+        if let battleroom = authenticatedSession.battleroom {
+            battleroom.scriptPasswords[userID] = scriptPassword
+        }
         authenticatedSession.battleList.respondToUpdatesOnItem(identifiedBy: battleID)
     }
 	

@@ -166,9 +166,10 @@ public struct SCClientStatusCommand: SCCommand {
         // Update battleroom before we update the status, so we can access the previous status
         if let battleroom = authenticatedSession.battleroom,
            userID == battleroom.battle.founderID,
+           authenticatedSession.myID != battleroom.battle.founderID,
            user.status.isIngame != status.isIngame,
            status.isIngame {
-            battleroom.startGame()
+            try? battleroom.startGame()
         }
 
         user.status = status

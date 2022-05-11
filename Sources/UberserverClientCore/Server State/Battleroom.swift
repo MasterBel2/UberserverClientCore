@@ -95,6 +95,8 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
     public internal(set) var colors: [Int : Int32] = [:]
 	/// Updated by SETSCRIPTTAGS command.
     public internal(set) var trueSkills: [Int : String] = [:]
+    /// Set by JOINEDBATTLE command.
+    public internal(set) var scriptPasswords: [Int : String] = [:]
     /// Updated by SETSCRIPTTAGS command.
     public internal(set) var modOptions: [String : String] = [:]
 	/// Computed by the host's unitsync using the current map, game, and other dependencies.
@@ -253,23 +255,189 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
     }
     
     // MARK: - User Actions
+
+    enum GameStartError: Error {
+        case missingUserStats(user: User)
+        case missingEngine(name: String, version: String)
+        case missingUser(id: Int)
+        case missingGame(name: String)
+    }
     
-    public func startGame() {
         #warning("Consider moving this to Battle")
+    public func startGame() throws {
         guard let myAccount = battle.userList.items[myID] else {
-            return
+            throw GameStartError.missingUser(id: myID)
         }
         guard let engine = battle.engine else {
-            #warning("Throw an error here!")
-            return
+            throw GameStartError.missingEngine(name: battle.engineName, version: battle.engineVersion)
         }
+        guard let gameArchive = battle.gameArchive else {
+            throw GameStartError.missingGame(name: battle.gameName)
+        }
+        guard let mapArchive = battle.loadedMap else {
+            throw GameStartError.missingGame(name: battle.gameName)
+        }
+
         sendCommandBlock(CSMyStatusCommand(status: myAccount.status.changing(isIngame: true)))
         setBattleStatus(myBattleStatus.changing(isReady: false))
 
         // Capture here to avoid depending on the battleroom's existence to change the status.
         let sendCommandBlock = self.sendCommandBlock
-        let specification = ClientSpecification(ip: battle.ip, port: battle.port, username: myAccount.profile.username, scriptPassword: battle.myScriptPassword)
-        try? engine.launchGame(script: specification, doRecordDemo: true) {
+
+
+        let specification: LaunchScriptConvertible
+        if myID == battle.founderID {
+            let gameSpecificationSpectators = spectatorList.items.map({ id, spectator in
+                SpringRTSStartScriptHandling.Player(
+                    scriptID: 0,
+                    userID: id,
+                    username: spectator.profile.fullUsername,
+                    scriptPassword: "",
+                    skill: trueSkills[id],
+                    rank: spectator.status.rank,
+                    countryCode: spectator.profile.country,
+                    isFromDemo: false
+                )
+            })
+
+            enum TeamMember {
+                case ai(SpringRTSStartScriptHandling.AI)
+                case player(SpringRTSStartScriptHandling.Player)
+            }
+            struct TeamDraft {
+                var members: [TeamMember] = []
+                var color: Int32? = nil
+                var faction: String?
+                var handicap: Int?
+            }
+
+            var playerCount = 0
+            var aiCount = 0
+            let gameSpecificationAllyTeams = try allyTeamLists.enumerated().map({ (allyTeamIndex, allyTeamList) -> SpringRTSStartScriptHandling.AllyTeam in
+                var teams: [Int : TeamDraft] = [:]
+                for (id, user) in allyTeamList.items {
+                    guard let status = userStatuses[id] else {
+                        throw GameStartError.missingUserStats(user: user)
+                    }
+                    var team = teams[status.teamNumber] ?? TeamDraft()
+                    if team.color == nil { team.color = colors[id] }
+                    if team.faction == nil {
+                        team.faction = userStatuses[id].flatMap({ status -> String? in
+                            battle.gameArchive?.factions[status.side].name
+                        })
+                    }
+                    if team.handicap == nil {
+                        team.handicap = userStatuses[id]?.handicap
+                    }
+                    team.members.append(.player(
+                        SpringRTSStartScriptHandling.Player(
+                            scriptID: playerCount,
+                            userID: id,
+                            username: user.profile.fullUsername,
+                            scriptPassword: scriptPasswords[id],
+                            skill: trueSkills[id],
+                            rank: user.status.rank,
+                            countryCode: user.profile.country,
+                            isFromDemo: false
+                        )
+                    ))
+                    playerCount += 1
+                    teams[status.teamNumber] = team
+                }
+
+                for bot in bots {
+                    var team = teams[bot.status.teamNumber] ?? TeamDraft()
+                    if team.color == nil { team.color = bot.color }
+                    if team.faction == nil {
+                        team.faction = gameArchive.factions[bot.status.side].name
+                    }
+                    if team.handicap == nil { team.handicap = bot.status.handicap }
+                    team.members.append(.ai(SpringRTSStartScriptHandling.AI(
+                        scriptID: aiCount,
+                        name: bot.name,
+                        hostID: bot.owner.id,
+                        shortName: "",
+                        version: "",
+                        isFromDemo: false
+                    )))
+                    aiCount += 1
+                    teams[bot.status.teamNumber] = team
+                }
+
+                let scriptTeams = teams.map({ (teamNumber, teamMembers) -> SpringRTSStartScriptHandling.Team in
+                    var players: [SpringRTSStartScriptHandling.Player] = []
+                    var ais: [SpringRTSStartScriptHandling.AI] = []
+                    for member in teamMembers.members {
+                        switch member {
+                        case let .player(player):
+                            players.append(player)
+                        case let .ai(ai):
+                            ais.append(ai)
+                        }
+                    }
+
+                    return SpringRTSStartScriptHandling.Team(
+                        scriptID: teamNumber,
+                        leader: 0,
+                        players: players,
+                        ais: ais,
+                        color: teamMembers.color,
+                        side: teamMembers.faction,
+                        handicap: teamMembers.handicap,
+                        advantage: nil,
+                        incomeMultiplier: nil,
+                        luaAI: nil
+                    )
+                })
+                return SpringRTSStartScriptHandling.AllyTeam(scriptID: allyTeamIndex, teams: scriptTeams)
+            }).filter({ $0.teams.count > 0 })
+            print("AllyTeam count: \(gameSpecificationAllyTeams.count)")
+            let hostConfig = HostConfig(
+                userID: myID,
+                username: myAccount.profile.fullUsername,
+                type: .user(lobbyName: myAccount.profile.lobbyID),
+                address: nil,
+                rank: myAccount.status.rank,
+                countryCode: myAccount.profile.country
+            )
+
+            let startConfig: StartConfig
+            if startRects.count > 0 {
+                var startBoxes: [Int : StartBox] = [:]
+                startRects.forEach({ key, value in
+                    startBoxes[key] = StartBox(
+                        x: value.x / 200,
+                        y: value.y / 200,
+                        width: value.width / 200,
+                        height: value.height / 200
+                    )
+                })
+
+                startConfig = .chooseInGame(startBoxes: startBoxes)
+            } else {
+                startConfig = .unspecified
+            }
+
+            specification = GameSpecification(
+                allyTeams: gameSpecificationAllyTeams,
+                spectators: gameSpecificationSpectators,
+                demoFile: nil,
+                hostConfig: hostConfig,
+                startConfig: startConfig,
+                mapName: battle.mapIdentification.name,
+                mapHash: battle.mapIdentification.hash,
+                gameType: battle.gameName,
+                modHash: battle.gameArchive?.completeChecksum,
+                gameStartDelay: 0,
+                mapOptions: [:],
+                modOptions: modOptions,
+                restrictions: [:]
+            )
+        } else {
+            specification = ClientSpecification(ip: battle.ip, port: battle.port, username: myAccount.profile.username, scriptPassword: battle.myScriptPassword)
+        }
+
+        try engine.launchGame(script: specification, doRecordDemo: true) {
             sendCommandBlock(CSMyStatusCommand(status: myAccount.status.changing(isIngame: false)))
         }
     }
