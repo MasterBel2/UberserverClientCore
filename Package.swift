@@ -21,7 +21,9 @@ let package = Package(
         .package(url: "https://github.com/MasterBel2/SpringRTSStartScriptHandling", .branch("master")),
         .package(url: "https://github.com/MasterBel2/SpringRTSReplayHandling", .branch("master")),
         .package(url: "https://github.com/tsolomko/SWCompression", from: "4.7.0"),
-        .package(url: "https://github.com/apple/swift-crypto", "1.0.0" ..< "3.0.0")
+        .package(url: "https://github.com/apple/swift-crypto", "1.0.0" ..< "3.0.0"),
+        .package(url: "https://github.com/apple/swift-nio", .upToNextMajor(from: "2.0.0")),
+        .package(url: "https://github.com/apple/swift-nio-ssl", .upToNextMajor(from: "2.0.0"))
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
     ],
@@ -36,7 +38,9 @@ let package = Package(
                 "SpringRTSStartScriptHandling",
                 "SpringRTSReplayHandling",
                 "SWCompression",
-                .product(name: "Crypto", package: "swift-crypto")
+                .product(name: "Crypto", package: "swift-crypto"),
+                .product(name: "NIO", package: "swift-nio"),
+                .product(name: "NIOSSL", package: "swift-nio-ssl")
             ]),
         .testTarget(
             name: "UberserverClientCoreTests",

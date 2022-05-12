@@ -26,7 +26,7 @@ public class AuthenticatedSession: UpdateNotifier {
     // MARK: - Associated Objects
 
     /// The server connection this object is associated with.
-    private unowned let connection: Connection
+    private unowned let connection: ThreadUnsafeConnection
     public var objectsWithLinkedActions: [() -> ReceivesAuthenticatedClientUpdates?] = []
 
     // MARK: - Data
@@ -65,7 +65,7 @@ public class AuthenticatedSession: UpdateNotifier {
 
     // MARK: - Creating an AuthenticatedClient
     
-    init(username: String, password: String, connection: Connection) {
+    init(username: String, password: String, connection: ThreadUnsafeConnection) {
         self.username = username
         self.password = password
         self.connection = connection

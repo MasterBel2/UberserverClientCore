@@ -13,11 +13,6 @@ public protocol ReceivesConnectionUpdates {
     /// Indicates that the server has sent information about its protocol, which may be used to determine available features.
     func connection(_ connection: ThreadUnsafeConnection, willUseCommandProtocolWithFeatureAvailability availability: ProtocolFeatureAvailability)
 
-    /// Indicates the connection will attempt to connect to a server following this call.
-    func connection(_ connection: ThreadUnsafeConnection, willConnectTo newAddress: ServerAddress)
-    /// Indicates the connection has initiated communication with a server.
-    func connection(_ connection: ThreadUnsafeConnection, didSuccessfullyConnectTo newAddress: ServerAddress)
-
     /// Indicates the connectioon has ended communication with the server.
     func connectionDidDisconnect(_ connection: ThreadUnsafeConnection)
 
@@ -86,14 +81,18 @@ public final class Connection: SocketDelegate {
      */
     public class _Connection: UpdateNotifier {
 
-        init(queue: DispatchQueue, socket: Socket, client: Client, resourceManager: ResourceManager, cacheDirectory: URL, preferencesController: PreferencesController) {
+        init(queue: DispatchQueue, socket: Socket, defaultProtocol: ServerProtocol, client: Client, resourceManager: ResourceManager, cacheDirectory: URL, preferencesController: PreferencesController) {
             self.queue = queue
             self.socket = socket
             self.client = client
             self.resourceManager = resourceManager
             self.cacheDirectory = cacheDirectory
 
-            self.session = .unauthenticated(UnauthenticatedSession(preferencesController: preferencesController))
+            let unauthenticatedSession = UnauthenticatedSession(preferencesController: preferencesController)
+            self.session = .unauthenticated(unauthenticatedSession)
+            unauthenticatedSession.connection = MakeUnownedQueueLocked(lockedObject: self, queue: queue)
+
+            setProtocol(defaultProtocol)
         }
 
         deinit {
@@ -202,9 +201,15 @@ public final class Connection: SocketDelegate {
         /// internal access provided due to a current bug where command IDs don't properly register the "ACCEPTED"/"DENIED" commands, see `SCLoginAcceptedCommand.execute(on:)` and `SCLoginDeniedCommand.execute(on:)`.
         var specificCommandHandlers: [Int : (SCCommand) -> (Bool)] = [:]
 
+
+        private var previousTail = ""
         /// A message was received over the socket.
         func socket(_ socket: Socket, didReceive message: String) {
-            let messages = message.components(separatedBy: "\n")
+
+            // Input may be split over multiple input rounds, so if we don't have a newline, assume there's more to come!
+            var messages = (previousTail + message).components(separatedBy: "\n")
+            guard messages.count > 0 else { return }
+            previousTail = messages.removeLast()
 
             for message in messages where message != "" {
                 Logger.log("Received: " + message, tag: .General)
@@ -221,7 +226,7 @@ public final class Connection: SocketDelegate {
                 let commandIndex = (messageID != nil) ? 1 : 0
                 let payload = components.dropFirst(1 + commandIndex).joined(separator: " ")
 
-                guard components.count > (commandIndex + 1),
+                guard components.count >= (commandIndex + 1),
                       let recognisedCommand = incomingCommands[components[commandIndex].uppercased()],
                       let command = recognisedCommand.init(payload: payload) else {
                     Logger.log("Failed to decode command", tag: .ServerError)
@@ -251,6 +256,7 @@ public final class Connection: SocketDelegate {
         /// Describes the features available with the connected server.
         var featureAvailability: ProtocolFeatureAvailability?
 
+        /// Sets a protocol that has been identified such that following commands may be processed.
         func setProtocol(_ serverProtocol: ServerProtocol) {
             let featureAvailability = ProtocolFeatureAvailability(serverProtocol: serverProtocol)
 
@@ -269,7 +275,7 @@ public final class Connection: SocketDelegate {
         }
     }
 
-    private let _connection: QueueLocked<_Connection>
+    public let _connection: QueueLocked<_Connection>
 
     // MARK: - Connection Properties
 
@@ -291,23 +297,25 @@ public final class Connection: SocketDelegate {
         guard let socket = Socket(address: address) else {
             return nil
         }
+
         let queue = DispatchQueue(label: "com.believeandrise.connection", qos: .userInteractive, target: DispatchQueue.global(qos: .userInteractive))
 
-        _connection = QueueLocked(
-            lockedObject: _Connection(
-                queue: queue,
-                socket: socket,
-                client: client,
-                resourceManager: resourceManager,
-                cacheDirectory: baseCacheDirectory.appendingPathComponent(address.description),
-                preferencesController: preferencesController
-            ),
+        let _connection = _Connection(
+            queue: queue,
+            socket: socket,
+            defaultProtocol: defaultProtocol,
+            client: client,
+            resourceManager: resourceManager,
+            cacheDirectory: baseCacheDirectory.appendingPathComponent(address.description),
+            preferencesController: preferencesController
+        )
+
+        self._connection = QueueLocked(
+            lockedObject: _connection,
             queue: queue
         )
 
         self.cacheDirectory = baseCacheDirectory.appendingPathComponent(address.description)
-
-        setProtocol(defaultProtocol)
 
         socket.delegate = self
         socket.open()
@@ -319,19 +327,19 @@ public final class Connection: SocketDelegate {
     ///
     /// Command handlers should not contain any strong references to objects in the case a command is never responded to.
     public func send(_ command: CSCommand, specificHandler: ((SCCommand) -> (Bool))? = nil) {
-        _connection.sync(block: { $0.send(command, specificHandler: specificHandler) })
+        _connection.async(block: { $0.send(command, specificHandler: specificHandler) })
     }
 
     // MARK: - Socket Events
 
     /// A message was received over the socket.
     func socket(_ socket: Socket, didReceive message: String) {
-        _connection.sync(block: { $0.socket(socket, didReceive: message)})
+        _connection.async(block: { $0.socket(socket, didReceive: message)})
     }
 
     /// The socket will no longer receive information from the server.
     func socket(_ socket: Socket, didFailWithError error: Error?) {
-        _connection.sync(block: { $0.socket(socket, didFailWithError: error) })
+        _connection.async(block: { $0.socket(socket, didFailWithError: error) })
     }
 
     // MARK: - Session
@@ -349,11 +357,6 @@ public final class Connection: SocketDelegate {
         case unknown
         case tasServer(version: Float)
         case zeroKServer
-    }
-
-    /// Sets a protocol that has been identified such that following commands may be processed.
-    func setProtocol(_ serverProtocol: ServerProtocol) {
-        _connection.sync(block: { $0.setProtocol(serverProtocol) })
     }
 
     private static let protocolInfoCommands: [String : SCCommand.Type] = [

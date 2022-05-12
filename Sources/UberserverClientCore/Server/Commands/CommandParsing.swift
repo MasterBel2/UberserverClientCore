@@ -11,6 +11,8 @@ import Foundation
 /// Indicates an error that occured in the process of decoding server commands
 enum ParsingError: Error {
 	case noCharactersRemaining
+    case tooFewWords
+    case tooFewSentences
 }
 
 // WIP
@@ -42,10 +44,16 @@ func wordsAndSentences(for commandPayload: String, wordCount: Int, sentenceCount
     }
 
     x(array: &words, count: wordCount, separator: " ")
+    guard words.count == wordCount else {
+        throw ParsingError.tooFewWords
+    }
 
 	// Sentences are separated by a tab character. There is no tab character before the first sentence
 
     x(array: &sentences, count: sentenceCount, separator: "\t")
+    guard sentences.count == sentenceCount else {
+        throw ParsingError.tooFewSentences
+    }
 
 	if remainingCharacters != "" {
 		print("Command payload incorrectly parsed: remaning text was \"\(remainingCharacters)\"")

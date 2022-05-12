@@ -56,32 +56,31 @@ public struct TASServerCommand: SCCommand {
         print(protocolFloat)
         print(ProtocolFeature.TASServer.crypto0_38.isAvailable(in: protocolFloat))
 
-        if ProtocolFeature.TASServer.crypto0_37.isAvailable(in: protocolFloat) {
-            // TODO
-        } else if ProtocolFeature.TASServer.crypto0_38.isAvailable(in: protocolFloat) {
-            connection.send(CSSTLSCommand(), specificHandler: { response in
-                if response is SCOKCommand {
-                    do {
-                        let sslSettings = NSMutableDictionary()
-
-                        sslSettings.setObject(StreamSocketSecurityLevel.negotiatedSSL, forKey: kCFStreamSSLLevel as NSString)
-                        sslSettings.setObject(connection.socket.address.description as NSString, forKey: kCFStreamSSLPeerName as NSString)
-                        sslSettings.setObject(kCFBooleanFalse, forKey: kCFStreamSSLValidatesCertificateChain as NSString)
-
-
-                        try connection.socket.setStreamProperty(
-                            sslSettings,
-                            forKey: kCFStreamPropertySSLSettings as Stream.PropertyKey
-                        )
-                        connection.socket.open()
-
-                    } catch {
-                        print(error)
-                    }
-                    return true
-                }
-                return false
-            })
-        }
+//        if ProtocolFeature.TASServer.crypto0_37.isAvailable(in: protocolFloat) {
+//            // TODO
+//        } else if ProtocolFeature.TASServer.crypto0_38.isAvailable(in: protocolFloat) {
+//            connection.send(CSSTLSCommand(), specificHandler: { response in
+//                if response is SCOKCommand {
+//                    do {
+//                        let sslSettings = NSMutableDictionary()
+//
+//                        sslSettings.setObject(StreamSocketSecurityLevel.negotiatedSSL, forKey: kCFStreamSSLLevel as NSString)
+//                        sslSettings.setObject(connection.socket.address.description as NSString, forKey: kCFStreamSSLPeerName as NSString)
+//                        sslSettings.setObject(kCFBooleanFalse, forKey: kCFStreamSSLValidatesCertificateChain as NSString)
+//
+////                        try connection.socket.setStreamProperty(
+////                            sslSettings,
+////                            forKey: kCFStreamPropertySSLSettings as Stream.PropertyKey
+////                        )
+//                        connection.socket.open()
+//
+//                    } catch {
+//                        print(error)
+//                    }
+//                    return true
+//                }
+//                return false
+//            })
+//        }
     }
 }

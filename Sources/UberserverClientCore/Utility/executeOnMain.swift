@@ -28,7 +28,6 @@ public func executeOnMain<T: AnyObject>(target: T, _ block: @escaping (T) -> Voi
     }
 }
 
-
 /// Asynchronously executes on the main thread, unless already on the main thread.
 public func executeOnMain(_ block: @escaping () -> Void) {
     if Thread.isMainThread {
@@ -38,4 +37,18 @@ public func executeOnMain(_ block: @escaping () -> Void) {
             block()
         }
     }
+}
+
+public func executeOnMainSync<T, ReturnType>(_ target: T, _ block: @escaping (T) -> ReturnType) -> ReturnType {
+    if Thread.isMainThread {
+        return block(target)
+    } else {
+        return DispatchQueue.main.sync {
+            return block(target)
+        }
+    }
+}
+
+public func executeOnMainSync<ReturnType>(_ block: @escaping () -> ReturnType) -> ReturnType {
+    return executeOnMainSync(Void(), block)
 }

@@ -32,7 +32,7 @@ public final class AccountInfoController {
 
     /// The authenticatedClient associated with the account.
     weak var authenticatedClient: AuthenticatedSession?
-    weak var connection: Connection?
+    weak var connection: ThreadUnsafeConnection?
 
     // MARK: - Data
 

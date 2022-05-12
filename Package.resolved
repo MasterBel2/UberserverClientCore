@@ -48,11 +48,38 @@
       },
       {
         "package": "SWCompression",
-        "repositoryURL": "https://github.com/tsolomko/SWCompression.git",
+        "repositoryURL": "https://github.com/tsolomko/SWCompression",
         "state": {
           "branch": null,
           "revision": "4ad6940f2990f2d9f27b39d013c7a64b602d9c50",
           "version": "4.8.0"
+        }
+      },
+      {
+        "package": "swift-crypto",
+        "repositoryURL": "https://github.com/apple/swift-crypto",
+        "state": {
+          "branch": null,
+          "revision": "d9825fa541df64b1a7b182178d61b9a82730d01f",
+          "version": "2.1.0"
+        }
+      },
+      {
+        "package": "swift-nio",
+        "repositoryURL": "https://github.com/apple/swift-nio",
+        "state": {
+          "branch": null,
+          "revision": "124119f0bb12384cef35aa041d7c3a686108722d",
+          "version": "2.40.0"
+        }
+      },
+      {
+        "package": "swift-nio-ssl",
+        "repositoryURL": "https://github.com/apple/swift-nio-ssl",
+        "state": {
+          "branch": null,
+          "revision": "1750873bce84b4129b5303655cce2c3d35b9ed3a",
+          "version": "2.19.0"
         }
       }
     ]
