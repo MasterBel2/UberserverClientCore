@@ -670,6 +670,11 @@ struct SCRemoveScriptTagsCommand: SCCommand {
         return keys.map({ $0.joined(separator: "/") }).joined(separator: " ")
     }
 }
+/**
+ Sent by the server to a battle host, each time a client requests to join his battle.
+
+ The battle host should reply with either JOINBATTLEACCEPT or JOINBATTLEDENY.
+ */
 struct SCJoinBattleRequestCommand: SCCommand {
 
     static let title = "JOINBATTLEREQUEST"
@@ -695,12 +700,81 @@ struct SCJoinBattleRequestCommand: SCCommand {
 	}
 	
     func execute(on connection: ThreadUnsafeConnection) {
-		#warning("TODO")
+        connection.send(CSJoinBattleAcceptCommand(username: username))
 	}
 	
 	var payload: String {
 		return "\(username) \(ip)"
 	}
+}
+
+/**
+ Sent by a battle host, in response to a JOINBATTLEREQUEST command, instructing the server to allow the user to join their battle.
+ */
+struct CSJoinBattleAcceptCommand: CSCommand {
+
+    static let title = "JOINBATTLEACCEPT"
+
+    let username: String
+
+    // MARK: - Manual Construction
+
+    init(username: String) {
+        self.username = username
+    }
+
+    // MARK: - SCCommand
+
+    init?(payload: String) {
+        guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0) else {
+            return nil
+        }
+        username = words[0]
+    }
+
+    func execute(on server: LobbyServer) {
+        #warning("TODO")
+    }
+
+    var payload: String {
+        return "\(username)"
+    }
+}
+
+/**
+ Sent by a battle host, in response to a JOINBATTLEREQUEST command, instructing the server to disallow the user to join their battle.
+ */
+struct CSJoinBattleDenyCommand: CSCommand {
+
+    static let title = "JOINBATTLEDENY"
+
+    let username: String
+    let reason: String?
+
+    // MARK: - Manual Construction
+
+    init(username: String, reason: String?) {
+        self.username = username
+        self.reason = reason
+    }
+
+    // MARK: - SCCommand
+
+    init?(payload: String) {
+        guard let (words, _, _, optionalSentences) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0, optionalSentenceCount: 1) else {
+            return nil
+        }
+        username = words[0]
+        reason = optionalSentences.first
+    }
+
+    func execute(on server: LobbyServer) {
+        #warning("TODO")
+    }
+
+    var payload: String {
+        return "\(username) \(reason ?? "")"
+    }
 }
 
 struct SCJoinedBattleCommand: SCCommand {
