@@ -28,6 +28,40 @@ struct CSGetUserInfoCommand: CSCommand {
 }
 
 /**
+ Confirm that the user agreed to the user agreement, and supply an email verification code (if necessary).
+
+ # Response
+
+ ACCEPTED, if the verification was either accepted or was not needed.
+ DENIED, if the verification code was not accepted.
+ */
+struct CSConfirmAgreementCommand: CSCommand {
+    static let title = "CONFIRMAGREEMENT"
+
+    let verificationCode: String?
+
+    init(verificationCode: String?) {
+        self.verificationCode = verificationCode
+    }
+
+    init?(payload: String) {
+        guard let (_, _, optionalWords, _) = try? wordsAndSentences(for: payload, wordCount: 0, sentenceCount: 1, optionalWordCount: 1) else {
+            return nil
+        }
+
+        verificationCode = optionalWords.first
+    }
+
+    var payload: String {
+        return verificationCode ?? ""
+    }
+
+    func execute(on server: LobbyServer) {
+        // TODO
+    }
+}
+
+/**
  Sent as a response to the LOGIN command, if it succeeded. Next, the server will send much info
  about clients and battles:
 
@@ -178,7 +212,9 @@ struct SCLoginInfoEndCommand: SCCommand {
 	init?(payload: String) {
 	}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {}
+    public func execute(on connection: ThreadUnsafeConnection) {
+
+    }
 	
 	var payload: String { return "" }
 }
@@ -206,8 +242,19 @@ struct SCAgreementCommand: SCCommand {
 	}
 	
     public func execute(on connection: ThreadUnsafeConnection) {
-		#warning("TODO: Update agreement")
-	}
+        let preAgreementSession: PreAgreementSession
+
+        switch connection.session {
+        case let .preAgreement(session):
+            preAgreementSession = session
+            preAgreementSession.agreement += "\n" + agreement
+        default:
+            preAgreementSession = PreAgreementSession(connection: MakeUnownedQueueLocked(lockedObject: connection, queue: connection.queue))
+            connection.session = .preAgreement(preAgreementSession)
+
+            preAgreementSession.agreement = agreement
+        }
+    }
 	
 	var payload: String {
 		return agreement
@@ -230,8 +277,12 @@ struct SCAgreementEndCommand: SCCommand {
 	}
 	
     public func execute(on connection: ThreadUnsafeConnection) {
-		#warning("TODO: Display agreement now")
-	}
+        guard case let .preAgreement(preAgreementSession) = connection.session else {
+            return
+        }
+
+        preAgreementSession.agreementComplete()
+    }
 	
 	var payload: String { return "" }
 }

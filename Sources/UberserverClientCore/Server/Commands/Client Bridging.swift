@@ -172,13 +172,13 @@ struct SCSaidFromCommand: SCCommand {
 	// MARK: - SCCommand
 	
 	init?(payload: String) {
-		guard let (words, sentences) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 0, optionalSentences: 1) else {
+		guard let (words, _, _, optionalSentences) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 0, optionalSentenceCount: 1) else {
 			return nil
 		}
 		
 		channelName = words[0]
 		username = words[1]
-		message = sentences.count == 1 ? sentences[0] : nil
+        message = optionalSentences.first
 	}
 	
     func execute(on connection: ThreadUnsafeConnection) {

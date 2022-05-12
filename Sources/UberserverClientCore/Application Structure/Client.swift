@@ -65,8 +65,9 @@ public final class Client: UpdateNotifier {
 
     // MARK: - Managing the Client's Connection
 
-    func disconnect() {
+    public func disconnect() {
         connection = nil
+        applyActionToChainedObjects({ $0.clientDisconnectedFromServer(self) })
     }
 
     /// Establishes a connection to the given address.

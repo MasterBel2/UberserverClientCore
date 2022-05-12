@@ -83,7 +83,7 @@ public struct SCServerMessageBoxCommand: SCCommand {
 	// MARK: - SCCommand
 	
     public init?(payload: String) {
-		guard let (_, sentences) = try? wordsAndSentences(for: payload, wordCount: 0, sentenceCount: 1, optionalSentences: 1) else {
+		guard let (_, sentences, _, optionalSentences) = try? wordsAndSentences(for: payload, wordCount: 0, sentenceCount: 1, optionalSentenceCount: 1) else {
 			return nil
 		}
 		message = sentences[0]

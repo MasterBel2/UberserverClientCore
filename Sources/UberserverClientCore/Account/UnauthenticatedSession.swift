@@ -83,6 +83,7 @@ public final class UnauthenticatedSession {
                         completionHandler(.success(loginAcceptedCommand.username))
                     } else if let loginDeniedCommand = command as? SCLoginDeniedCommand {
                         completionHandler(.failure(LoginError(description: loginDeniedCommand.reason)))
+                        connection.session = .unauthenticated(UnauthenticatedSession(preferencesController: connection.preferencesController))
                     } else {
                         //                    completionHandler(.failure(LoginError(description: "A server error occured.")))
                         return false
@@ -96,14 +97,15 @@ public final class UnauthenticatedSession {
     /// Performs a registration attempt, and calls the completion handler on a response.
     ///
     /// The completion handler's argument is an error, or nil.
-    public func submitRegister(username: String, email: String, password: String, completionHandler: @escaping (String?) -> Void) {
+    public func submitRegister(username: String, email: EmailAddress, password: String, completionHandler: @escaping (String?) -> Void) {
 
         connection.async(block: {
             guard let connection = $0.object else { return }
             connection.send(
                 CSRegisterCommand(
                     username: username,
-                    password: password
+                    password: password,
+                    emailAddress: email
                 ),
                 specificHandler: { [weak self] (command: SCCommand) in
                     guard let self = self else { return true }

@@ -30,11 +30,11 @@ public struct SCIgnoreCommand: SCCommand {
     // MARK: - SCCommand
 
     public init?(payload: String) {
-        guard let (words, sentences) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0, optionalSentences: 1) else {
+        guard let (words, _, _, optionalSentences) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0, optionalSentenceCount: 1) else {
             return nil
         }
         username = words[0]
-        reason = sentences.count == 1 ? sentences[0] : nil
+        reason = optionalSentences.first
     }
 
     public func execute(on connection: ThreadUnsafeConnection) {
@@ -116,11 +116,11 @@ public struct SCIgnoreListCommand: SCCommand {
     // MARK: - SCCommand
 
     public init?(payload: String) {
-        guard let (words, sentences) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0, optionalSentences: 1) else {
+        guard let (words, sentences, _, optionalSentences) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0, optionalSentenceCount: 1) else {
             return nil
         }
         username = words[0]
-        reason = sentences.count == 1 ? sentences[0] : nil
+        reason = optionalSentences.first
     }
 
     public func execute(on connection: ThreadUnsafeConnection) {

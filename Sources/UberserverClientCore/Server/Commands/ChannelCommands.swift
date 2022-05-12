@@ -95,11 +95,11 @@ public struct CSJoinCommand: CSCommand {
     // MARK: - CSCommand
 
     public init?(payload: String) {
-        guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 0, optionalWords: 1) else {
+        guard let (words, _, optionalWords, _) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 0, optionalWordCount: 1) else {
             return nil
         }
         self.channelName = words[0]
-        self.key = nil
+        self.key = optionalWords.first
     }
 
     public var payload: String {
@@ -631,13 +631,13 @@ public struct SCChannelCommand: SCCommand {
 	// MARK: - SCCommand
 	
     public init?(payload: String) {
-		guard let (words, sentences) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 0, optionalSentences: 1),
+		guard let (words, _, _, optionalSentences) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 0, optionalSentenceCount: 1),
 		let userCount = Int(words[1]) else {
 			return nil
 		}
 		channelName = words[0]
 		self.userCount = userCount
-		topic = sentences.count == 1 ? sentences[0] : nil
+        topic = optionalSentences.first
 	}
 	
     public func execute(on connection: ThreadUnsafeConnection) {

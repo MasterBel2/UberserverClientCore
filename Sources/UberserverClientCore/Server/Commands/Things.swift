@@ -26,12 +26,12 @@ public struct SCCompFlagsCommand: SCCommand {
 	// MARK: - SCCommand
 	
     public init?(payload: String) {
-		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 0, sentenceCount: 0, optionalWords: 1000) else {
+        guard let (_, _, _, optionalWords) = try? wordsAndSentences(for: payload, wordCount: 0, sentenceCount: 0, optionalWordCount: Int.max) else {
 			return nil
 		}
-		compatabilityFlags = words.compactMap({ CompatabilityFlag(rawValue: $0) })
+		compatabilityFlags = optionalWords.compactMap({ CompatabilityFlag(rawValue: $0) })
 		let compatabilityFlagValues = compatabilityFlags.map({ $0.rawValue })
-		let unrecognisedFlags = words.filter({ !compatabilityFlagValues.contains($0) })
+		let unrecognisedFlags = optionalWords.filter({ !compatabilityFlagValues.contains($0) })
 		self.unrecognisedFlags = unrecognisedFlags
 	}
 	

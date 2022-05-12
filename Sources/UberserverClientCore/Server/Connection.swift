@@ -17,11 +17,14 @@ public protocol ReceivesConnectionUpdates {
     func connectionDidDisconnect(_ connection: ThreadUnsafeConnection)
 
     /// Indicates the connection has become authenticated with the server, and provides
-    /// an `AuthenticatedClient` object that will describe the server's state.
-    func connection(_ connection: ThreadUnsafeConnection, didBecomeAuthenticated authenticatedClient: AuthenticatedSession)
+    /// an `AuthenticatedSession` object that will describe the server's state.
+    func connection(_ connection: ThreadUnsafeConnection, didBecomeAuthenticated authenticatedSession: AuthenticatedSession)
     /// Indicates the connection is no longer authenticated with the server, and will no longer
     /// receive information about its state.
-    func connectionDidBecomeUnauthenticated(_ connection: ThreadUnsafeConnection)
+    func connection(_ connection: ThreadUnsafeConnection, didBecomeUnauthenticated unauthenticatedSession: UnauthenticatedSession)
+    /// Indicates the connection has begun authentication with the server, but requires further confirmation
+    /// befure full authentication is completed.
+    func connection(_ connection: ThreadUnsafeConnection, didBecomePreAgreement preAgreementSession: PreAgreementSession)
 
     /// Indicates the interval since the last Ping and its responding Pong, in microseconds.
     func connection(_ connection: ThreadUnsafeConnection, didReceivePongAfter delay: Int)
@@ -34,6 +37,7 @@ public extension ReceivesConnectionUpdates {
 
     func connection(_ connection: ThreadUnsafeConnection, didBecomeAuthenticated authenticatedClient: AuthenticatedSession) {}
     func connection(_ connection: ThreadUnsafeConnection, didBecomeUnauthenticated unauthenticatedClient: UnauthenticatedSession) {}
+    func connection(_ connection: ThreadUnsafeConnection, didBecomePreAgreement unauthenticatedClient: PreAgreementSession) {}
 
     func connection(_ connection: ThreadUnsafeConnection, didReceivePongAfter delay: Int) {}
 }
@@ -88,6 +92,8 @@ public final class Connection: SocketDelegate {
             self.resourceManager = resourceManager
             self.cacheDirectory = cacheDirectory
 
+            self.preferencesController = preferencesController
+
             let unauthenticatedSession = UnauthenticatedSession(preferencesController: preferencesController)
             self.session = .unauthenticated(unauthenticatedSession)
             unauthenticatedSession.connection = MakeUnownedQueueLocked(lockedObject: self, queue: queue)
@@ -107,6 +113,8 @@ public final class Connection: SocketDelegate {
                     applyActionToChainedObjects({ $0.connection(self, didBecomeAuthenticated: session) })
                 case let .unauthenticated(session):
                     applyActionToChainedObjects({ $0.connection(self, didBecomeUnauthenticated: session) })
+                case let .preAgreement(session):
+                    applyActionToChainedObjects({ $0.connection(self, didBecomePreAgreement: session) })
                 }
             }
         }
@@ -126,6 +134,7 @@ public final class Connection: SocketDelegate {
         private unowned var client: Client
         /// The resource manager providing resource information to this connection.
         let resourceManager: ResourceManager
+        let preferencesController: PreferencesController
 
         // MARK: - Thread-safety
 
@@ -347,6 +356,7 @@ public final class Connection: SocketDelegate {
     /// States the possible sessions that may be maintained with the server.
     public enum Session {
         case authenticated(AuthenticatedSession)
+        case preAgreement(PreAgreementSession)
         case unauthenticated(UnauthenticatedSession)
     }
 

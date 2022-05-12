@@ -32,14 +32,14 @@ struct CSJoinBattleCommand: CSCommand {
 	// MARK: - CSCommand
 	
 	init?(payload: String) {
-		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0, optionalWords: 2, optionalSentences: 0),
+		guard let (words, _, optionalWords, _) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0, optionalWordCount: 2),
 			let battleID = Int(words[0]) else {
 			return nil
 		}
 		self.battleID = battleID
-		if words.count > 1 {
-			password = words[1]
-			scriptPassword = words.count == 3 ? words[2] : nil
+		if optionalWords.count > 1 {
+			password = optionalWords[0]
+			scriptPassword = optionalWords.count == 2 ? words[1] : nil
 		} else {
 			password = nil
 			scriptPassword = nil
@@ -722,13 +722,13 @@ struct SCJoinedBattleCommand: SCCommand {
 	// MARK: - SCCommand
 	
 	init?(payload: String) {
-		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 0, optionalWords: 1),
+		guard let (words, _, optionalWords, _) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 0, optionalWordCount: 1),
 			let battleID = Int(words[0]) else {
 			return nil
 		}
 		self.battleID = battleID
 		self.username = words[1]
-		scriptPassword = words.count == 3 ? words[2] : nil
+        scriptPassword = optionalWords.first
 	}
 	
     func execute(on connection: ThreadUnsafeConnection) {
@@ -1082,10 +1082,10 @@ struct SCDisableUnitsCommand: SCCommand {
 	// MARK: - SCCommand
 	
 	init?(payload: String) {
-		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0, optionalWords: 1000) else {
+        guard let (words, _, optionalWords, _) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0, optionalWordCount: Int.max) else {
 			return nil
 		}
-		units = words
+		units = words + optionalWords
 	}
 	
     func execute(on connection: ThreadUnsafeConnection) {
@@ -1116,10 +1116,10 @@ struct SCEnableUnitsCommand: SCCommand {
 	// MARK: - SCCommand
 	
 	init?(payload: String) {
-		guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0, optionalWords: 1000) else {
+        guard let (words, _, optionalWords, _) = try? wordsAndSentences(for: payload, wordCount: 1, sentenceCount: 0, optionalWordCount: Int.max) else {
 			return nil
 		}
-		units = words
+		units = words + optionalWords
 	}
 	
     func execute(on connection: ThreadUnsafeConnection) {

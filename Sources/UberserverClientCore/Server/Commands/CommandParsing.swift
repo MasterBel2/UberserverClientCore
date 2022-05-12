@@ -17,14 +17,22 @@ enum ParsingError: Error {
 
 // WIP
 
+func wordsAndSentences(for commandPayload: String, wordCount: Int, sentenceCount: Int) throws -> (words: [String], sentences: [String]) {
+
+    let (words, sentences, _, _) = try wordsAndSentences(for: commandPayload, wordCount: wordCount, sentenceCount: sentenceCount, optionalWordCount: 0, optionalSentenceCount: 0)
+    return (words, sentences)
+}
+
 /// Breaks a server command into its component words and sentences, as indicated by the lobby protocol.
 ///
 /// See https://springrts.com/dl/LobbyProtocol/ProtocolDescription.html for more detail.
-func wordsAndSentences(for commandPayload: String, wordCount: Int, sentenceCount: Int, optionalWords: Int = 0, optionalSentences: Int = 0) throws -> (words: [String], sentences: [String]) {
+func wordsAndSentences(for commandPayload: String, wordCount: Int, sentenceCount: Int, optionalWordCount: Int = 0, optionalSentenceCount: Int = 0) throws -> (words: [String], sentences: [String], optionalWords: [String], optionalSentences: [String]) {
 	var remainingCharacters = commandPayload
 	var buffer = [Character]()
 	var words = [String]()
 	var sentences = [String]()
+    var optionalWords = [String]()
+    var optionalSentences = [String]()
 
     func x(array: inout Array<String>, count: Int, separator: Character) {
         while array.count < count {
@@ -55,8 +63,12 @@ func wordsAndSentences(for commandPayload: String, wordCount: Int, sentenceCount
         throw ParsingError.tooFewSentences
     }
 
+    x(array: &optionalWords, count: optionalWordCount, separator: " ")
+    x(array: &optionalSentences, count: optionalSentenceCount, separator: "\t")
+    #warning("This will likely not correctly decode multiple optionals: maybe use \"separators\" rather than \"separator\"?")
+
 	if remainingCharacters != "" {
 		print("Command payload incorrectly parsed: remaning text was \"\(remainingCharacters)\"")
 	}
-	return (words: words, sentences: sentences)
+    return (words: words, sentences: sentences, optionalWords: optionalWords, optionalSentences: optionalSentences)
 }

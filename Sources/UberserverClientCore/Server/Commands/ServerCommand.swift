@@ -46,23 +46,54 @@ struct CSRegisterCommand: CSCommand {
     }
 
     init?(payload: String) {
-        guard let (words, _) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 0),
-              words.count == 2 else {
+        guard let (words, _, optionalWords, _) = try? wordsAndSentences(for: payload, wordCount: 2, sentenceCount: 0, optionalWordCount: 1),
+              words.count >= 2 else {
             return nil
         }
         username = words[0]
         encodedPassword = words[1]
+        emailAddress = try? EmailAddress.decode(from: words[2])
     }
 
-    init(username: String, password: String) {
+    init(username: String, password: String, emailAddress: EmailAddress?) {
         self.username = username
         self.encodedPassword = password.md5().base64Encoded()
+        self.emailAddress = emailAddress
     }
 
 	let username: String
+    let emailAddress: EmailAddress?
 	let encodedPassword: String
 
 	var payload: String {
-		return "\(username) \(encodedPassword)"
+        return "\(username) \(encodedPassword) \(emailAddress?.description ?? "")"
 	}
+}
+
+/// Describes an email address. Used
+public struct EmailAddress: CustomStringConvertible {
+    public let name: String
+    public let host: String
+
+    public struct DecodeError: Error {
+        let address: String
+    }
+
+    public init(name: String, host: String) {
+        self.name = name
+        self.host = host
+    }
+
+    /// Fails if the email address does not match the required format.
+    public static func decode(from string: String) throws -> EmailAddress {
+        let components = string.components(separatedBy: "@")
+        guard components.count == 2 else {
+            throw DecodeError(address: string)
+        }
+        return EmailAddress(name: components[0], host: components[1])
+    }
+
+    public var description: String {
+        return "\(name)@\(host)"
+    }
 }
