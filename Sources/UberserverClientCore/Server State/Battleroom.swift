@@ -309,6 +309,32 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
                 var color: Int32? = nil
                 var faction: String?
                 var handicap: Int?
+
+                func scriptTeam(_ id: Int) -> SpringRTSStartScriptHandling.Team {
+                    var players: [SpringRTSStartScriptHandling.Player] = []
+                    var ais: [SpringRTSStartScriptHandling.AI] = []
+                    for member in members {
+                        switch member {
+                        case let .player(player):
+                            players.append(player)
+                        case let .ai(ai):
+                            ais.append(ai)
+                        }
+                    }
+
+                    return SpringRTSStartScriptHandling.Team(
+                        scriptID: id,
+                        leader: 0,
+                        players: players,
+                        ais: ais,
+                        color:color,
+                        side: faction,
+                        handicap: handicap,
+                        advantage: nil,
+                        incomeMultiplier: nil,
+                        luaAI: nil
+                    )
+                }
             }
 
             var playerCount = 0
@@ -364,30 +390,8 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
                     teams[bot.status.teamNumber] = team
                 }
 
-                let scriptTeams = teams.map({ (teamNumber, teamMembers) -> SpringRTSStartScriptHandling.Team in
-                    var players: [SpringRTSStartScriptHandling.Player] = []
-                    var ais: [SpringRTSStartScriptHandling.AI] = []
-                    for member in teamMembers.members {
-                        switch member {
-                        case let .player(player):
-                            players.append(player)
-                        case let .ai(ai):
-                            ais.append(ai)
-                        }
-                    }
-
-                    return SpringRTSStartScriptHandling.Team(
-                        scriptID: teamNumber,
-                        leader: 0,
-                        players: players,
-                        ais: ais,
-                        color: teamMembers.color,
-                        side: teamMembers.faction,
-                        handicap: teamMembers.handicap,
-                        advantage: nil,
-                        incomeMultiplier: nil,
-                        luaAI: nil
-                    )
+                let scriptTeams = teams.map({ teamNumber, teamMembers in
+                    return teamMembers.scriptTeam(teamNumber)
                 })
                 return SpringRTSStartScriptHandling.AllyTeam(scriptID: allyTeamIndex, teams: scriptTeams)
             }).filter({ $0.teams.count > 0 })
