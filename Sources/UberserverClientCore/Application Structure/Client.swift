@@ -74,6 +74,7 @@ public final class Client: UpdateNotifier {
     ///
     /// Client will notify all objects waiting for an update when the connection has been successfully established by calling `client(_ client:successfullyEstablishedConnection:)`
 	public func connect(to address: ServerAddress) {
+        Logger.log("Connecting to \(address)!", tag: .General)
         guard let connection = Connection(
             address: address,
             client: self,
