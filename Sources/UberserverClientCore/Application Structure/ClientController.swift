@@ -42,12 +42,12 @@ public final class ClientController: UpdateNotifier {
     }
 
     /// Initiates a client which will connect to the given address.
-    public func connect(to address: ServerAddress) {
+    public func connect(to address: ServerAddress, tls: Bool, defaultLobby: Lobby) {
         let client = Client(
             system: system,
-            address: address,
             resourceManager: resourceManager
         )
+        client.connect(to: address, tls: tls, defaultLobby: defaultLobby)
         clients.append(client)
         applyActionToChainedObjects({ $0.clientController(self, didCreate: client) })
     }
@@ -62,9 +62,9 @@ public final class ClientController: UpdateNotifier {
         applyActionToChainedObjects({ $0.clientController(self, didCreate: client) })
     }
 
-	/// Forgets the reference to a client.
+    /// Forgets the reference to a client.
     public func destroyClient(_ client: Client) {
-		clients = clients.filter({ $0 !== client })
+        clients = clients.filter({ $0 !== client })
     }
     
     // MARK: - UpdateNotifier

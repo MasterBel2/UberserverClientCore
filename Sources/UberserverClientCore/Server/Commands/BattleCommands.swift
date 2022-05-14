@@ -180,8 +180,8 @@ struct SCJoinBattleCommand: SCCommand {
 		return "\(battleID) \(hashCode) \(channelName)"
 	}
     
-    public func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session,
+    public func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session,
               let myID = authenticatedSession.myID else {
             return
         }
@@ -195,15 +195,15 @@ struct SCJoinBattleCommand: SCCommand {
         }
 
         // Must use client.userlist instead of battle.userlist because the client is added to the channel before he receives notification of a successful join of the battle.
-        let battleroomChannel = Channel(title: battle.channel, rootList: authenticatedSession.userList, sendAction: { [weak connection] channel, message in
-            connection?.send(CSSayCommand(channelName: battle.channel, message: message))
+        let battleroomChannel = Channel(title: battle.channel, rootList: authenticatedSession.userList, sendAction: { [weak lobby] channel, message in
+            lobby?.send(CSSayCommand(channelName: battle.channel, message: message))
         })
         authenticatedSession.channelList.addItem(battleroomChannel, with: authenticatedSession.id(forChannelnamed: battleroomChannel.title))
         let battleroom = Battleroom(
             battle: battle,
             channel: battleroomChannel,
-            sendCommandBlock: { [weak connection] command in
-                connection?.send(command)
+            sendCommandBlock: { [weak lobby] command in
+                lobby?.send(command)
             },
             hashCode: hashCode,
             myID: myID
@@ -233,7 +233,7 @@ struct SCJoinBattleFailedCommand: SCCommand {
 		self.reason = payload
 	}
 	
-    func execute(on connection: ThreadUnsafeConnection) {}
+    func execute(on lobby: TASServerLobby) {}
 	
 	var payload: String {
 		return reason
@@ -268,8 +268,8 @@ struct SCClientBattleStatusCommand: SCCommand {
 		self.init(username: words[0], battleStatus: battleStatus, teamColor: teamColor)
 	}
 
-    func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session,
+    func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session,
               let battleroom = authenticatedSession.battleroom,
               let userID = authenticatedSession.id(forPlayerNamed: username) else {
             return
@@ -295,12 +295,12 @@ struct SCRequestBattleStatusCommand: SCCommand {
 	
 	init?(payload: String) {}
 
-    func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session,
+    func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session,
               let battleroom = authenticatedSession.battleroom else {
             return
         }
-        connection.send(CSMyBattleStatusCommand(
+        lobby.send(CSMyBattleStatusCommand(
             battleStatus: battleroom.myBattleStatus,
             color: battleroom.myColor
         ))
@@ -350,8 +350,8 @@ struct SCAddBotCommand: SCCommand {
 		aiDll = sentences[0]
 	}
 
-    public func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session,
+    public func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session,
               let battleroom = authenticatedSession.battleroom,
               let ownerID = authenticatedSession.id(forPlayerNamed: owner),
               let ownerUser = authenticatedSession.userList.items[ownerID] else {
@@ -387,8 +387,8 @@ struct SCRemoveBotCommand: SCCommand {
 		self.botName = words[0]
 	}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session,
+    public func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session,
               let battleroom = authenticatedSession.battleroom else {
             return
         }
@@ -434,8 +434,8 @@ struct SCUpdateBotCommand: SCCommand {
 		self.teamColor = teamColor
 	}
 	
-    func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session,
+    func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session,
               let bot = authenticatedSession.battleroom?.bots.first(where: { $0.name == name }) else {
             return
         }
@@ -511,8 +511,8 @@ struct SCAddStartRectCommand: SCCommand {
 		)
 	}
 	
-    func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session,
+    func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session,
               let battleroom = authenticatedSession.battleroom else {
             return
         }
@@ -546,8 +546,8 @@ struct SCRemoveStartRectCommand: SCCommand {
 		self.allyNo = allyNo
 	}
 	
-    func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session,
+    func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session,
               let battleroom = authenticatedSession.battleroom else {
             return
         }
@@ -578,8 +578,8 @@ struct SCSetScriptTagsCommand: SCCommand {
         tags = payload.split(separator: "\t").compactMap({ ScriptTag(String($0)) })
 	}
 
-    public func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session,
+    public func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session,
               let battleroom = authenticatedSession.battleroom else {
             return
         }
@@ -645,8 +645,8 @@ struct SCRemoveScriptTagsCommand: SCCommand {
         keys = payload.split(separator: "\t").map({ $0.split(separator: "/").map({ String($0) }) })
 	}
 
-    func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session,
+    func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session,
               let battleroom = authenticatedSession.battleroom else { return }
         for key in keys {
             guard key.count >= 2 else { continue }
@@ -699,8 +699,8 @@ struct SCJoinBattleRequestCommand: SCCommand {
 		ip = words[1]
 	}
 	
-    func execute(on connection: ThreadUnsafeConnection) {
-        connection.send(CSJoinBattleAcceptCommand(username: username))
+    func execute(on lobby: TASServerLobby) {
+        lobby.send(CSJoinBattleAcceptCommand(username: username))
 	}
 	
 	var payload: String {
@@ -805,8 +805,8 @@ struct SCJoinedBattleCommand: SCCommand {
         scriptPassword = optionalWords.first
 	}
 	
-    func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session,
+    func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session,
               let battle = authenticatedSession.battleList.items[battleID],
               let userID = authenticatedSession.id(forPlayerNamed: username) else {
             return
@@ -855,8 +855,8 @@ struct SCLeftBattleCommand: SCCommand {
 		self.username = words[1]
 	}
 	
-    func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session,
+    func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session,
               let battle = authenticatedSession.battleList.items[battleID],
               let userID = authenticatedSession.id(forPlayerNamed: username) else {
             return
@@ -897,8 +897,8 @@ struct SCBattleClosedCommand: SCCommand {
 		self.battleID = battleID
 	}
 	
-    func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session else {
+    func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session else {
             return
         }
         if let battleroom = authenticatedSession.battleroom,
@@ -936,7 +936,7 @@ struct SCUDPSourcePortCommand: SCCommand {
 		self.port = port
 	}
 	
-    func execute(on connection: ThreadUnsafeConnection) {
+    func execute(on lobby: TASServerLobby) {
 		#warning("todo")
 	}
 	
@@ -973,7 +973,7 @@ struct SCClientIPPortCommand: SCCommand {
 		self.port = port
 	}
 	
-    func execute(on connection: ThreadUnsafeConnection) {
+    func execute(on lobby: TASServerLobby) {
 		#warning("todo")
 	}
 	
@@ -1007,7 +1007,7 @@ struct SCHostPortCommand: SCCommand {
 		self.port = port
 	}
 	
-    func execute(on connection: ThreadUnsafeConnection) {
+    func execute(on lobby: TASServerLobby) {
 		#warning("todo")
 	}
 	
@@ -1055,8 +1055,8 @@ struct SCUpdateBattleInfoCommand: SCCommand {
 		mapName = sentences[0]
 	}
 	
-    func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session,
+    func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session,
               let battle = authenticatedSession.battleList.items[battleID] else {
             return
         }
@@ -1097,8 +1097,8 @@ struct SCKickFromBattleCommand: SCCommand {
 		username = words[1]
 	}
 	
-    func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session else { return }
+    func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session else { return }
         if authenticatedSession.battleroom != nil {
             authenticatedSession.battleroom = nil
             #warning("todo: Notify the user")
@@ -1127,8 +1127,8 @@ struct SCForceQuitBattleCommand: SCCommand {
 	
 	init?(payload: String) {}
 	
-    func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session else { return }
+    func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session else { return }
         if authenticatedSession.battleroom != nil {
             authenticatedSession.battleroom = nil
             #warning("todo: Notify the user")
@@ -1162,8 +1162,8 @@ struct SCDisableUnitsCommand: SCCommand {
 		units = words + optionalWords
 	}
 	
-    func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session else { return }
+    func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session else { return }
         authenticatedSession.battleroom?.disabledUnits.append(contentsOf: units)
 	}
 	
@@ -1196,8 +1196,8 @@ struct SCEnableUnitsCommand: SCCommand {
 		units = words + optionalWords
 	}
 	
-    func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedClient) = connection.session else { return }
+    func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedClient) = lobby.session else { return }
         authenticatedClient.battleroom?.disabledUnits.removeAll(where: { units.contains($0) })
     }
 	
@@ -1227,7 +1227,7 @@ struct SCRingCommand: SCCommand {
 		username = payload
 	}
 	
-    func execute(on connection: ThreadUnsafeConnection) {
+    func execute(on lobby: TASServerLobby) {
 		#warning("todo")
 	}
 	

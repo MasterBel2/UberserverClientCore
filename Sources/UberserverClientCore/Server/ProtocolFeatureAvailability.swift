@@ -12,7 +12,7 @@ import Foundation
 
 /// Describes whether certain features are supported by the current protocol.
 public struct ProtocolFeatureAvailability {
-    let serverProtocol: Connection.ServerProtocol
+    let serverProtocol: ServerProtocol
 
     var requiresVerificationCodeForChangeEmail: Bool {
         switch serverProtocol {
@@ -22,6 +22,13 @@ public struct ProtocolFeatureAvailability {
             return false
         }
     }
+}
+
+/// Identifies a protocol that the command handler can handle.
+public enum ServerProtocol {
+    case unknown
+    case tasServer(version: Float)
+    case zeroKServer
 }
 
 /// Indicates for which version of which protocols a given feature is available.

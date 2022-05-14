@@ -13,8 +13,8 @@ import Foundation
 // - SCJoinedCommand
 // - SCLeftCommand
 
-private func addUsersToChannel(named channelName: String, on connection: ThreadUnsafeConnection, usernames: [String]) {
-    guard case let .authenticated(authenticatedSession) = connection.session,
+private func addUsersToChannel(named channelName: String, on lobby: TASServerLobby, usernames: [String]) {
+    guard case let .authenticated(authenticatedSession) = lobby.session,
           let channel = authenticatedSession.channelList.items[authenticatedSession.id(forChannelnamed: channelName)] else {
         return
     }
@@ -66,8 +66,8 @@ struct SCClientsCommand: SCCommand {
         return "\(channelName) \(clients.joined(separator: " "))"
     }
 
-    func execute(on connection: ThreadUnsafeConnection) {
-        addUsersToChannel(named: channelName, on: connection, usernames: clients)
+    func execute(on lobby: TASServerLobby) {
+        addUsersToChannel(named: channelName, on: lobby, usernames: clients)
     }
 }
 
@@ -102,8 +102,8 @@ struct SCJoinedCommand: SCCommand {
         return "\(channelName) \(username)"
     }
 
-    func execute(on connection: ThreadUnsafeConnection) {
-        addUsersToChannel(named: channelName, on: connection, usernames: [username])
+    func execute(on lobby: TASServerLobby) {
+        addUsersToChannel(named: channelName, on: lobby, usernames: [username])
     }
 }
 
@@ -142,8 +142,8 @@ struct SCLeftCommand: SCCommand {
         return "\(channelName) \(username) \(reason)"
     }
     
-    func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session else { return }
+    func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session else { return }
         
         let channelID = authenticatedSession.id(forChannelnamed: channelName)
         guard let channel = authenticatedSession.channelList.items[channelID],

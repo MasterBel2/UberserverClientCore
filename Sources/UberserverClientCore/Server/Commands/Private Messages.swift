@@ -68,8 +68,8 @@ public struct SCSayPrivateCommand: SCCommand {
 		message = sentences[0]
 	}
     
-    public func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session,
+    public func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session,
               let userID = authenticatedSession.id(forPlayerNamed: username),
               let channel = authenticatedSession.privateMessageChannel(withUserNamed: username, userID: userID),
               let myID = authenticatedSession.myID else {
@@ -119,15 +119,15 @@ public struct SCSaidPrivateCommand: SCCommand {
         message = sentences[0]
     }
 
-    public func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session,
+    public func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session,
               let senderID = authenticatedSession.id(forPlayerNamed: username),
               let channel = authenticatedSession.privateMessageChannel(withUserNamed: username, userID: senderID),
               let sender = authenticatedSession.userList.items[senderID] else {
             return
         }
 
-        if handleSaidEncodedCommand(authenticatedClient: authenticatedSession, connection: connection, senderID: senderID, sender: sender, message: message, availableCommands: saidPrivateEncodableCommands) { return }
+        if handleSaidEncodedCommand(authenticatedClient: authenticatedSession, lobby: lobby, senderID: senderID, sender: sender, message: message, availableCommands: saidPrivateEncodableCommands) { return }
 
 
         channel.receivedNewMessage(
@@ -170,8 +170,8 @@ public struct SCSayPrivateEXCommand: SCCommand {
         message = sentences[1]
     }
     
-    public func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session,
+    public func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session,
               let userID = authenticatedSession.id(forPlayerNamed: username),
               let channel = authenticatedSession.privateMessageChannel(withUserNamed: username, userID: userID),
               let myID = authenticatedSession.myID,
@@ -219,8 +219,8 @@ public struct SCSaidPrivateEXCommand: SCCommand {
         message = sentences[1]
     }
 
-    public func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session else { return }
+    public func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session else { return }
         guard let userID = authenticatedSession.id(forPlayerNamed: username),
               let channel = authenticatedSession.privateMessageChannel(withUserNamed: username, userID: userID) else {
             return

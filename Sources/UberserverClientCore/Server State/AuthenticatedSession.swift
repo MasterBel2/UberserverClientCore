@@ -26,7 +26,7 @@ public class AuthenticatedSession: UpdateNotifier {
     // MARK: - Associated Objects
 
     /// The server connection this object is associated with.
-    private unowned let connection: ThreadUnsafeConnection
+    private unowned let lobby: TASServerLobby
     public var objectsWithLinkedActions: [() -> ReceivesAuthenticatedClientUpdates?] = []
 
     // MARK: - Data
@@ -65,13 +65,13 @@ public class AuthenticatedSession: UpdateNotifier {
 
     // MARK: - Creating an AuthenticatedClient
     
-    init(username: String, password: String, connection: ThreadUnsafeConnection) {
+    init(username: String, password: String, lobby: TASServerLobby) {
         self.username = username
         self.password = password
-        self.connection = connection
+        self.lobby = lobby
 
         accountInfoController.authenticatedClient = self
-        accountInfoController.connection = connection
+        accountInfoController.lobby = lobby
     }
 
     // MARK: - Player IDs
@@ -123,7 +123,7 @@ public class AuthenticatedSession: UpdateNotifier {
     ///
     /// If the listed channel is private, a prompt will be presented indicating that a password is required.
     public func joinChannel(_ channelName: String) {
-        connection.send(CSJoinCommand(channelName: channelName, key: nil))
+        lobby.send(CSJoinCommand(channelName: channelName, key: nil))
 
         if channels.first(where: { $0.title == channelName })?.isPrivate == true {
             // TODO: Present a prompt
@@ -140,8 +140,8 @@ public class AuthenticatedSession: UpdateNotifier {
         if let cachedChannel = privateMessageList.items[channelID] {
             channel = cachedChannel
         } else {
-            channel = Channel(title: username, rootList: userList, sendAction: { [weak connection] channel, message in
-                connection?.send(CSSayPrivateCommand(intendedRecipient: username, message: message))
+            channel = Channel(title: username, rootList: userList, sendAction: { [weak lobby] channel, message in
+                lobby?.send(CSSayPrivateCommand(intendedRecipient: username, message: message))
             })
             channel.userlist.addItemFromParent(id: userID)
             channel.userlist.addItemFromParent(id: myID)
@@ -167,7 +167,7 @@ public class AuthenticatedSession: UpdateNotifier {
         if battle.hasPassword {
             // TODO: Prompt for password
         } else {
-            connection.send(CSJoinBattleCommand(battleID: battleID, password: nil, scriptPassword: battle.myScriptPassword))
+            lobby.send(CSJoinBattleCommand(battleID: battleID, password: nil, scriptPassword: battle.myScriptPassword))
         }
     }
     
@@ -176,7 +176,7 @@ public class AuthenticatedSession: UpdateNotifier {
         guard battleroom != nil else { return }
         battleroom = nil
 
-        connection.send(CSLeaveBattleCommand())
+        lobby.send(CSLeaveBattleCommand())
     }
 
     // MARK: - Interacting with Other Users
@@ -184,7 +184,7 @@ public class AuthenticatedSession: UpdateNotifier {
     /// Instructs the server to ring another user.
     public func ring(_ id: Int) {
         if let recipient = userList.items[id] {
-            connection.send(CSRingCommand(target: recipient.profile.fullUsername))
+            lobby.send(CSRingCommand(target: recipient.profile.fullUsername))
         }
     }
 

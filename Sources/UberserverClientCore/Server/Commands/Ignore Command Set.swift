@@ -37,7 +37,7 @@ public struct SCIgnoreCommand: SCCommand {
         reason = optionalSentences.first
     }
 
-    public func execute(on connection: ThreadUnsafeConnection) {
+    public func execute(on lobby: TASServerLobby) {
         #warning("todo")
     }
 
@@ -71,7 +71,7 @@ public struct SCUnignoreCommand: SCCommand {
         self.username = words[0]
     }
 
-    public func execute(on connection: ThreadUnsafeConnection) {
+    public func execute(on lobby: TASServerLobby) {
         #warning("todo")
     }
 
@@ -92,7 +92,7 @@ public struct SCIgnoreListBegin: SCCommand {
 
     public init?(payload: String) {}
 
-    public func execute(on connection: ThreadUnsafeConnection) {
+    public func execute(on lobby: TASServerLobby) {
         #warning("todo")
     }
 
@@ -123,7 +123,7 @@ public struct SCIgnoreListCommand: SCCommand {
         reason = optionalSentences.first
     }
 
-    public func execute(on connection: ThreadUnsafeConnection) {
+    public func execute(on lobby: TASServerLobby) {
         #warning("todo")
     }
 
@@ -145,7 +145,7 @@ public struct SCCIgnoreListEndCommand: SCCommand {
 
     public init?(payload: String) {}
 
-    public func execute(on connection: ThreadUnsafeConnection) {
+    public func execute(on lobby: TASServerLobby) {
         #warning("todo")
     }
 

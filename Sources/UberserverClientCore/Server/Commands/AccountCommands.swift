@@ -99,9 +99,9 @@ struct SCLoginAcceptedCommand: SCCommand {
     }
 
     /// Uberserver does not handle command IDs properly, so this hacks around that (since we know that we don't send a second command handler before login completes).
-    public func execute(on connection: ThreadUnsafeConnection) {
-        _ = connection.specificCommandHandlers.first?.value(self)
-        connection.specificCommandHandlers = [:]
+    public func execute(on lobby: TASServerLobby) {
+        _ = lobby.specificCommandHandlers.first?.value(self)
+        lobby.specificCommandHandlers = [:]
     }
 }
 
@@ -130,9 +130,9 @@ struct SCLoginDeniedCommand: SCCommand {
 	}
 
     /// Uberserver does not handle command IDs properly, so this hacks around that (since we know that we don't send a second command handler before login completes).
-    public func execute(on connection: ThreadUnsafeConnection) {
-        _ = connection.specificCommandHandlers.first?.value(self)
-        connection.specificCommandHandlers = [:]
+    public func execute(on lobby: TASServerLobby) {
+        _ = lobby.specificCommandHandlers.first?.value(self)
+        lobby.specificCommandHandlers = [:]
     }
 
 	var payload: String {
@@ -165,7 +165,7 @@ struct SCRegistrationDeniedCommand: SCCommand {
 		self.reason = sentences[0]
 	}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {}
+    public func execute(on lobby: TASServerLobby) {}
 	
 	var payload: String {
 		return reason
@@ -192,7 +192,7 @@ struct SCRegistrationAcceptedCommand: SCCommand {
 	
 	init?(payload: String) {}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {}
+    public func execute(on lobby: TASServerLobby) {}
 	
 	var payload: String { return "" }
 }
@@ -212,7 +212,7 @@ struct SCLoginInfoEndCommand: SCCommand {
 	init?(payload: String) {
 	}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {
+    public func execute(on lobby: TASServerLobby) {
 
     }
 	
@@ -241,16 +241,16 @@ struct SCAgreementCommand: SCCommand {
 		self.agreement = sentences[0]
 	}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {
+    public func execute(on lobby: TASServerLobby) {
         let preAgreementSession: PreAgreementSession
 
-        switch connection.session {
+        switch lobby.session {
         case let .preAgreement(session):
             preAgreementSession = session
             preAgreementSession.agreement += "\n" + agreement
         default:
-            preAgreementSession = PreAgreementSession(connection: MakeUnownedQueueLocked(lockedObject: connection, queue: connection.queue))
-            connection.session = .preAgreement(preAgreementSession)
+            preAgreementSession = PreAgreementSession(lobby: MakeUnownedQueueLocked(lockedObject: lobby, queue: lobby.connection.queue))
+            lobby.session = .preAgreement(preAgreementSession)
 
             preAgreementSession.agreement = agreement
         }
@@ -276,8 +276,8 @@ struct SCAgreementEndCommand: SCCommand {
 	init?(payload: String) {
 	}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .preAgreement(preAgreementSession) = connection.session else {
+    public func execute(on lobby: TASServerLobby) {
+        guard case let .preAgreement(preAgreementSession) = lobby.session else {
             return
         }
 
@@ -302,7 +302,7 @@ struct SCChangeEmailRequestAcceptedCommand: SCCommand {
 	init?(payload: String) {
 	}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {}
+    public func execute(on lobby: TASServerLobby) {}
 	
 	var payload: String { return "" }
 }
@@ -329,7 +329,7 @@ struct SCChangeEmailRequestDeniedCommand: SCCommand {
 		self.errorMessage = sentences[0]
 	}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {}
+    public func execute(on lobby: TASServerLobby) {}
 	
 	var payload: String {
 		return errorMessage
@@ -351,7 +351,7 @@ struct SCChangeEmailAcceptedCommand: SCCommand {
 	init?(payload: String) {
 	}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {}
+    public func execute(on lobby: TASServerLobby) {}
 	
 	var payload: String { return "" }
 }
@@ -378,7 +378,7 @@ struct SCChangeEmailDeniedCommand: SCCommand {
 		self.errorMessage = sentences[0]
 	}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {}
+    public func execute(on lobby: TASServerLobby) {}
 	
 	var payload: String {
 		return errorMessage
@@ -402,7 +402,7 @@ struct SCResendVerificationAcceptedCommand: SCCommand {
 	}
 
     /// Noop: this is a response and does not need an action.
-    public func execute(on connection: ThreadUnsafeConnection) {}
+    public func execute(on lobby: TASServerLobby) {}
 	
 	var payload: String { return "" }
 }
@@ -429,7 +429,7 @@ struct SCResendVerificationDeniedCommand: SCCommand {
 		self.errorMessage = sentences[0]
 	}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {}
+    public func execute(on lobby: TASServerLobby) {}
 	
 	var payload: String {
 		return errorMessage
@@ -450,7 +450,7 @@ struct SCResetPasswordRequestAcceptedCommand: SCCommand {
 	init?(payload: String) {
 	}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {}
+    public func execute(on lobby: TASServerLobby) {}
 	
 	var payload: String { return "" }
 }
@@ -476,7 +476,7 @@ struct SCResetPasswordRequestDeniedCommand: SCCommand {
 		self.errorMessage = sentences[0]
 	}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {}
+    public func execute(on lobby: TASServerLobby) {}
 	
 	var payload: String {
 		return errorMessage
@@ -499,7 +499,7 @@ struct SCResetPasswordAcceptedCommand: SCCommand {
 	
 	init?(payload: String) {}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {}
+    public func execute(on lobby: TASServerLobby) {}
 	
 	var payload: String { return "" }
 }
@@ -526,7 +526,7 @@ struct SCResetPasswordDeniedCommand: SCCommand {
 		errorMessage = sentences[0]
 	}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {}
+    public func execute(on lobby: TASServerLobby) {}
 	
 	var payload: String {
 		return errorMessage

@@ -50,17 +50,12 @@ public final class Client: UpdateNotifier {
 
     // MARK: - Creating a Client
 
-    public init(system: System, address: ServerAddress? = nil, resourceManager: ResourceManager) {
+    public init(system: System, resourceManager: ResourceManager) {
 
         // Initialise values
 
         self.system = system
         self.resourceManager = resourceManager
-
-        // Initialise server
-        if let address = address {
-            connect(to: address)
-        }
     }
 
     // MARK: - Managing the Client's Connection
@@ -73,14 +68,15 @@ public final class Client: UpdateNotifier {
     /// Establishes a connection to the given address.
     ///
     /// Client will notify all objects waiting for an update when the connection has been successfully established by calling `client(_ client:successfullyEstablishedConnection:)`
-	public func connect(to address: ServerAddress) {
+    public func connect(to address: ServerAddress, tls: Bool = false, defaultLobby: Lobby) {
         Logger.log("Connecting to \(address)!", tag: .General)
         guard let connection = Connection(
             address: address,
             client: self,
             resourceManager: resourceManager,
             preferencesController: PreferencesController.default,
-            baseCacheDirectory: system.configDirectory
+            baseCacheDirectory: system.configDirectory,
+            defaultLobby: defaultLobby
         ) else {
             return
         }
@@ -90,9 +86,9 @@ public final class Client: UpdateNotifier {
 	}
 
     /// Destroys the current connection and connects to the new address.
-    public func redirect(to address: ServerAddress) {
+    func redirect(to address: ServerAddress, tls: Bool, defaultLobby: Lobby) {
         connection = nil
-        connect(to: address)
+        connect(to: address, tls: tls, defaultLobby: defaultLobby)
     }
 
     // MARK: - Receiving Messages from the Server

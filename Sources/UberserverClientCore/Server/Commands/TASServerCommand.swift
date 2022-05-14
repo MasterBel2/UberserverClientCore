@@ -41,31 +41,19 @@ public struct TASServerCommand: SCCommand {
         return "\(protocolVersion) \(springVersion) \(udpPort) \(lanMode ? 1 : 0)"
     }
     
-    public func execute(on connection: ThreadUnsafeConnection) {
-        let protocolFloat: Float
-
-        if let version = Float(String(protocolVersion.prefix(while: { "0.123456789".contains($0) }))) {
-            protocolFloat = version
-        } else {
-            // Default to latest available version
-            protocolFloat = 0.38
-        }
-
-        connection.setProtocol(.tasServer(version: protocolFloat))
-
-        print("TLS is currently \(connection.socket.tlsEnabled ? "enabled!" : "disabled!")")
-        guard !connection.socket.tlsEnabled else {
+    public func execute(on lobby: TASServerLobby) {
+        guard !lobby.connection.socket.tlsEnabled,
+              case let .tasServer(version: protocolFloat) = lobby.featureAvailability?.serverProtocol else {
             return
         }
-        print("Enabling TLS!")
 
         if ProtocolFeature.TASServer.crypto0_37.isAvailable(in: protocolFloat) {
             // TODO
         } else if ProtocolFeature.TASServer.crypto0_38.isAvailable(in: protocolFloat) {
-            connection.send(CSSTLSCommand(), specificHandler: { response in
+            lobby.send(CSSTLSCommand(), specificHandler: { response in
                 if response is SCOKCommand {
                     do {
-                        try connection.socket.client?.enableTLS()
+                        try lobby.connection.socket.client?.enableTLS()
                     } catch {
                         print(error)
                     }

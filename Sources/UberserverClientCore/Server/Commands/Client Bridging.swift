@@ -37,7 +37,7 @@ struct SCBridgeClientFromCommand: SCCommand {
 		externalUsername = words[2]
 	}
 	
-    func execute(on connection: ThreadUnsafeConnection) {
+    func execute(on lobby: TASServerLobby) {
 		#warning("TODO")
 	}
 	
@@ -75,7 +75,7 @@ struct SCUnbridgeClientFromCommand: SCCommand {
 		externalUsername = words[2]
 	}
 	
-	func execute(on connection: ThreadUnsafeConnection) {
+	func execute(on lobby: TASServerLobby) {
 		#warning("TODO")
 	}
 	
@@ -111,7 +111,7 @@ struct SCJoinedFromCommand: SCCommand {
 		username = words[2]
 	}
 	
-	func execute(on connection: ThreadUnsafeConnection) {
+	func execute(on lobby: TASServerLobby) {
 		#warning("TODO")
 	}
 	
@@ -144,7 +144,7 @@ struct SCLeftFromCommand: SCCommand {
 		username = words[1]
 	}
 	
-	func execute(on connection: ThreadUnsafeConnection) {
+	func execute(on lobby: TASServerLobby) {
 		#warning("todo")
 	}
 	
@@ -181,7 +181,7 @@ struct SCSaidFromCommand: SCCommand {
         message = optionalSentences.first
 	}
 	
-    func execute(on connection: ThreadUnsafeConnection) {
+    func execute(on lobby: TASServerLobby) {
 		#warning("todo")
 	}
 	
@@ -225,7 +225,7 @@ struct SCClientsFromCommand: SCCommand {
         return "\(channelName) \(bridge) \(clients.joined(separator: " "))"
     }
 
-    func execute(on connection: ThreadUnsafeConnection) {
+    func execute(on lobby: TASServerLobby) {
 		#warning("todo")
     }
 }

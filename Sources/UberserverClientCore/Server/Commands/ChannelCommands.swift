@@ -32,14 +32,14 @@ public struct SCJoinCommand: SCCommand {
         return channelName
     }
 
-    public func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session else { return }
+    public func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session else { return }
         let channelID = authenticatedSession.id(forChannelnamed: channelName)
         guard authenticatedSession.channelList.items[channelID] == nil else {
             return
         }
-        let channel = Channel(title: channelName, rootList: authenticatedSession.userList, sendAction: { [weak connection] channel, message in
-            connection?.send(CSSayCommand(channelName: channelName, message: message))
+        let channel = Channel(title: channelName, rootList: authenticatedSession.userList, sendAction: { [weak lobby] channel, message in
+            lobby?.send(CSSayCommand(channelName: channelName, message: message))
         })
         authenticatedSession.channelList.addItem(channel, with: channelID)
     }
@@ -75,7 +75,7 @@ public struct SCJoinFailedCommand: SCCommand {
         return "\(channelName) \(reason)"
     }
 
-    public func execute(on connection: ThreadUnsafeConnection) {}
+    public func execute(on lobby: TASServerLobby) {}
 }
 
 public struct CSJoinCommand: CSCommand {
@@ -142,8 +142,8 @@ public struct SCChannelTopicCommand: SCCommand {
         return "\(channelName) \(author) \(topic)"
     }
 
-    public func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session else { return }
+    public func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session else { return }
         let channelID = authenticatedSession.id(forChannelnamed: channelName)
         guard let channel = authenticatedSession.channelList.items[channelID] else {
             return
@@ -252,7 +252,7 @@ public struct SCChannelMessageCommand: SCCommand {
         return "\(channelName) \(message)"
     }
 
-    public func execute(on connection: ThreadUnsafeConnection) {
+    public func execute(on lobby: TASServerLobby) {
         #warning("TODO")
     }
 }
@@ -348,7 +348,7 @@ public protocol SaidEncodableCommand {
     var payloadDescription: String { get }
     var description: String { get }
 
-    func execute(on authenticatedClient: AuthenticatedSession, connection: ThreadUnsafeConnection, senderID: Int, senderName: String)
+    func execute(on authenticatedClient: AuthenticatedSession, lobby: TASServerLobby, senderID: Int, senderName: String)
 
     init?(payload: String)
 }
@@ -384,10 +384,10 @@ public struct PrivateMessageToRoute: SaidEncodableCommand {
         return "\(targetID) \(message)"
     }
 
-    public func execute(on authenticatedClient: AuthenticatedSession, connection: ThreadUnsafeConnection, senderID: Int, senderName: String) {
+    public func execute(on authenticatedClient: AuthenticatedSession, lobby: TASServerLobby, senderID: Int, senderName: String) {
         guard let targetName = authenticatedClient.userList.items[targetID]?.profile.fullUsername else { return }
         let routedMessage = RoutedPrivateMessage(originalSenderID: senderID, message: message)
-        connection.send(CSSayPrivateCommand(intendedRecipient: targetName, message: routedMessage.description))
+        lobby.send(CSSayPrivateCommand(intendedRecipient: targetName, message: routedMessage.description))
     }
 }
 
@@ -416,7 +416,7 @@ public struct RoutedPrivateMessage: SaidEncodableCommand {
         return "\(originalSenderID) \(message)"
     }
     
-    public func execute(on authenticatedClient: AuthenticatedSession, connection: ThreadUnsafeConnection, senderID: Int, senderName: String) {
+    public func execute(on authenticatedClient: AuthenticatedSession, lobby: TASServerLobby, senderID: Int, senderName: String) {
         guard let originalSenderName = authenticatedClient.userList.items[originalSenderID]?.profile.fullUsername else {
             return
         }
@@ -427,9 +427,9 @@ public struct RoutedPrivateMessage: SaidEncodableCommand {
         if let createdChannel = authenticatedClient.channelList.items[channelID] {
             channel = createdChannel
         } else {
-            channel = Channel(title: channelName, rootList: authenticatedClient.userList, sendAction: { [weak connection] channel, message in
+            channel = Channel(title: channelName, rootList: authenticatedClient.userList, sendAction: { [weak lobby] channel, message in
                 let messageToRoute = PrivateMessageToRoute(targetID: originalSenderID, message: message)
-                connection?.send(CSSayPrivateCommand(intendedRecipient: senderName, message: messageToRoute.description))
+                lobby?.send(CSSayPrivateCommand(intendedRecipient: senderName, message: messageToRoute.description))
             })
             channel.userlist.addItemFromParent(id: originalSenderID)
             channel.userlist.addItemFromParent(id: senderID)
@@ -489,8 +489,8 @@ public struct SCSaidCommand: SCCommand {
         return "\(channelName) \(username) \(message)"
     }
     
-    public func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session else { return }
+    public func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session else { return }
         let channelID = authenticatedSession.id(forChannelnamed: channelName)
         guard let channel = authenticatedSession.channelList.items[channelID],
               let senderID = authenticatedSession.id(forPlayerNamed: username),
@@ -498,7 +498,7 @@ public struct SCSaidCommand: SCCommand {
             return
         }
 
-        if handleSaidEncodedCommand(authenticatedClient: authenticatedSession, connection: connection, senderID: senderID, sender: sender, message: message, availableCommands: saidEncodableCommands) { return }
+        if handleSaidEncodedCommand(authenticatedClient: authenticatedSession, lobby: lobby, senderID: senderID, sender: sender, message: message, availableCommands: saidEncodableCommands) { return }
 
         channel.receivedNewMessage(ChatMessage(
             time: Date(),
@@ -510,14 +510,14 @@ public struct SCSaidCommand: SCCommand {
     }
 }
 
-func handleSaidEncodedCommand(authenticatedClient: AuthenticatedSession, connection: ThreadUnsafeConnection, senderID: Int, sender: User, message: String, availableCommands: [String : SaidEncodableCommand.Type]) -> Bool {
+func handleSaidEncodedCommand(authenticatedClient: AuthenticatedSession, lobby: TASServerLobby, senderID: Int, sender: User, message: String, availableCommands: [String : SaidEncodableCommand.Type]) -> Bool {
     if sender.profile.lobbyID.hasPrefix("BelieveAndRise"),
        let (payload, messageCode) = message.splitLastWord(),
        messageCode.hasPrefix("[&") && messageCode.hasSuffix("&]") {
         let commandID = String(messageCode.dropFirst(2).dropLast(2))
         if let commandType = availableCommands[commandID],
            let command = commandType.init(payload: String(payload)) {
-            command.execute(on: authenticatedClient, connection: connection, senderID: senderID, senderName: sender.profile.fullUsername)
+            command.execute(on: authenticatedClient, lobby: lobby, senderID: senderID, senderName: sender.profile.fullUsername)
             return true
         }
     }
@@ -595,8 +595,8 @@ public struct SCSaidExCommand: SCCommand {
         return "\(channelName) \(username) \(message)"
     }
     
-    public func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session else { return }
+    public func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session else { return }
         let channelID = authenticatedSession.id(forChannelnamed: channelName)
         guard let channel = authenticatedSession.channelList.items[channelID],
               let senderID = authenticatedSession.id(forPlayerNamed: username) else {
@@ -640,8 +640,8 @@ public struct SCChannelCommand: SCCommand {
         topic = optionalSentences.first
 	}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session else { return }
+    public func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session else { return }
 		#warning("todo")
 	}
 	
@@ -666,8 +666,8 @@ public struct SCEndOfChannelsCommand: SCCommand {
 	
     public init?(payload: String) {}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session else { return }
+    public func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session else { return }
 		#warning("todo")
 	}
 	

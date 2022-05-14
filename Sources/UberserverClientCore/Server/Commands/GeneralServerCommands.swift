@@ -22,7 +22,7 @@ public struct MOTDCommand: SCCommand {
         payload = _payload
     }
 
-    public func execute(on connection: ThreadUnsafeConnection) {
+    public func execute(on lobby: TASServerLobby) {
         print(payload)
     }
 }
@@ -55,7 +55,7 @@ public struct SCServerMessageCommand: SCCommand {
 		message = sentences[0]
 	}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {
+    public func execute(on lobby: TASServerLobby) {
 //        client.didReceiveMessageFromServer(message)
         print(message)
         #warning("TODO")
@@ -90,7 +90,7 @@ public struct SCServerMessageBoxCommand: SCCommand {
 		url = sentences.count == 2 ? URL(string: sentences[1]) : nil
 	}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {
+    public func execute(on lobby: TASServerLobby) {
 		#warning("TODO")
 	}
 	

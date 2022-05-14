@@ -25,7 +25,7 @@ public final class UnauthenticatedSession {
 
     // MARK: - Associated Objects
 
-    public internal(set) var connection: UnownedQueueLocked<ThreadUnsafeConnection>!
+    public internal(set) var lobby: UnownedQueueLocked<TASServerLobby>!
 
     // MARK: - Lifecycle
 
@@ -38,7 +38,7 @@ public final class UnauthenticatedSession {
 
     /// Returns a list of usernames that have been previously used to log in to this server, if any.
     public var prefillableUsernames: [String] {
-        guard let serverAddress = connection.sync(block: { $0.object?.socket.address }),
+        guard let serverAddress = lobby.sync(block: { $0.object?.connection.socket.address }),
               let usernames = try? credentialsManager.usernames(forServerWithAddress: serverAddress.description) else {
                     return []
                 }
@@ -47,7 +47,7 @@ public final class UnauthenticatedSession {
 
     /// Returns the last credentials used to log into the server, if any.
     public var lastCredentialsPair: Credentials? {
-        guard let serverAddress = connection.sync(block: { $0.object?.socket.address }),
+        guard let serverAddress = lobby.sync(block: { $0.object?.connection.socket.address }),
               let lastUsername = preferencesController.lastUsername(for: serverAddress.description) else {
                   return nil
               }
@@ -61,9 +61,9 @@ public final class UnauthenticatedSession {
     /// The completion handler's argument is the username of the account logged in, or an error.
     public func submitLogin(username: String, password: String, completionHandler: @escaping (Result<String, LoginError>) -> Void) {
 
-        connection.async(block: {
-            guard let connection = $0.object else { return }
-            connection.send(
+        lobby.async(block: {
+            guard let lobby = $0.object else { return }
+            lobby.send(
                 CSLoginCommand(
                     username: username,
                     password: password,
@@ -78,12 +78,12 @@ public final class UnauthenticatedSession {
                 specificHandler: { [weak self] (command: SCCommand) in
                     guard let self = self else { return true }
                     if let loginAcceptedCommand = command as? SCLoginAcceptedCommand {
-                        self.record(Credentials(username: loginAcceptedCommand.username, password: password), connection: connection)
-                        connection.session = .authenticated(AuthenticatedSession(username: loginAcceptedCommand.username, password: password, connection: connection))
+                        self.record(Credentials(username: loginAcceptedCommand.username, password: password), lobby: lobby)
+                        lobby.session = .authenticated(AuthenticatedSession(username: loginAcceptedCommand.username, password: password, lobby: lobby))
                         completionHandler(.success(loginAcceptedCommand.username))
                     } else if let loginDeniedCommand = command as? SCLoginDeniedCommand {
                         completionHandler(.failure(LoginError(description: loginDeniedCommand.reason)))
-                        connection.session = .unauthenticated(UnauthenticatedSession(preferencesController: connection.preferencesController))
+                        lobby.session = .unauthenticated(UnauthenticatedSession(preferencesController: lobby.connection.preferencesController))
                     } else {
                         //                    completionHandler(.failure(LoginError(description: "A server error occured.")))
                         return false
@@ -99,9 +99,9 @@ public final class UnauthenticatedSession {
     /// The completion handler's argument is an error, or nil.
     public func submitRegister(username: String, email: EmailAddress, password: String, completionHandler: @escaping (String?) -> Void) {
 
-        connection.async(block: {
-            guard let connection = $0.object else { return }
-            connection.send(
+        lobby.async(block: {
+            guard let lobby = $0.object else { return }
+            lobby.send(
                 CSRegisterCommand(
                     username: username,
                     password: password,
@@ -110,7 +110,7 @@ public final class UnauthenticatedSession {
                 specificHandler: { [weak self] (command: SCCommand) in
                     guard let self = self else { return true }
                     if command is SCRegistrationAcceptedCommand {
-                        self.record(Credentials(username: username, password: password), connection: connection)
+                        self.record(Credentials(username: username, password: password), lobby: lobby)
                         completionHandler(nil)
                         self.submitLogin(
                             username: username,
@@ -137,8 +137,8 @@ public final class UnauthenticatedSession {
     }
 
     /// Stores a copy of the credentials associated with the connection for future reference.
-    private func record(_ credentials: Credentials, connection: ThreadUnsafeConnection) {
-        preferencesController.setLastUsername(credentials.username, for: connection.socket.address.description)
-        try? credentialsManager.writeCredentials(credentials, forServerWithAddress: connection.socket.address.description)
+    private func record(_ credentials: Credentials, lobby: TASServerLobby) {
+        preferencesController.setLastUsername(credentials.username, for: lobby.connection.socket.address.description)
+        try? credentialsManager.writeCredentials(credentials, forServerWithAddress: lobby.connection.socket.address.description)
     }
 }

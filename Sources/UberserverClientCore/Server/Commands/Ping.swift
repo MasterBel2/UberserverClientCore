@@ -38,5 +38,5 @@ struct SCPongCommand: SCCommand {
 
     var payload: String { return "" }
 
-    public func execute(on connection: ThreadUnsafeConnection) {}
+    public func execute(on lobby: TASServerLobby) {}
 }

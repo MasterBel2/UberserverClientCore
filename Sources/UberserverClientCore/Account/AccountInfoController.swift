@@ -32,7 +32,7 @@ public final class AccountInfoController {
 
     /// The authenticatedClient associated with the account.
     weak var authenticatedClient: AuthenticatedSession?
-    weak var connection: ThreadUnsafeConnection?
+    weak var lobby: TASServerLobby?
 
     // MARK: - Data
 
@@ -55,9 +55,9 @@ public final class AccountInfoController {
     // MARK: - AccountDataSource
 
     public func retrieveAccountData(completionBlock: @escaping (AccountData) -> ()) {
-        guard let connection = connection else { return }
+        guard let lobby = lobby else { return }
 
-        connection.send(CSGetUserInfoCommand(), specificHandler: { [weak self] response in
+        lobby.send(CSGetUserInfoCommand(), specificHandler: { [weak self] response in
             guard let self = self else { return true }
 
             if let serverMessage = response as? SCServerMessageCommand {
@@ -110,14 +110,14 @@ public final class AccountInfoController {
     ///
     /// Automatically detects whether a verification code is required, and will call `changeEmailWithoutVerification(to:password:completion:)` with the provided arguments, and return.
     public func requestVerficationCodeForChangingEmail(to newEmailAddress: String, password: String, completionBlock: @escaping (String?) -> ()) {
-        guard let authenticatedClient = authenticatedClient, let connection = connection else { return }
-        guard connection.featureAvailability?.requiresVerificationCodeForChangeEmail == true else {
+        guard let authenticatedClient = authenticatedClient, let lobby = lobby else { return }
+        guard lobby.featureAvailability?.requiresVerificationCodeForChangeEmail == true else {
             changeEmailWithoutVerification(to: newEmailAddress, password: password, completionBlock: completionBlock)
             return
         }
 
         if password == authenticatedClient.password {
-            connection.send(CSChangeEmailRequestCommand(newEmail: newEmailAddress)) { response in
+            lobby.send(CSChangeEmailRequestCommand(newEmail: newEmailAddress)) { response in
                 if let _ = response as? SCChangeEmailRequestAcceptedCommand {
                     completionBlock(nil)
                 } else if let failureResponse = response as? SCChangeEmailRequestDeniedCommand {
@@ -137,12 +137,12 @@ public final class AccountInfoController {
     ///
     /// Requires the verification code that will be sent after a successful `requestVerificationCodeForChangingEmail(to:password:completionBlock:)`
     public func changeEmail(to newEmailAddress: String, password: String, verificationCode: String, completionBlock: @escaping (String?) -> ()) {
-        guard let authenticatedClient = authenticatedClient, let connection = connection else { return }
+        guard let authenticatedClient = authenticatedClient, let lobby = lobby else { return }
         if password == authenticatedClient.password {
-            connection.send(CSChangeEmailWithVerificationCommand(newEmail: newEmailAddress, verificationCode: verificationCode)) { response in
+            lobby.send(CSChangeEmailWithVerificationCommand(newEmail: newEmailAddress, verificationCode: verificationCode)) { response in
                 if let _ = response as? SCChangeEmailAcceptedCommand {
                     completionBlock(nil)
-                    connection.send(CSGetUserInfoCommand())
+                    lobby.send(CSGetUserInfoCommand())
                 } else if let failureResponse = response as? SCChangeEmailDeniedCommand {
                     completionBlock(failureResponse.errorMessage)
                 } else {
@@ -158,12 +158,12 @@ public final class AccountInfoController {
     
     /// Attempts to change email where a verification code is not required.
     public func changeEmailWithoutVerification(to newEmailAddress: String, password: String, completionBlock: @escaping (String?) -> ()) {
-        guard let authenticatedClient = authenticatedClient, let connection = connection else { return }
+        guard let authenticatedClient = authenticatedClient, let lobby = lobby else { return }
         if password == authenticatedClient.password {
-            connection.send(CSChangeEmailWithoutVerificationCommand(newEmail: newEmailAddress)) { response in
+            lobby.send(CSChangeEmailWithoutVerificationCommand(newEmail: newEmailAddress)) { response in
                 if let _ = response as? SCChangeEmailAcceptedCommand {
                     completionBlock(nil)
-                    connection.send(CSGetUserInfoCommand())
+                    lobby.send(CSGetUserInfoCommand())
                 } else if let failureResponse = response as? SCChangeEmailDeniedCommand {
                     completionBlock(failureResponse.errorMessage)
                 } else {
@@ -179,18 +179,18 @@ public final class AccountInfoController {
 
     /// Attempts to change the user's username to the new value..
     public func renameAccount(to newAccountName: String, password: String, completionBlock: @escaping (String?) -> ()) {
-        guard let authenticatedClient = authenticatedClient, let connection = connection else { return }
+        guard let authenticatedClient = authenticatedClient, let lobby = lobby else { return }
         if password == authenticatedClient.password {
-            connection.send(CSRenameAccountCommand(newUsername: newAccountName))
+            lobby.send(CSRenameAccountCommand(newUsername: newAccountName))
             completionBlock(nil)
         }
     }
 
     /// Attempts to change the user's password to the new value.
     public func changePassword(from oldPassword: String, to newPassword: String, completionBlock: @escaping (String?) -> ()) {
-        guard let authenticatedClient = authenticatedClient, let connection = connection else { return }
+        guard let authenticatedClient = authenticatedClient, let lobby = lobby else { return }
         if oldPassword == authenticatedClient.password {
-            connection.send(CSChangePasswordCommand(oldPassword: oldPassword, newPassword: newPassword))
+            lobby.send(CSChangePasswordCommand(oldPassword: oldPassword, newPassword: newPassword))
             completionBlock(nil)
         }
     }

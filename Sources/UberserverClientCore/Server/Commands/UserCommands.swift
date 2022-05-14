@@ -83,8 +83,8 @@ public struct SCAddUserCommand: SCCommand {
         lobbyID = sentences[0]
     }
 
-    public func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session else { return }
+    public func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session else { return }
         let userProfile = User.Profile(id: userID, fullUsername: username, lobbyID: lobbyID, country: CountryCode(rawValue: country))
         let user = User(profile: userProfile)
         authenticatedSession.userList.addItem(user, with: userID)
@@ -118,8 +118,8 @@ public struct SCRemoveUserCommand: SCCommand {
 		username = words[0]
 	}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session else { return }
+    public func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session else { return }
         guard let userID = authenticatedSession.id(forPlayerNamed: username) else {
             return
         }
@@ -156,8 +156,8 @@ public struct SCClientStatusCommand: SCCommand {
 		status = User.Status(rawValue: statusValue)
 	}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session,
+    public func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session,
               let userID = authenticatedSession.id(forPlayerNamed: username),
               let user = authenticatedSession.userList.items[userID] else {
             return

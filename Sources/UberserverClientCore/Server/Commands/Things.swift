@@ -35,7 +35,7 @@ public struct SCCompFlagsCommand: SCCommand {
 		self.unrecognisedFlags = unrecognisedFlags
 	}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {
+    public func execute(on lobby: TASServerLobby) {
 		debugOnlyPrint("Unrecognised flags: \(unrecognisedFlags.joined(separator: " "))")
 	}
 	
@@ -69,8 +69,8 @@ public struct SCRedirectCommand: SCCommand {
 		self.port = port
 	}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {
-        connection.redirect(to: ServerAddress(location: ip, port: port))
+    public func execute(on lobby: TASServerLobby) {
+        lobby.connection.redirect(to: ServerAddress(location: ip, port: port))
 	}
 	
     public var payload: String {
@@ -91,7 +91,7 @@ public struct SCFailedCommand: SCCommand {
 	
     public init?(payload: String) {}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {}
+    public func execute(on lobby: TASServerLobby) {}
 	
     public var payload: String { return "" }
 }
@@ -117,7 +117,7 @@ public struct SCJSONCommand: SCCommand {
 		json = payload
 	}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {
+    public func execute(on lobby: TASServerLobby) {
 //		jsonCommandHandler.execute(json, on: connection)
         #warning("todo")
 	}
@@ -161,7 +161,7 @@ public struct SCOKCommand: SCCommand {
 	
     public init?(payload: String) {}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {
+    public func execute(on lobby: TASServerLobby) {
         // Handled by specific handler
     }
 	

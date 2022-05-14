@@ -15,10 +15,10 @@ final public class PreAgreementSession: UpdateNotifier {
 
     public var objectsWithLinkedActions: [() -> RecievesPreAgreementSessionUpdates?] = []
 
-    private let connection: UnownedQueueLocked<ThreadUnsafeConnection>
+    private let lobby: UnownedQueueLocked<TASServerLobby>
 
-    init(connection: UnownedQueueLocked<ThreadUnsafeConnection>) {
-        self.connection = connection
+    init(lobby: UnownedQueueLocked<TASServerLobby>) {
+        self.lobby = lobby
     }
 
     var agreement: String = ""
@@ -28,6 +28,6 @@ final public class PreAgreementSession: UpdateNotifier {
     }
 
     public func acceptAgreement(verificationCode: String?) {
-        connection.async(block: { $0.object?.send(CSConfirmAgreementCommand(verificationCode: verificationCode)) })
+        lobby.async(block: { $0.object?.send(CSConfirmAgreementCommand(verificationCode: verificationCode)) })
     }
 }

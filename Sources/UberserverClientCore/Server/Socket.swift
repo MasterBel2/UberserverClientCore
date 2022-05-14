@@ -16,7 +16,7 @@ private enum SocketError: Error {
 
 /// A set of functions that may be implemented by a Socket's delegate.
 protocol SocketDelegate: AnyObject {
-	func socket(_ socket: Socket, didReceive message: String)
+	func socket(_ socket: Socket, didReceive data: Data)
     func socket(_ socket: Socket, didFailWithError error: Error?)
 }
 
@@ -47,12 +47,12 @@ final class TCPClientSocket: TCPClientDelegate {
         client = nil
     }
 
-    func send(message: String) {
+    func send(message: Data) {
         guard let channel = client?.channel else {
             return
         }
 
-        channel.writeAndFlush(ByteBuffer(bytes: message.utf8), promise: nil)
+        channel.writeAndFlush(ByteBuffer(bytes: message), promise: nil)
     }
 
     // MARK: - TCPClientDelegate
@@ -63,8 +63,6 @@ final class TCPClientSocket: TCPClientDelegate {
     }
 
     func received(_ data: Data) {
-        if let string = String(bytes: data, encoding: .utf8) {
-            delegate?.socket(self, didReceive: string)
-        }
+        delegate?.socket(self, didReceive: data)
     }
 }

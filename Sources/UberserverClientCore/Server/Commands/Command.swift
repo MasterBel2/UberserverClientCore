@@ -12,13 +12,13 @@ import Foundation
  Commands sent from a server to a client should be prefixed with "SC"; commands sent from a client
  to a server should be prefixed with "CS". See `CSCommand` and `SCCommand`.
  */
-public protocol Command: CustomStringConvertible {
+public protocol TASCommand: CustomStringConvertible {
     init?(payload: String)
     static var title: String { get }
     var payload: String { get }
 }
 
-public extension Command {
+public extension TASCommand {
     var description: String {
         return "\(Self.title) \(payload)"
     }
@@ -173,7 +173,7 @@ struct ServerChannelHistory: Hashable {
 
 /**
  */
-public protocol CSCommand: Command {
+public protocol CSCommand: TASCommand {
     func execute(on server: LobbyServer)
 }
 
@@ -182,7 +182,7 @@ public protocol CSCommand: Command {
 
  See `CSCommand` for client-to-server commands.
  */
-public protocol SCCommand: Command {
+public protocol SCCommand: TASCommand {
     /// Updates the client's data and triggers UI updates. (The UI knows how to update itself.)
-    func execute(on connection: ThreadUnsafeConnection)
+    func execute(on lobby: TASServerLobby)
 }

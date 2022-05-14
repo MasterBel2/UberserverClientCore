@@ -88,8 +88,8 @@ public struct SCBattleOpenedCommand: SCCommand {
     
     // MARK: - Behaviour
     
-    public func execute(on connection: ThreadUnsafeConnection) {
-        guard case let .authenticated(authenticatedSession) = connection.session,
+    public func execute(on lobby: TASServerLobby) {
+        guard case let .authenticated(authenticatedSession) = lobby.session,
               let founderID = authenticatedSession.id(forPlayerNamed: founder) else {
             return
         }
@@ -111,8 +111,8 @@ public struct SCBattleOpenedCommand: SCCommand {
             title: title,
             gameName: gameName,
             channel: channel,
-            scriptPasswordCacheDirectory: connection.cacheDirectory.appendingPathComponent("Script Passwords"),
-            resourceManager: connection.resourceManager
+            scriptPasswordCacheDirectory: lobby.connection.cacheDirectory.appendingPathComponent("Script Passwords"),
+            resourceManager: lobby.connection.resourceManager
         )
 
         authenticatedSession.battleList.addItem(battle, with: battleID)
@@ -155,7 +155,7 @@ public struct SCOpenBattleCommand: SCCommand {
 		self.battleID = battleID
 	}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {
+    public func execute(on lobby: TASServerLobby) {
 		#warning("TODO")
 	}
 	
@@ -183,7 +183,7 @@ public struct SCOpenBattleFailedCommand: SCCommand {
 		reason = payload
 	}
 	
-    public func execute(on connection: ThreadUnsafeConnection) {}
+    public func execute(on lobby: TASServerLobby) {}
 	
     public var payload: String {
 		return reason
