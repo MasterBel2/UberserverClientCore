@@ -88,19 +88,19 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
     private(set) var startRects: [Int : StartRect] = [:]
 
     /// Indexed by ID.
-	/// Updated by CLIENTBATTLESTATUS command.
-	public internal(set) var userStatuses: [Int : UserStatus] = [:]
+    /// Updated by CLIENTBATTLESTATUS command.
+    public internal(set) var userStatuses: [Int : UserStatus] = [:]
     /// Updated by CLIENTBATTLESTATUS command.
     /// Indexed by ID.
     public internal(set) var colors: [Int : Int32] = [:]
-	/// Updated by SETSCRIPTTAGS command.
+    /// Updated by SETSCRIPTTAGS command.
     public internal(set) var trueSkills: [Int : String] = [:]
     /// Set by JOINEDBATTLE command.
     public internal(set) var scriptPasswords: [Int : String] = [:]
     /// Updated by SETSCRIPTTAGS command.
     public internal(set) var modOptions: [String : String] = [:]
-	/// Computed by the host's unitsync using the current map, game, and other dependencies.
-	/// It is used to check that the client has correct non-corrupt downloads of the required content.
+    /// Computed by the host's unitsync using the current map, game, and other dependencies.
+    /// It is used to check that the client has correct non-corrupt downloads of the required content.
     public internal(set) var disabledUnits: [String] = []
 
     /// A hash code taken from the map, game, and engine. Calculated by Unitsync.
@@ -162,7 +162,7 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
         allyTeamLists.forEach({ $0.sorter = battleroomSorter })
         spectatorList.sorter = battleroomSorter
         battle.addObject(self)
-		battle.userList.addObject(self)
+        battle.userList.addObject(self)
         
         battle.shouldAutomaticallyDownloadMap = true
         
@@ -183,7 +183,7 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
         let value = (previous: previousUserStatus?.isSpectator, new: newUserStatus.isSpectator)
         // Only ally/spectator if the user's status has changed.
         if !(value == (previous: true, new: true) ||
-            (value == (previous: false, new: false) && previousUserStatus?.allyNumber == newUserStatus.allyNumber)) {
+             (value == (previous: false, new: false) && previousUserStatus?.allyNumber == newUserStatus.allyNumber)) {
             if value.previous == true {
                 // The user is no longer a spectator.
                 spectatorList.removeItem(withID: userID)
@@ -192,7 +192,7 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
                 let allyTeamList = allyTeamLists[previousAllyNumber]
                 allyTeamList.removeItem(withID: userID)
                 if allyTeamList.sortedItemCount == 0,
-                    let allyName = allyNamesForAllyNumbers[previousAllyNumber] {
+                   let allyName = allyNamesForAllyNumbers[previousAllyNumber] {
                     applyActionToChainedObjects({ $0.removedTeam(named: allyName) })
                     allyNamesForAllyNumbers.removeValue(forKey: previousAllyNumber)
                 }
@@ -236,7 +236,7 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
 
         if userID == myID {
             applyActionToChainedObjects({ $0.displayReadySate(newUserStatus.isReady) })
-		}
+        }
 
         // Update the view
         battle.userList.respondToUpdatesOnItem(identifiedBy: userID)
@@ -395,7 +395,7 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
                 })
                 return SpringRTSStartScriptHandling.AllyTeam(scriptID: allyTeamIndex, teams: scriptTeams)
             }).filter({ $0.teams.count > 0 })
-            print("AllyTeam count: \(gameSpecificationAllyTeams.count)")
+            
             let hostConfig = HostConfig(
                 userID: myID,
                 username: myAccount.profile.fullUsername,
@@ -484,23 +484,23 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
     public func listWillClear(_ list: ListProtocol) {}
 
     // MARK: - Nested Types
-	
-	final class Bot {
-		let name: String
-		let owner: User
-		var status: UserStatus
-		var color: Int32
-		
-		init(name: String, owner: User, status: UserStatus, color: Int32) {
-			self.name = name
-			self.owner = owner
-			self.status = status
-			self.color = color
-		}
-	}
-	
-	public struct UserStatus {
-		public let isReady: Bool
+
+    final class Bot {
+        let name: String
+        let owner: User
+        var status: UserStatus
+        var color: Int32
+
+        init(name: String, owner: User, status: UserStatus, color: Int32) {
+            self.name = name
+            self.owner = owner
+            self.status = status
+            self.color = color
+        }
+    }
+
+    public struct UserStatus {
+        public let isReady: Bool
         public let teamNumber: Int
         /// The alliance the user is a part of.
         ///
@@ -529,12 +529,12 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
                 side: side ?? self.side
             )
         }
-		
+
         public enum SyncStatus: Int {
-			case unknown = 0
-			case synced = 1
-			case unsynced = 2
-		}
+            case unknown = 0
+            case synced = 1
+            case unsynced = 2
+        }
 
         var description: String {
             return "|Sync: \(syncStatus), R: \(isReady), S: \(isSpectator), A# \(allyNumber), T# \(teamNumber), H: \(handicap), Fac: \(side)|"
@@ -561,41 +561,41 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
             self.syncStatus = syncStatus
             self.side = side
         }
-		
+
         init?(statusValue: Int) {
-			isReady = (statusValue & 0b10) == 0b10
-			teamNumber = (statusValue & 0b111100) >> 2
-			allyNumber = (statusValue & 0b1111000000) >> 6
-			isSpectator = (statusValue & 0b10000000000) != 0b10000000000
-			handicap = (statusValue & 0b111111100000000000) >> 11
-			
-			let syncValue = (statusValue & 0b110000000000000000000000) >> 22
-			
-			switch syncValue {
-			case 1:
-				syncStatus = .synced
-			case 2:
-				syncStatus = .unsynced
-			default:
-				syncStatus = .unknown
-			}
-			
-			self.side = (statusValue & 0b1111000000000000000000000000) >> 24
-		}
-		
-		var integerValue: Int32 {
-			var battleStatus: Int32 = 0
-			if isReady {
-				battleStatus += 2 // 2^1
-			}
-			battleStatus += Int32(teamNumber*4) // 2^2
-			battleStatus += Int32(allyNumber*64) // 2^6
-			if !isSpectator {
-				battleStatus += 1024// 2^10
-			}
-			battleStatus += Int32(syncStatus.rawValue*4194304) // 2^22
-			battleStatus += Int32(side*16777216) // 2^24
-			return battleStatus
-		}
-	}
+            isReady = (statusValue & 0b10) == 0b10
+            teamNumber = (statusValue & 0b111100) >> 2
+            allyNumber = (statusValue & 0b1111000000) >> 6
+            isSpectator = (statusValue & 0b10000000000) != 0b10000000000
+            handicap = (statusValue & 0b111111100000000000) >> 11
+
+            let syncValue = (statusValue & 0b110000000000000000000000) >> 22
+
+            switch syncValue {
+            case 1:
+                syncStatus = .synced
+            case 2:
+                syncStatus = .unsynced
+            default:
+                syncStatus = .unknown
+            }
+
+            self.side = (statusValue & 0b1111000000000000000000000000) >> 24
+        }
+
+        var integerValue: Int32 {
+            var battleStatus: Int32 = 0
+            if isReady {
+                battleStatus += 2 // 2^1
+            }
+            battleStatus += Int32(teamNumber*4) // 2^2
+            battleStatus += Int32(allyNumber*64) // 2^6
+            if !isSpectator {
+                battleStatus += 1024// 2^10
+            }
+            battleStatus += Int32(syncStatus.rawValue*4194304) // 2^22
+            battleStatus += Int32(side*16777216) // 2^24
+            return battleStatus
+        }
+    }
 }

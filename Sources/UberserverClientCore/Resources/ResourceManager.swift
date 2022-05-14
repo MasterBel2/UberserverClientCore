@@ -72,7 +72,6 @@ public final class ResourceManager {
         
     }
     
-    
     public typealias MapLoadResult = Result<(mapArchive: MapArchive, checksumMatch: Bool, usedPreferredEngineVersion: Bool), Error>
     public func loadMap(named mapName: String, checksum: Int32, preferredVersion: String, shouldDownload: Bool, completionHandler: @escaping (MapLoadResult) -> Void) {
         let matches = archiveLoader.mapArchives.filter({ $0.name == mapName })
