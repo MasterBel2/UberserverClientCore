@@ -6,6 +6,7 @@
 //  Copyright © 2017 MasterBel2. All rights reserved.
 //
 import Foundation
+import CoreFoundation
 
 public typealias RGB565Color = UInt16
 public typealias RGBAColor = UInt32

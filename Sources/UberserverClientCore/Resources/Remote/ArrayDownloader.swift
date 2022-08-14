@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import FoundationNetworking
 
 protocol DownloaderDelegate: AnyObject {
     func downloaderDidBeginDownload(_ downloader: Downloader)

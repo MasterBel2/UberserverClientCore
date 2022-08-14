@@ -9,6 +9,7 @@
 import Foundation
 import SpringRTSReplayHandling
 import SWCompression
+import CoreFoundation
 
 /// Handles loading of replays from the file system.
 public final class ReplayController {
@@ -29,7 +30,7 @@ public final class ReplayController {
 
     /// Asynchronously loads replays from disk.
     public func loadReplays() throws {
-        let urls = try fileManager.contentsOfDirectory(at: demoDir, includingPropertiesForKeys: [kCFURLCreationDateKey as URLResourceKey])
+        let urls = try fileManager.contentsOfDirectory(at: demoDir, includingPropertiesForKeys: nil)
         for replayURL in urls {
             if replays.items.contains(where: {$0.value.fileURL == replayURL }) { continue }
             loadQueue.async { [weak self] in

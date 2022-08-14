@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import FoundationNetworking
 
 var springDataDirectory: URL {
     return NSHomeDirectoryURL().appendingPathComponent(".spring")

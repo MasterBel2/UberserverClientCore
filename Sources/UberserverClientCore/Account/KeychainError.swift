@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import CoreFoundation
 
 /// An error that may be returned when accessing the keychain.
 enum KeychainError: Error {

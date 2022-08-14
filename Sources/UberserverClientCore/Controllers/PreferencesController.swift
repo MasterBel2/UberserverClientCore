@@ -42,12 +42,12 @@ public class PreferencesController {
     /// Records the username as most recently used to log in to the server.
     func setLastUsername(_ username: String, for serverName: String) {
         let key = serverAttributeKey(for: serverName, attributeKey: .lastUsername)
-        userDefaults.setValue(username, forKey: key)
+        userDefaults.set(username, forKey: key)
     }
     /// Returns the username most recently used to log in to the server.
     func lastUsername(for serverName: String) -> String? {
         let key = serverAttributeKey(for: serverName, attributeKey: .lastUsername)
-        return userDefaults.value(forKey: key) as? String
+        return userDefaults.object(forKey: key) as? String
     }
 	
 	// MARK: - Private helpers
@@ -58,12 +58,12 @@ public class PreferencesController {
 
 	/// Retrives the previously recorded value for the given key.
     private func value<ValueType>(for key: DefaultsKeys) -> ValueType? {
-        return userDefaults.value(forKey: key.rawValue) as? ValueType
+        return userDefaults.object(forKey: key.rawValue) as? ValueType
     }
 
 	/// Records a value for the given key.
     private func setValue(_ value: Any?, for key: DefaultsKeys) {
-        userDefaults.setValue(value, forKey: key.rawValue)
+        userDefaults.set(value, forKey: key.rawValue)
     }
 
     private enum ServerAttributeKey: String {

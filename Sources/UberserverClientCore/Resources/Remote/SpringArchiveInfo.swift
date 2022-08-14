@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import FoundationNetworking
 
 struct SpringArchiveInfo: Decodable {
     let category: String

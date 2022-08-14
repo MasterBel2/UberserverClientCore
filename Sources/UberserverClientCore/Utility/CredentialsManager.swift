@@ -40,6 +40,8 @@ class CredentialsManager {
     /// Retrieves all usernames associated with the server from the keychain.
     func usernames(forServerWithAddress serverAddress: String) throws -> [String] {
 
+        #if os(macOS)
+
         // Create a keychain query for the first username & password match for the server.
         let keychainQuery: [String: Any] = [
             kSecClass as String: kSecClassInternetPassword,
@@ -60,10 +62,17 @@ class CredentialsManager {
             throw KeychainError.unexpectedData
         }
         return result.compactMap({ $0[kSecAttrAccount as String] as? String })
+        #else
+
+        return []
+
+        #endif
     }
 
     /// Retrieves from the keychain the credentials associated with a given username and server address.
     func credentials(forServerWithAddress serverAddress: String, username: String) throws -> Credentials {
+
+        #if os(macOS)
 
         // Create a keychain query for the first username & password match for the server.
         let keychainQuery: [String: Any] = [
@@ -93,12 +102,21 @@ class CredentialsManager {
         }
 
         return Credentials(username: username, password: password)
+
+        #else
+
+        return Credentials(username: "", password: "")
+        
+        #endif
     }
 
     // MARK: - Writing credentials
 
     /// Writes the credentials associated with the server address to the keychain.
     func writeCredentials(_ credentials: Credentials, forServerWithAddress serverAddress: String) throws {
+
+        #if os(macOS)
+
         let account = credentials.username
         let password = Data(credentials.password.utf8)
 
@@ -113,5 +131,7 @@ class CredentialsManager {
         guard status == errSecSuccess else {
             throw KeychainError.unhandledError(status: status)
         }
+
+        #endif
     }
 }
