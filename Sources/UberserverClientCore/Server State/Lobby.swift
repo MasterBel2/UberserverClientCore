@@ -311,6 +311,8 @@ final public class TASServerLobby: Lobby, UpdateNotifier {
 }
 
 final public class UnknownLobby: Lobby {
+    public init() {}
+
     public func connection(_ connection: ThreadUnsafeConnection, didReceive data: Data) {
         guard let line = String(data: data, encoding: .utf8) else { return }
 

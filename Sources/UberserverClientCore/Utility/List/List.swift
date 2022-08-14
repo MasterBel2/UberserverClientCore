@@ -165,7 +165,7 @@ public final class List<ListItem>: ListProtocol, UpdateNotifier {
         parent?.sublists.append(self)
     }
 
-    convenience init<T: Comparable>(title: String, property: @escaping (ListItem) -> T, parent: List<ListItem>? = nil) {
+    public convenience init<T: Comparable>(title: String, property: @escaping (ListItem) -> T, parent: List<ListItem>? = nil) {
         var sorter = PropertySorter<ListItem, T>(property: property)
 
         self.init(title: title, sorter: sorter, parent: parent)
@@ -199,7 +199,7 @@ public final class List<ListItem>: ListProtocol, UpdateNotifier {
     // MARK: - Updating list content
 
     /// Removes all data from the list.
-    func clear() {
+    public func clear() {
 		applyActionToChainedObjects({ $0.listWillClear(self) })
         sublists.forEach({ $0.clear() })
         items = [:]
@@ -209,7 +209,7 @@ public final class List<ListItem>: ListProtocol, UpdateNotifier {
 
     /// Inserts the item into the list, with the ID as its key, locating it according to the
     /// selected sorting method.
-    func addItem(_ item: ListItem, with id: Int) {
+    public func addItem(_ item: ListItem, with id: Int) {
         items[id] = item
         for (index, idAtIndex) in sortedItemsByID.enumerated() {
             if sorter.relation(betweenItemIdentifiedBy: id, andItemIdentifiedBy: idAtIndex) == firstShouldAppearBeforeSecond {
@@ -227,7 +227,7 @@ public final class List<ListItem>: ListProtocol, UpdateNotifier {
     }
 
     /// A helper function that ensures an item is in the parent list before adding it to this list.
-    func addItemFromParent(id: Int) {
+    public func addItemFromParent(id: Int) {
         if let item = self.parent?.items[id] {
             self.addItem(item, with: id)
         }
@@ -241,7 +241,7 @@ public final class List<ListItem>: ListProtocol, UpdateNotifier {
     }
 
     /// Updates the list's sort order and notifies the delegate that the item has been updated.
-    func respondToUpdatesOnItem(identifiedBy id: Int) {
+    public func respondToUpdatesOnItem(identifiedBy id: Int) {
         guard let index = itemIndicies[id] else {
                 return
         }
@@ -278,7 +278,7 @@ public final class List<ListItem>: ListProtocol, UpdateNotifier {
     }
 
     /// Removes the item with the given ID from the list.
-    func removeItem(withID id: Int) {
+    public func removeItem(withID id: Int) {
         guard let index = itemIndicies[id] else {
             return
         }

@@ -27,7 +27,7 @@ public final class Channel {
      - parameter rootList: The parent list containing all users that may be added to this channel's userlist.
      - parameter sendAction: A block that should implement the functionality of sending the message.
      */
-    init(title: String, rootList: List<User>, sendAction: @escaping (Channel, String) -> ()) {
+    public init(title: String, rootList: List<User>, sendAction: @escaping (Channel, String) -> ()) {
         topic = title
         self.title = title
         self.sendAction = sendAction
@@ -38,7 +38,7 @@ public final class Channel {
 
     // MARK: - Messages
 
-    func receivedNewMessage(_ message: ChatMessage) {
+    public func receivedNewMessage(_ message: ChatMessage) {
         messageList.addItem(message, with: messageList.sortedItemCount)
     }
 

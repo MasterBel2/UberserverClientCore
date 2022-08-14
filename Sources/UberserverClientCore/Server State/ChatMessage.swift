@@ -11,7 +11,7 @@ import Foundation
 /// A chat message received from another client in a channel or private message.
 public final class ChatMessage {
 
-    init(time: Date, senderID: Int, senderName: String, content: String, isIRCStyle: Bool) {
+    public init(time: Date, senderID: Int, senderName: String, content: String, isIRCStyle: Bool) {
         self.time = time
         self.senderID = senderID
         self.content = content
