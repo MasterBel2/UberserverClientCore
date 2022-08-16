@@ -84,7 +84,9 @@ public final class UnauthenticatedSession {
                         completionHandler(.success(loginAcceptedCommand.username))
                     } else if let loginDeniedCommand = command as? SCLoginDeniedCommand {
                         completionHandler(.failure(LoginError(description: loginDeniedCommand.reason)))
-                        lobby.session = .unauthenticated(UnauthenticatedSession(preferencesController: lobby.connection.preferencesController))
+                        let session = UnauthenticatedSession(preferencesController: lobby.connection.preferencesController)
+                        session.lobby = MakeUnownedQueueLocked(lockedObject: lobby, queue: lobby.connection.queue)
+                        lobby.session = .unauthenticated(session)
                     } else {
                         //                    completionHandler(.failure(LoginError(description: "A server error occured.")))
                         return false
