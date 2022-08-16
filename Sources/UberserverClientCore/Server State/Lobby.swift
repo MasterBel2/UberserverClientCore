@@ -317,8 +317,14 @@ final public class UnknownLobby: Lobby {
         guard let line = String(data: data, encoding: .utf8) else { return }
 
         if let first = line.firstIndex(of: " "),
-           line[..<first] == TASServerCommand.title {
-            let command = TASServerCommand(payload: String(line.suffix(from: line.index(after: first))))
+           line[..<first] == TASServerCommand.title,
+           let command = TASServerCommand(payload: String(line.suffix(from: line.index(after: first)))) {
+            let lobby = TASServerLobby(queue: connection.queue, preferencesController: connection.preferencesController, connection: connection)
+            connection.lobby = lobby
+            command.execute(on: lobby)
+            return
         }
+
+        fatalError("Could not identify connected server!")
     }
 }
