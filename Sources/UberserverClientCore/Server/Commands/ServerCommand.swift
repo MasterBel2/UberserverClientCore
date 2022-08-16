@@ -21,19 +21,21 @@ struct CSLoginCommand: CSCommand {
         return nil
     }
 
-    init(username: String, password: String, compatabilityFlags: Set<CompatabilityFlag>) {
+    init(username: String, password: String, userID: UInt32, compatabilityFlags: Set<CompatabilityFlag>) {
         self.username = username
         self.password = password
+        self.userID = userID
         self.compatabilityFlags = compatabilityFlags
     }
 
 	let username: String
 	let password: String
+    let userID: UInt32
     let compatabilityFlags: Set<CompatabilityFlag>
 
 	var payload: String {
 		let encodedPassword = password.md5().base64Encoded() // TODO: Error checking
-        return "\(username) \(encodedPassword) 0 * BelieveAndRise Alpha\t0\t" + (compatabilityFlags.map { $0.rawValue }).joined(separator: " ")
+        return "\(username) \(encodedPassword) 0 * BelieveAndRise Alpha\t\(userID)\t" + (compatabilityFlags.map { $0.rawValue }).joined(separator: " ")
 	}
 }
 

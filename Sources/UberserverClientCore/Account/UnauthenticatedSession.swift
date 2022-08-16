@@ -67,6 +67,7 @@ public final class UnauthenticatedSession {
                 CSLoginCommand(
                     username: username,
                     password: password,
+                    userID: .random(in: UInt32.min...UInt32.max),
                     compatabilityFlags: [
                         .sayForBattleChatAndSayFrom,
                         .springEngineVersionAndNameInBattleOpened,
