@@ -21,8 +21,10 @@ public final class ResourceManager {
 
     public init(replayController: ReplayController, remoteResourceFetcher: RemoteResourceFetcher, archiveLoader: DescribesArchivesOnDisk) {
         self.remoteResourceFetcher = remoteResourceFetcher
-		self.archiveLoader = archiveLoader
         self.replayController = replayController
+
+        self.archiveLoader = archiveLoader
+        
     }
 
     // MARK: - Controlling resources
@@ -38,7 +40,7 @@ public final class ResourceManager {
         if let match = matches.first {
             completionHandler(.success(match))
         } else if shouldDownload {
-            remoteResourceFetcher.retrieve(.engine(name: version, platform: Platform.current)) { [weak self] successful in
+            remoteResourceFetcher.retrieve(.engine(name: version, platform: Platform.current), dataDirectory: archiveLoader.url) { [weak self] successful in
                 guard let self = self else { return }
                 if successful {
                     self.queue.sync {
@@ -56,7 +58,7 @@ public final class ResourceManager {
         if let match = matches.first {
             completionHandler(.success((match, false)))
         } else if shouldDownload {
-            remoteResourceFetcher.retrieve(.game(name: gameName)) { [weak self] successful in
+            remoteResourceFetcher.retrieve(.game(name: gameName), dataDirectory: archiveLoader.url) { [weak self] successful in
                 guard let self = self else { return }
                 if successful {
                     self.queue.sync {
@@ -78,7 +80,7 @@ public final class ResourceManager {
         if let match = matches.first {
             completionHandler(.success((match, match.singleArchiveChecksum == checksum, false)))
         } else if shouldDownload {
-            remoteResourceFetcher.retrieve(.map(name: mapName)) { [weak self] successful in
+            remoteResourceFetcher.retrieve(.map(name: mapName), dataDirectory: archiveLoader.url) { [weak self] successful in
                 guard let self = self else {
                     return
                 }

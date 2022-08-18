@@ -12,6 +12,8 @@ import SpringRTSStartScriptHandling
 public protocol DescribesArchivesOnDisk {
 	func reload()
 	func load()
+
+    var url: URL { get }
 	
 	var engines: [Engine] { get }
 	var modArchives: [ModArchive] { get }
@@ -23,11 +25,13 @@ public protocol DescribesArchivesOnDisk {
 public final class UnitsyncArchiveLoader: DescribesArchivesOnDisk {
 
     /// Whether the archives have been loaded.
-    private var archivesAreLoaded = false
+    private(set) var archivesAreLoaded = false
     private let system: System
+    public let url: URL
     
-    public init(system: System) {
+    public init(url: URL, system: System) {
         self.system = system
+        self.url = url
     }
 
 	public func reload() {
@@ -37,37 +41,31 @@ public final class UnitsyncArchiveLoader: DescribesArchivesOnDisk {
         archivesAreLoaded = false
         load()
     }
-	
+
 	/// Attempts to auto-detect spring versions in common directories by attempting to initialise unitsync on their contents.
-	private func autodetectSpringVersions() {
-		let fileManager = FileManager.default
-		let allApplicationURLs =
-			fileManager.urls(for: .allApplicationsDirectory, in: .localDomainMask)
-				.reduce([], { (result, url) -> [URL] in
-					let urls = try? fileManager.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: [])
-					return result + (urls ?? [])
-				})
-		for applicationURL in allApplicationURLs {
-			let config = UnitsyncConfig(appURL: applicationURL)
-			if let wrapper = UnitsyncWrapper(config: config) {
-				let version = wrapper.springVersion
-				engines.append(Engine(
-                    location: applicationURL,
-					version: version,
-					isReleaseVersion: wrapper.IsSpringReleaseVersion(),
+	public func autodetectSpringVersions() {    
+        let engineFolderCandidates = try! FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: [.isDirectoryKey])
+        for candidate in engineFolderCandidates {
+            if let wrapper = UnitsyncWrapper(springDirectory: candidate) {
+                let version = wrapper.springVersion
+                engines.append(Engine(
+                    location: candidate,
+                    version: version,
+                    isReleaseVersion: wrapper.IsSpringReleaseVersion(),
                     system: system,
                     unitsyncWrapper: QueueLocked(lockedObject: wrapper, queue: DispatchQueue(label: "Unitsync Wrapper", qos: .userInteractive))
-					)
-				)
-			}
-		}
-		print("\(Date()): Loaded Engines!")
+                ))
+            }
+        }
 	}
 
     /// Retrieves the lists of archives from Unitsync.
 	public func load() {
 		guard !archivesAreLoaded else { return }
-		autodetectSpringVersions()
+		
+        autodetectSpringVersions()
+        print("\(Date()): Loaded Engines!")
+
 		guard let unitsyncWrapper = mostRecentUnitsync else { return }
 		
         mapArchives = (0..<unitsyncWrapper.sync { $0.GetMapCount()}).map({ index in

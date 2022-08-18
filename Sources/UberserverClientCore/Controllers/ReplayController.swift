@@ -14,19 +14,20 @@ import CoreFoundation
 /// Handles loading of replays from the file system.
 public final class ReplayController {
 
-    public init(system: System) {
-        self.system = system
+    /**
+    - Parameter dataDirectory: Maps to the replays from a given data directory - e.g. for `~/.config/spring`, we'll look in  `~/.config/spring/demos`.
+     */
+    public init(dataDirectory: URL) {
+        demoDir = dataDirectory.appendingPathComponent("demos", isDirectory: true)
     }
+
+    let demoDir: URL
 
     public let replays = List<Replay>(title: "Replays", property: { $0.header.gameStartDate })
 
-    let system: System
     let fileManager =  FileManager.default
     let loadQueue = DispatchQueue(label: "com.believeandrise.replaycontroller.load", qos: .background, attributes: .concurrent)
     let updateQueue = DispatchQueue(label: "com.believeandrise.replaycontroller.update", qos: .userInteractive)
-    var demoDir: URL {
-        return system.configDirectory.appendingPathComponent("demos", isDirectory: true)
-    }
 
     /// Asynchronously loads replays from disk.
     public func loadReplays() throws {

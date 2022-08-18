@@ -17,6 +17,14 @@ import Foundation
  */
 final class UnitsyncWrapper {
 
+    static func url(for engineDirectory: URL) -> URL {
+        #if os(macOS)
+        return engineDirectory.appendingPathComponent("Contents").appendingPathComponent("MacOS").appendingPathComponent("libunitsync.dylib")
+        #elseif os(Linux)
+        return engineDirectory.appendingPathComponent("libunitsync.so")
+        #endif
+    }
+
     /// The handle to the c library.
     private let handle: DynamicLibraryHandle
 
@@ -35,8 +43,8 @@ final class UnitsyncWrapper {
 
     // MARK: - Lifecycle
 
-    init?(config: UnitsyncConfig) {
-        guard let handle = DynamicLibraryHandle(libraryPath: config.unitsyncPath) else {
+    init?(springDirectory: URL) {
+        guard let handle = DynamicLibraryHandle(libraryPath: Self.url(for: springDirectory).path) else {
             return nil
         }
 

@@ -9,7 +9,7 @@
 import Foundation
 import FoundationNetworking
 
-protocol DownloaderDelegate: AnyObject {
+public protocol DownloaderDelegate: AnyObject {
     func downloaderDidBeginDownload(_ downloader: Downloader)
     func downloader(_ downloader: Downloader, downloadHasProgressedTo progress: Int, outOf total: Int)
     func downloader(_ downloader: Downloader, downloadDidFailWithError error: Error?)

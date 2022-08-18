@@ -28,24 +28,24 @@ final class SpringArchiveDownloadTask: NSObject, Downloader, URLSessionDelegate,
     let archiveInfo: SpringArchiveInfo
     var urlDownloadTask: URLSessionDownloadTask?
 
-    init(archiveInfo: SpringArchiveInfo, rootDirectory: URL) {
+    init(archiveInfo: SpringArchiveInfo, targetDirectory: URL) {
         self.archiveInfo = archiveInfo
-        self.rootDirectory = rootDirectory
+        self.targetDirectory = targetDirectory
     }
 
     // MARK: - Directories
 
-    private let rootDirectory: URL
+    private let targetDirectory: URL
 
     private var tempDirectory: URL {
-        return rootDirectory.appendingPathComponent("temp", isDirectory: true)
+        return targetDirectory.appendingPathComponent("temp", isDirectory: true)
     }
 
     var tempFileURL: URL {
         return tempDirectory.appendingPathComponent(archiveInfo.filename)
     }
     var targetURL: URL {
-        return rootDirectory.appendingPathComponent(archiveInfo.filename)
+        return targetDirectory.appendingPathComponent(archiveInfo.filename)
     }
 
     // MARK: - Getting download progress information

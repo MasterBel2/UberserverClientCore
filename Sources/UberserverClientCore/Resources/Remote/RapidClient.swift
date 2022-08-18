@@ -12,42 +12,48 @@ import SWCompression
 /**
  A downloader that retrieves resources from Rapid.
 */
-final class RapidClient: Downloader, DownloaderDelegate {
+final public class RapidClient: Downloader, DownloaderDelegate {
 
     // MARK: - Dependencies
 
 	/// The rapid client's delegate.
-    weak var delegate: DownloaderDelegate?
+    public weak var delegate: DownloaderDelegate?
 
     // MARK: - Local Directories
 
+    let springDataDirectory: URL
+
+    public init(dataDirectory: URL) {
+        self.springDataDirectory = dataDirectory
+    }
+
 	/// The local root directory where downloads should be stored.
-    private static var cacheDirectory: URL {
+    private var cacheDirectory: URL {
         return springDataDirectory
     }
 
 	/// The local directory in which rapid repository indexes are stored.
-    private static var repositoriesDirectory: URL {
+    private var repositoriesDirectory: URL {
         cacheDirectory.appendingPathComponent("rapid", isDirectory: true)
     }
 	
 	/// The full local URL for the repository's versions.gz file.
-    private static func versionsGZDirectory(forRepoNamed repoName: String) -> URL {
+    private func versionsGZDirectory(forRepoNamed repoName: String) -> URL {
         return repositoriesDirectory.appendingPathComponent(repoName).appendingPathComponent("versions").appendingPathExtension("gz")
     }
 
 	/// The local directory in which packate files are stored.
-    private static var packageDirectory: URL {
+    private var packageDirectory: URL {
         return cacheDirectory.appendingPathComponent("packages", isDirectory: true)
     }
 
 	/// The full local URL for the package.
-    private static func packageLocalURL(_ packageName: String) -> URL {
+    private func packageLocalURL(_ packageName: String) -> URL {
         return packageDirectory.appendingPathComponent(packageName).appendingPathExtension("sdp")
     }
 
 	/// The local directory in which pool files are stored.
-    private static var poolDirectory: URL {
+    private var poolDirectory: URL {
         return cacheDirectory.appendingPathComponent("pool", isDirectory: true)
     }
 
@@ -70,15 +76,15 @@ final class RapidClient: Downloader, DownloaderDelegate {
 
     // MARK: - Downloading a resource
 
-    private(set) var paused = false
+    public private(set) var paused = false
 
-    func pauseDownload() {
+    public func pauseDownload() {
         paused = true
         poolDownloader?.pauseDownload()
         packageDownloader?.pauseDownload()
     }
 
-    func resumeDownload() {
+    public func resumeDownload() {
         paused = false
         packageDownloader?.resumeDownload()
         poolDownloader?.resumeDownload()
@@ -89,7 +95,7 @@ final class RapidClient: Downloader, DownloaderDelegate {
     private var poolDownloader: ArrayDownloader?
 
 	/// Attempts to download a resource with the given name from Rapid.
-    func download(_ name: String) {
+    public func download(_ name: String) {
 		downloadName = name
 		delegate?.downloaderDidBeginDownload(self)
         do {
@@ -101,8 +107,8 @@ final class RapidClient: Downloader, DownloaderDelegate {
 
 	/// Searches local rapid cache for the resource, and downloads a .sdp file when a match is found.
     private func downloadPackages(_ name: String) throws {
-        let repositoryIndexes = try FileManager.default.contentsOfDirectory(atPath: RapidClient.repositoriesDirectory.path)
-        let indexCaches = repositoryIndexes.map(RapidClient.versionsGZDirectory(forRepoNamed:))
+        let repositoryIndexes = try FileManager.default.contentsOfDirectory(atPath: repositoriesDirectory.path)
+        let indexCaches = repositoryIndexes.map(versionsGZDirectory(forRepoNamed:))
         let packages = indexCaches.compactMap({ sdpArchiveName(for: name, at: $0) })
 		guard packages.count > 0 else {
 			downloader(self, downloadDidFailWithError: nil)
@@ -110,7 +116,7 @@ final class RapidClient: Downloader, DownloaderDelegate {
 		}
         let packageDownloader = ArrayDownloader(
             resourceNames: packages,
-            rootDirectory: RapidClient.packageDirectory,
+            rootDirectory: packageDirectory,
             remoteURL: RapidClient.packagesRemote,
             pathExtension: "sdp",
             successCondition: .one
@@ -144,7 +150,7 @@ final class RapidClient: Downloader, DownloaderDelegate {
         })
         let poolDownloader = ArrayDownloader(
             resourceNames: resourceNames,
-            rootDirectory: RapidClient.poolDirectory,
+            rootDirectory: poolDirectory,
             remoteURL: RapidClient.poolRemote,
             pathExtension: "gz",
             successCondition: .all
@@ -160,23 +166,23 @@ final class RapidClient: Downloader, DownloaderDelegate {
 
     // MARK: - DownloaderDelegate
 
-    func downloaderDidBeginDownload(_ downloader: Downloader) {
+    public func downloaderDidBeginDownload(_ downloader: Downloader) {
         if downloader === packageDownloader {
             delegate?.downloaderDidBeginDownload(self)
         }
     }
 
-    func downloader(_ downloader: Downloader, downloadHasProgressedTo progress: Int, outOf total: Int) {
+    public func downloader(_ downloader: Downloader, downloadHasProgressedTo progress: Int, outOf total: Int) {
         if downloader === poolDownloader {
             delegate?.downloader(self, downloadHasProgressedTo: progress, outOf: total)
         }
     }
 
-    func downloader(_ downloader: Downloader, downloadDidFailWithError error: Error?) {
+    public func downloader(_ downloader: Downloader, downloadDidFailWithError error: Error?) {
         delegate?.downloader(self, downloadDidFailWithError: error)
     }
 
-    func downloader(_ downloader: Downloader, successfullyCompletedDownloadTo tempUrls: [URL]) {
+    public func downloader(_ downloader: Downloader, successfullyCompletedDownloadTo tempUrls: [URL]) {
         if downloader === poolDownloader {
             delegate?.downloader(self, successfullyCompletedDownloadTo: tempUrls)
         } else {
@@ -195,12 +201,12 @@ final class RapidClient: Downloader, DownloaderDelegate {
 
     // MARK: - Downloader
 
-    var downloadName: String = ""
-    var targetURL: URL {
-        return RapidClient.poolDirectory
+    public private(set) var downloadName: String = ""
+    public var targetURL: URL {
+        return poolDirectory
     }
 
-    func finalizeDownload(_ successful: Bool) {
+    public func finalizeDownload(_ successful: Bool) {
         if successful {
             self.poolDownloader?.finalizeDownload(successful)
             self.poolDownloader = nil
@@ -213,7 +219,7 @@ final class RapidClient: Downloader, DownloaderDelegate {
 
     // MARK: - Analysing data
 
-    enum PoolFileDecodeError: Error {
+    public enum PoolFileDecodeError: Error {
         case crc32
         case fileSize
         case fileName

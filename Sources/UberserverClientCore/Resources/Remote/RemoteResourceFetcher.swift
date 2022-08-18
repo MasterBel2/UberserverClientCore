@@ -9,10 +9,6 @@
 import Foundation
 import FoundationNetworking
 
-var springDataDirectory: URL {
-    return NSHomeDirectoryURL().appendingPathComponent(".spring")
-}
-
 /// A set of functions called by a `RemoteResourceFetcher` to allow updates in response to a change in its state.
 public protocol ReceivesRemoteResourceFetcherUpdates {
     /// Indicates that a download task is about to commence.
@@ -55,16 +51,16 @@ public final class RemoteResourceFetcher: DownloaderDelegate, UpdateNotifier {
 
     /// Attempts to retrieve a resource from either Rapid or the SpringFiles API. The completion handler calls true for successful
     /// download, and false for a faliure.
-    public func retrieve(_ resource: Resource, completionHandler: @escaping (Bool) -> Void) {
+    public func retrieve(_ resource: Resource, dataDirectory: URL, completionHandler: @escaping (Bool) -> Void) {
 
         applyActionToChainedObjects({ $0.remoteResourceFetcher(self, willBeginDownloadOf: resource) })
 
         self.completionHandler = completionHandler
         switch resource {
         case .engine, .map:
-            retrieveSpringFilesArchivedResource(resource)
+            retrieveSpringFilesArchivedResource(resource, dataDirectory: dataDirectory)
         case .game(let name):
-            let rapidClient = RapidClient()
+            let rapidClient = RapidClient(dataDirectory: dataDirectory)
             rapidClient.delegate = self
             rapidClient.download(name)
             downloaders.append(rapidClient)
@@ -72,7 +68,7 @@ public final class RemoteResourceFetcher: DownloaderDelegate, UpdateNotifier {
     }
 	
 	/// Downloads a single, complete resource from the SpringFiles API.
-    private func retrieveSpringFilesArchivedResource(_ resource: Resource) {
+    private func retrieveSpringFilesArchivedResource(_ resource: Resource, dataDirectory: URL) {
         searchSpringFiles(for: resource, completionHandler: { results in
             guard let target = results?.first else {
                 return
@@ -82,7 +78,7 @@ public final class RemoteResourceFetcher: DownloaderDelegate, UpdateNotifier {
             #warning("Dependencies may not have been downloaded")
 
             // 2. For each mirror, one at a time until successful, attempt to download the file
-            let downloader = SpringArchiveDownloadTask(archiveInfo: target, rootDirectory: springDataDirectory.appendingPathComponent(resource.directory, isDirectory: true))
+            let downloader = SpringArchiveDownloadTask(archiveInfo: target, targetDirectory: dataDirectory.appendingPathComponent(resource.directory, isDirectory: true))
 
             downloader.delegate = self
             downloader.attemptFileDownloads()
@@ -121,20 +117,20 @@ public final class RemoteResourceFetcher: DownloaderDelegate, UpdateNotifier {
 
     // MARK: - DownloaderDelegate
 
-    func downloaderDidBeginDownload(_ downloader: Downloader) {
+    public func downloaderDidBeginDownload(_ downloader: Downloader) {
         downloadController.downloaderDidBeginDownload(downloader)
     }
 
-    func downloader(_ downloader: Downloader, downloadHasProgressedTo progress: Int, outOf total: Int) {
+    public func downloader(_ downloader: Downloader, downloadHasProgressedTo progress: Int, outOf total: Int) {
         downloadController.downloader(downloader, downloadHasProgressedTo: progress, outOf: total)
     }
 
-    func downloader(_ downloader: Downloader, downloadDidFailWithError error: Error?) {
+    public func downloader(_ downloader: Downloader, downloadDidFailWithError error: Error?) {
         print("Download failed!")
 		downloader.finalizeDownload(false)
 		if downloader is RapidClient {
 			#warning("This makes assumptions about the use of RapidClient to only download games. A more robust system should be put in place for determining the resource to be downloaded.")
-			retrieveSpringFilesArchivedResource(.game(name: downloader.downloadName))
+			retrieveSpringFilesArchivedResource(.game(name: downloader.downloadName), dataDirectory: downloader.targetURL.deletingLastPathComponent())
 		} else {
 			completionHandler?(false)
 		}
@@ -142,7 +138,7 @@ public final class RemoteResourceFetcher: DownloaderDelegate, UpdateNotifier {
 		downloadController.downloader(downloader, downloadDidFailWithError: error)
     }
 
-    func downloader(_ downloader: Downloader, successfullyCompletedDownloadTo tempUrls: [URL]) {
+    public func downloader(_ downloader: Downloader, successfullyCompletedDownloadTo tempUrls: [URL]) {
         print("Download completed!")
 		downloader.finalizeDownload(true)
         completionHandler?(true)

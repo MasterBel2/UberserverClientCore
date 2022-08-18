@@ -44,7 +44,7 @@ public final class DownloadController: DownloaderDelegate, DownloadItemViewDeleg
 
 	// MARK: - DownloaderDelegate
 
-    func downloaderDidBeginDownload(_ downloader: Downloader) {
+    public func downloaderDidBeginDownload(_ downloader: Downloader) {
         let downloadInfo = DownloadInfo(
             name: downloader.downloadName,
             location: downloader.targetURL
@@ -55,7 +55,7 @@ public final class DownloadController: DownloaderDelegate, DownloadItemViewDeleg
         nextID += 1
     }
 
-    func downloader(_ downloader: Downloader, downloadHasProgressedTo progress: Int, outOf total: Int) {
+    public func downloader(_ downloader: Downloader, downloadHasProgressedTo progress: Int, outOf total: Int) {
         guard let index = downloaders.enumerated().first(where: { $0.element === downloader })?.offset,
 			let downloadItem = downloadList.items[index] else {
             return
@@ -70,7 +70,7 @@ public final class DownloadController: DownloaderDelegate, DownloadItemViewDeleg
         downloadList.respondToUpdatesOnItem(identifiedBy: index)
     }
 
-    func downloader(_ downloader: Downloader, downloadDidFailWithError error: Error?) {
+    public func downloader(_ downloader: Downloader, downloadDidFailWithError error: Error?) {
         guard let index = downloaders.enumerated().first(where: { $0.element === downloader })?.offset,
 		let downloadItem = downloadList.items[index] else {
             return
@@ -79,7 +79,7 @@ public final class DownloadController: DownloaderDelegate, DownloadItemViewDeleg
         downloadList.respondToUpdatesOnItem(identifiedBy: index)
     }
 
-    func downloader(_ downloader: Downloader, successfullyCompletedDownloadTo tempUrls: [URL]) {
+    public func downloader(_ downloader: Downloader, successfullyCompletedDownloadTo tempUrls: [URL]) {
         guard let index = downloaders.enumerated().first(where: { $0.element === downloader })?.offset,
 			let downloadItem = downloadList.items[index] else {
             return

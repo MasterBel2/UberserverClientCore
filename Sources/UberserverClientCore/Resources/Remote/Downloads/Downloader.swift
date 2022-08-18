@@ -8,7 +8,7 @@
 
 import Foundation
 
-protocol Downloader: AnyObject {
+public protocol Downloader: AnyObject {
     var downloadName: String { get }
     var targetURL: URL { get }
     /// Cleans up all temporary directories, and if successful, moves the downloaded files to their intended destination.
