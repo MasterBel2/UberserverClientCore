@@ -15,8 +15,22 @@ final class UnitsyncMapArchive: UnitsyncArchive, MapArchive {
 
     private(set) lazy var heightRange: ClosedRange<Float> = { unitsyncWrapper.sync { $0.GetMapMinHeight(name.utf8CStringArray) }...unitsyncWrapper.sync { $0.GetMapMaxHeight(name.utf8CStringArray) } }()
 
-    private(set) lazy var width: Int = { Int(unitsyncWrapper.sync { $0.GetMapWidth(archiveIndex) }) }()
-    private(set) lazy var height: Int = { Int(unitsyncWrapper.sync { $0.GetMapHeight(archiveIndex) }) }()
+	/// A value of 0 indicates a failure to load the value - which should never happen.
+    private(set) lazy var width: Int = {
+		guard let value = info.first(where: { $0.key == "width" })?.value,
+			  case let .integer(width) = value else {
+			return 0
+		}
+		return width
+	}()
+	/// A value of 0 indicates a failure to load the value - which should never happen.
+    private(set) lazy var height: Int = {
+		guard let value = info.first(where: { $0.key == "height" })?.value,
+			  case let .integer(width) = value else {
+			return 0
+		}
+		return width
+	}()
 	private(set) lazy var grassMap: InfoMap = { InfoMap<UInt8>(name: .grass, loadSize: loadInfoMapSize(infoMapName:), loadPixels: loadInfoMapPixels(infoMapName:loadDestination:)) }()
 	private(set) lazy var heightMap: InfoMap = { InfoMap<UInt16>(name: .height, loadSize: loadInfoMapSize(infoMapName:), loadPixels: loadInfoMapPixels(infoMapName:loadDestination:)) }()
 	private(set) lazy var metalMap: InfoMap = { InfoMap<UInt8>(name: .metal, loadSize: loadInfoMapSize(infoMapName:), loadPixels: loadInfoMapPixels(infoMapName:loadDestination:)) }()

@@ -228,21 +228,21 @@ final class UnitsyncWrapper {
 
         // Deprecated
 
-        GetMapDescription = try handle.unsafeResolve("GetMapDescription")
-        GetMapAuthor = try handle.unsafeResolve("GetMapAuthor")
-        GetMapWidth = try handle.unsafeResolve("GetMapWidth")
-        GetMapHeight = try handle.unsafeResolve("GetMapHeight")
-        GetMapTidalStrength = try handle.unsafeResolve("GetMapTidalStrength")
-        GetMapWindMin = try handle.unsafeResolve("GetMapWindMin")
-        GetMapWindMax = try handle.unsafeResolve("GetMapWindMax")
-        GetMapGravity = try handle.unsafeResolve("GetMapGravity")
-        GetMapResourceCount = try handle.unsafeResolve("GetMapResourceCount")
-        GetMapResourceName = try handle.unsafeResolve("GetMapResourceName")
-        GetMapResourceMax = try handle.unsafeResolve("GetMapResourceMax")
-        GetMapResourceExtractorRadius = try handle.unsafeResolve("GetMapResourceExtractorRadius")
-        GetMapPosCount = try handle.unsafeResolve("GetMapPosCount")
-        GetMapPosX = try handle.unsafeResolve("GetMapPosX")
-        GetMapPosZ = try handle.unsafeResolve("GetMapPosZ")
+        // GetMapDescription = try handle.unsafeResolve("GetMapDescription")
+        // GetMapAuthor = try handle.unsafeResolve("GetMapAuthor")
+        // GetMapWidth = try handle.unsafeResolve("GetMapWidth")
+        // GetMapHeight = try handle.unsafeResolve("GetMapHeight")
+        // GetMapTidalStrength = try handle.unsafeResolve("GetMapTidalStrength")
+        // GetMapWindMin = try handle.unsafeResolve("GetMapWindMin")
+        // GetMapWindMax = try handle.unsafeResolve("GetMapWindMax")
+        // GetMapGravity = try handle.unsafeResolve("GetMapGravity")
+        // GetMapResourceCount = try handle.unsafeResolve("GetMapResourceCount")
+        // GetMapResourceName = try handle.unsafeResolve("GetMapResourceName")
+        // GetMapResourceMax = try handle.unsafeResolve("GetMapResourceMax")
+        // GetMapResourceExtractorRadius = try handle.unsafeResolve("GetMapResourceExtractorRadius")
+        // GetMapPosCount = try handle.unsafeResolve("GetMapPosCount")
+        // GetMapPosX = try handle.unsafeResolve("GetMapPosX")
+        // GetMapPosZ = try handle.unsafeResolve("GetMapPosZ")
 
         _ = Init(false, 0)
     }
@@ -1771,19 +1771,19 @@ final class UnitsyncWrapper {
 
     // (Not all deprecated functions are included here.)
 
-    let GetMapDescription: @convention(c) (CInt) -> CString
-    let GetMapAuthor: @convention(c) (CInt) -> CString
-    let GetMapWidth: @convention(c) (CInt) -> CInt
-    let GetMapHeight: @convention(c) (CInt) -> CInt
-    let GetMapTidalStrength: @convention(c) (CInt) -> CInt
-    let GetMapWindMin: @convention(c) (CInt) -> CInt
-    let GetMapWindMax: @convention(c) (CInt) -> CInt
-    let GetMapGravity: @convention(c) (CInt) -> CInt
-    let GetMapResourceCount: @convention(c) (CInt) -> CInt
-    let GetMapResourceName: @convention(c) (CInt,CInt) -> CString
-    let GetMapResourceMax: @convention(c) (CInt,CInt) -> CFloat
-    let GetMapResourceExtractorRadius: @convention(c) (CInt,CInt) -> CInt
-    let GetMapPosCount: @convention(c) (CInt) -> CInt
-    let GetMapPosX: @convention(c) (CInt,CInt) -> CFloat
-    let GetMapPosZ: @convention(c) (CInt,CInt) -> CFloat
+    // let GetMapDescription: @convention(c) (CInt) -> CString
+    // let GetMapAuthor: @convention(c) (CInt) -> CString
+    // let GetMapWidth: @convention(c) (CInt) -> CInt
+    // let GetMapHeight: @convention(c) (CInt) -> CInt
+    // let GetMapTidalStrength: @convention(c) (CInt) -> CInt
+    // let GetMapWindMin: @convention(c) (CInt) -> CInt
+    // let GetMapWindMax: @convention(c) (CInt) -> CInt
+    // let GetMapGravity: @convention(c) (CInt) -> CInt
+    // let GetMapResourceCount: @convention(c) (CInt) -> CInt
+    // let GetMapResourceName: @convention(c) (CInt,CInt) -> CString
+    // let GetMapResourceMax: @convention(c) (CInt,CInt) -> CFloat
+    // let GetMapResourceExtractorRadius: @convention(c) (CInt,CInt) -> CInt
+    // let GetMapPosCount: @convention(c) (CInt) -> CInt
+    // let GetMapPosX: @convention(c) (CInt,CInt) -> CFloat
+    // let GetMapPosZ: @convention(c) (CInt,CInt) -> CFloat
 }
