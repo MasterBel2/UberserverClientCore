@@ -65,6 +65,7 @@ public final class MacOS: System {
     public func launchApplication(_ application: String, with arguments: [String]?, completionHandler: (() -> Void)?) {
         guard let path = NSWorkspace.shared.fullPath(forApplication: application) else {
             debugPrint("Non-Fatal Error: could not find \(application)")
+            completionHandler?()
             return
         }
         launchApplication(at: path, with: arguments, completionHandler: completionHandler)

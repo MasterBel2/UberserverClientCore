@@ -9,6 +9,10 @@
 import Foundation
 import SpringRTSStartScriptHandling
 
+#if os(macOS)
+import Cocoa
+#endif
+
 public protocol DescribesArchivesOnDisk {
 	func reload()
 	func load()
@@ -50,7 +54,7 @@ public final class UnitsyncArchiveLoader: DescribesArchivesOnDisk {
             do {
                 let wrapper = try UnitsyncWrapper(springDirectory: candidate)
                 let version = wrapper.springVersion
-                engines.append(Engine(
+                engines.append(try Engine(
                     location: candidate,
                     version: version,
                     isReleaseVersion: wrapper.IsSpringReleaseVersion(),
@@ -108,12 +112,22 @@ public final class UnitsyncArchiveLoader: DescribesArchivesOnDisk {
 public struct Engine {
     private let system: System
     
-    init(location: URL, version: String, isReleaseVersion: Bool, system: System, unitsyncWrapper: QueueLocked<UnitsyncWrapper>) {
+    init(location: URL, version: String, isReleaseVersion: Bool, system: System, unitsyncWrapper: QueueLocked<UnitsyncWrapper>) throws {
         self.system = system
         self.version = version
         self.isReleaseVersion = isReleaseVersion
         self.location = location
         self.unitsyncWrapper = unitsyncWrapper
+
+        #if os(macOS)
+
+        let executableURL = Bundle(url: location).throwIfNil().executableURL
+        
+        #elseif os(Linux)
+        
+        self.executableURL = location.appendingPathComponent("spring", isDirectory: false)
+        
+        #endif
     }
     
 	public let version: String
@@ -129,6 +143,8 @@ public struct Engine {
         return String(cString: unitsyncWrapper.sync(block: { $0.GetSpringVersion() }))
 	}
 
+    public let executableURL: URL
+
 	public let location: URL
 	let unitsyncWrapper: QueueLocked<UnitsyncWrapper>
     
@@ -139,13 +155,14 @@ public struct Engine {
     public func launchGame(script: LaunchScriptConvertible, doRecordDemo: Bool, completionHandler: (() -> Void)?) throws {
         do {
             try script.launchScript(shouldRecordDemo: doRecordDemo).write(toFile: scriptFileURL.path, atomically: true, encoding: .utf8)
-            system.launchApplication(at: location.path, with: [scriptFileURL.path], completionHandler: {
+            system.launchApplication(at: executableURL.path, with: [scriptFileURL.path], completionHandler: {
                 completionHandler?()
 //                if doRecordDemo {
 //                    try? self?.replayController.loadReplays()
 //                }
             })
         } catch {
+            print("Failed to start engine! \(error)")
             completionHandler?()
         }
     }
