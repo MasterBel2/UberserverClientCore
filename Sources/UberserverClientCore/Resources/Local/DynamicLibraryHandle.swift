@@ -25,8 +25,8 @@ final class DynamicLibraryHandle {
     }
 
     /// Resolves a function without checking for failure.
-    func unsafeResolve<T>(_ functionName: String) -> T {
-        return resolve(functionName)!
+    func unsafeResolve<T>(_ functionName: String, line: Int = #line, file: StaticString = #file) throws -> T {
+        return try resolve(functionName).throwIfNil(line: line, file: file)
     }
     
     /// Resolves a function from the library, returning nil on failure.

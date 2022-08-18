@@ -43,10 +43,12 @@ public final class UnitsyncArchiveLoader: DescribesArchivesOnDisk {
     }
 
 	/// Attempts to auto-detect spring versions in common directories by attempting to initialise unitsync on their contents.
-	public func autodetectSpringVersions() {    
-        let engineFolderCandidates = try! FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: [.isDirectoryKey])
+	public func autodetectSpringVersions() {
+        // // this potentially breaks, for example, searching in the Applications folder on MacOS, so some nice alternative to this needs to be established.
+        let engineFolderCandidates = try! FileManager.default.contentsOfDirectory(at: url.appendingPathComponent("engine"), includingPropertiesForKeys: [.isDirectoryKey])
         for candidate in engineFolderCandidates {
-            if let wrapper = UnitsyncWrapper(springDirectory: candidate) {
+            do {
+                let wrapper = try UnitsyncWrapper(springDirectory: candidate)
                 let version = wrapper.springVersion
                 engines.append(Engine(
                     location: candidate,
@@ -55,6 +57,9 @@ public final class UnitsyncArchiveLoader: DescribesArchivesOnDisk {
                     system: system,
                     unitsyncWrapper: QueueLocked(lockedObject: wrapper, queue: DispatchQueue(label: "Unitsync Wrapper", qos: .userInteractive))
                 ))
+                print("Loaded engine candidate: \(candidate)")
+            } catch {
+                print("Failed to load candidate engine at: \(candidate): \(error)")
             }
         }
 	}
