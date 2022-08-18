@@ -126,12 +126,7 @@ public struct Engine {
 	/// Returns a string that may be used to determine if it will sync with another engine version. For a release version, this is the major
 	/// and minor versions of the engine. For other versions, it is the entire version string.
 	public var syncVersion: String {
-		if !isReleaseVersion {
-			return version
-		}
-		let versionComponents = version.components(separatedBy: ".") + ["0"]
-
-		return versionComponents[0...1].joined(separator: ".")
+        return String(cString: unitsyncWrapper.sync(block: { $0.GetSpringVersion() }))
 	}
 
 	public let location: URL

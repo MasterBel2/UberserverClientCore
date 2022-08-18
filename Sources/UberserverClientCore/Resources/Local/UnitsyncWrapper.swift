@@ -38,7 +38,11 @@ final class UnitsyncWrapper {
 
     /// The version of spring Unitsync was compiled for, combined with the version patchset.
     var springVersion: String {
-        return String(cString: GetSpringVersion()) + "." + String(cString: GetSpringVersionPatchset())
+        if IsSpringReleaseVersion() {
+            return String(cString: GetSpringVersion()) + "." + String(cString: GetSpringVersionPatchset())
+        } else {
+            return String(cString: GetSpringVersion())
+        } 
     }
 
     // MARK: - Lifecycle
