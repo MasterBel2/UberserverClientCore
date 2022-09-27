@@ -11,7 +11,7 @@ import Foundation
 public final class ResourceManager {
 
 	/// Provides access to engine-related archives, such as mods, etc.
-	public let archiveLoader: DescribesArchivesOnDisk
+	public let archiveLoader: UnitsyncArchiveLoader
     public let replayController: ReplayController
     private let remoteResourceFetcher: RemoteResourceFetcher
 
@@ -19,7 +19,7 @@ public final class ResourceManager {
     
     // MARK: - Creating a Resource Manager
 
-    public init(replayController: ReplayController, remoteResourceFetcher: RemoteResourceFetcher, archiveLoader: DescribesArchivesOnDisk) {
+    public init(replayController: ReplayController, remoteResourceFetcher: RemoteResourceFetcher, archiveLoader: UnitsyncArchiveLoader) {
         self.remoteResourceFetcher = remoteResourceFetcher
         self.replayController = replayController
 
@@ -52,9 +52,9 @@ public final class ResourceManager {
         }
     }
     
-    public typealias GameLoadResult = Result<(ModArchive, Bool), Error>
+    public typealias GameLoadResult = Result<(QueueLocked<UnitsyncModArchive>, Bool), Error>
     public func loadGame(named gameName: String, preferredEngineVersion: Bool, shouldDownload: Bool, completionHandler: @escaping (GameLoadResult) -> Void) {
-        let matches = archiveLoader.modArchives.filter({ $0.name == gameName })
+        let matches = archiveLoader.modArchives.filter({ $0.sync { $0.name } == gameName })
         if let match = matches.first {
             completionHandler(.success((match, false)))
         } else if shouldDownload {
@@ -74,18 +74,18 @@ public final class ResourceManager {
         
     }
     
-    public typealias MapLoadResult = Result<(mapArchive: MapArchive, checksumMatch: Bool, usedPreferredEngineVersion: Bool), Error>
+    public typealias MapLoadResult = Result<(mapArchive: QueueLocked<UnitsyncMapArchive>, checksumMatch: Bool, usedPreferredEngineVersion: Bool), Error>
     public func loadMap(named mapName: String, checksum: Int32, preferredVersion: String, shouldDownload: Bool, completionHandler: @escaping (MapLoadResult) -> Void) {
-        let matches = archiveLoader.mapArchives.filter({ $0.name == mapName })
+        let matches = archiveLoader.mapArchives.filter({ $0.sync { $0.name } == mapName })
         if let match = matches.first {
-            completionHandler(.success((match, match.singleArchiveChecksum == checksum, false)))
+            completionHandler(.success((match, match.sync { $0.singleArchiveChecksum } == checksum, false)))
         } else if shouldDownload {
             remoteResourceFetcher.retrieve(.map(name: mapName), dataDirectory: archiveLoader.url) { [weak self] successful in
                 guard let self = self else {
                     return
                 }
                 if successful {
-                    self.queue.sync {
+                    self.queue.async {
                         self.archiveLoader.reload()
                         self.loadMap(named: mapName, checksum: checksum, preferredVersion: preferredVersion, shouldDownload: false, completionHandler: completionHandler)
                     }
@@ -103,6 +103,6 @@ public final class ResourceManager {
 
     /// Whether unitsync can find a game with the matching name. The name string should include the game's version.
     public func hasGame(name: String) -> Bool {
-        return archiveLoader.modArchives.contains(where: { $0.name == name })
+        return archiveLoader.modArchives.contains(where: { $0.sync { $0.name } == name })
     }
 }

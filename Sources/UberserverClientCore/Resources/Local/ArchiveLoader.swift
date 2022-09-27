@@ -13,20 +13,20 @@ import SpringRTSStartScriptHandling
 import Cocoa
 #endif
 
-public protocol DescribesArchivesOnDisk {
-	func reload()
-	func load()
+// public protocol DescribesArchivesOnDisk {
+// 	func reload()
+// 	func load()
 
-    var url: URL { get }
+//     var url: URL { get }
 	
-	var engines: [Engine] { get }
-	var modArchives: [ModArchive] { get }
-	var mapArchives: [MapArchive] { get }
-	var skirmishAIArchives: [SkirmishAIArchive] { get }
-}
+// 	var engines: [Engine] { get }
+// 	var modArchives: [QueueLocked<ModArchive>] { get }
+// 	var mapArchives: [QueueLocked<MapArchive>] { get }
+// 	var skirmishAIArchives: [QueueLocked<SkirmishAIArchive>] { get }
+// }
 
 /// A loader for Unitsync archives.
-public final class UnitsyncArchiveLoader: DescribesArchivesOnDisk {
+public final class UnitsyncArchiveLoader {
 
     /// Whether the archives have been loaded.
     private(set) var archivesAreLoaded = false
@@ -76,33 +76,32 @@ public final class UnitsyncArchiveLoader: DescribesArchivesOnDisk {
         print("\(Date()): Loaded Engines!")
 
 		guard let unitsyncWrapper = mostRecentUnitsync else { return }
+
+        let minimapLoadQueue = DispatchQueue(label: "MinimapLoadQueue")
 		
         mapArchives = (0..<unitsyncWrapper.sync { $0.GetMapCount()}).map({ index in
-            return UnitsyncMapArchive(
-                archiveIndex: index,
-                archiveName: String(cString: unitsyncWrapper.sync { $0.GetMapName(index) }),
-                unitsyncWrapper: unitsyncWrapper
+            return UnitsyncMapArchive.onSameQueue(
+                as: unitsyncWrapper,
+                args: UnitsyncMapArchive.Args(
+                    name: String(cString: unitsyncWrapper.sync { $0.GetMapName(index) }), 
+                    index: index, 
+                    minimapLoadQueue: minimapLoadQueue
+                )
             )
         })
         modArchives = (0..<unitsyncWrapper.sync { $0.GetPrimaryModCount() }).map({ index in
-            return UnitsyncModArchive(
-                archiveIndex: index,
-                unitsyncWrapper: unitsyncWrapper
-            )
+            return UnitsyncModArchive.onSameQueue(as: unitsyncWrapper, args: index)
         })
         skirmishAIArchives = (0..<unitsyncWrapper.sync { $0.GetSkirmishAICount() }).map({ index in
-            return UnitsyncSkirmishAIArchive(
-                archiveIndex: index,
-                unitsyncWrapper: unitsyncWrapper
-            )
+            return UnitsyncSkirmishAIArchive.onSameQueue(as: unitsyncWrapper, args: index)
         })
         archivesAreLoaded = true
     }
 
 	public private(set) var engines: [Engine] = []
-	public private(set) var modArchives: [ModArchive] = []
-	public private(set) var mapArchives: [MapArchive] = []
-	public private(set) var skirmishAIArchives: [SkirmishAIArchive] = []
+	public private(set) var modArchives: [QueueLocked<UnitsyncModArchive>] = []
+	public private(set) var mapArchives: [QueueLocked<UnitsyncMapArchive>] = []
+	public private(set) var skirmishAIArchives: [QueueLocked<UnitsyncSkirmishAIArchive>] = []
 	
 	private var mostRecentUnitsync: QueueLocked<UnitsyncWrapper>? {
 		return engines.sorted(by: { $0.version > $1.version }).first?.unitsyncWrapper
@@ -134,7 +133,7 @@ public struct Engine {
 	public let isReleaseVersion: Bool
     
     private var scriptFileURL: URL {
-        return system.configDirectory.appendingPathComponent("script.txt")
+        return system.configDirectory.appendingPathComponent("script.txt", isDirectory: false)
     }
 
 	/// Returns a string that may be used to determine if it will sync with another engine version. For a release version, this is the major
@@ -155,7 +154,7 @@ public struct Engine {
     public func launchGame(script: LaunchScriptConvertible, doRecordDemo: Bool, completionHandler: (() -> Void)?) throws {
         do {
             try script.launchScript(shouldRecordDemo: doRecordDemo).write(toFile: scriptFileURL.path, atomically: true, encoding: .utf8)
-            system.launchApplication(at: executableURL.path, with: [scriptFileURL.path], completionHandler: {
+            system.launchApplication(at: executableURL.path, with: [scriptFileURL.path, "--write-dir=\(location.deletingLastPathComponent().deletingLastPathComponent().path)", "--isolation"], completionHandler: {
                 completionHandler?()
 //                if doRecordDemo {
 //                    try? self?.replayController.loadReplays()

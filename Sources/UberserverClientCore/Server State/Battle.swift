@@ -14,9 +14,9 @@ public protocol ReceivesBattleUpdates {
     // Map
     
     func mapDidUpdate(to map: Battle.MapIdentification)
-    func loadedMapArchive(_ mapArchive: MapArchive, checksumMatch: Bool, usedPreferredEngineVersion: Bool)
+    func loadedMapArchive(_ mapArchive: QueueLocked<UnitsyncMapArchive>, checksumMatch: Bool, usedPreferredEngineVersion: Bool)
     
-    func loadedGameArchive(_ gameArchive: ModArchive)
+    func loadedGameArchive(_ gameArchive: QueueLocked<UnitsyncModArchive>)
     func loadedEngine(_ engine: Engine)
     
     // Host
@@ -26,9 +26,9 @@ public protocol ReceivesBattleUpdates {
 
 public extension ReceivesBattleUpdates {
     func mapDidUpdate(to map: Battle.MapIdentification) {}
-    func loadedMapArchive(_ mapArchive: MapArchive, checksumMatch: Bool, usedPreferredEngineVersion: Bool) {}
+    func loadedMapArchive(_ mapArchive: QueueLocked<UnitsyncMapArchive>, checksumMatch: Bool, usedPreferredEngineVersion: Bool) {}
     
-    func loadedGameArchive(_ gameArchive: ModArchive) {}
+    func loadedGameArchive(_ gameArchive: QueueLocked<UnitsyncModArchive>) {}
     func loadedEngine(_ engine: Engine) {}
     
     func hostIsInGameChanged(to hostIsIngame: Bool) {}
@@ -101,9 +101,9 @@ public final class Battle: UpdateNotifier {
         return hasGame && hasMap && hasEngine
     }
     
-    public private(set) var gameArchive: ModArchive?
+    public private(set) var gameArchive: QueueLocked<UnitsyncModArchive>?
     public private(set) var engine: Engine?
-    public private(set) var loadedMap: MapArchive?
+    public private(set) var loadedMap: QueueLocked<UnitsyncMapArchive>?
     
     public var shouldAutomaticallyDownloadMap: Bool = false {
         didSet {
@@ -121,7 +121,7 @@ public final class Battle: UpdateNotifier {
     }
 
     public func loadGame() {
-        gameArchive = resourceManager.archiveLoader.modArchives.first(where: { $0.name == gameName })
+        gameArchive = resourceManager.archiveLoader.modArchives.first(where: { $0.sync { $0.name } == gameName })
         if let gameArchive = gameArchive {
             applyActionToChainedObjects({ $0.loadedGameArchive(gameArchive) })
         }
@@ -157,7 +157,7 @@ public final class Battle: UpdateNotifier {
 	
 	// MARK: - Lifecycle
     
-    init(serverUserList: List<User>,
+    public init(serverUserList: List<User>,
         isReplay: Bool, natType: NATType, founder: String, founderID: Int, ip: String, port: Int,
         maxPlayers: Int, hasPassword: Bool, rank: Int, mapHash: Int32, engineName: String,
         engineVersion: String, mapName: String, title: String, gameName: String, channel: String, scriptPasswordCacheDirectory: URL, resourceManager: ResourceManager) {

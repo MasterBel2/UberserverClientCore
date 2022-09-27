@@ -349,7 +349,7 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
                     if team.color == nil { team.color = colors[id] }
                     if team.faction == nil {
                         team.faction = userStatuses[id].flatMap({ status -> String? in
-                            battle.gameArchive?.factions[status.side].name
+                            gameArchive.sync { $0.factions[status.side].name }
                         })
                     }
                     if team.handicap == nil {
@@ -375,7 +375,7 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
                     var team = teams[bot.status.teamNumber] ?? TeamDraft()
                     if team.color == nil { team.color = bot.color }
                     if team.faction == nil {
-                        team.faction = gameArchive.factions[bot.status.side].name
+                        team.faction = gameArchive.sync { $0.factions[bot.status.side].name }
                     }
                     if team.handicap == nil { team.handicap = bot.status.handicap }
                     team.members.append(.ai(SpringRTSStartScriptHandling.AI(
@@ -431,7 +431,7 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
                 mapName: battle.mapIdentification.name,
                 mapHash: battle.mapIdentification.hash,
                 gameType: battle.gameName,
-                modHash: battle.gameArchive?.completeChecksum,
+                modHash: gameArchive.sync { $0.completeChecksum },
                 gameStartDelay: 0,
                 mapOptions: [:],
                 modOptions: modOptions,

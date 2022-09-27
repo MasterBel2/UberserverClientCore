@@ -32,7 +32,17 @@ public struct QueueLocked<LockedObject> {
         self.queue = queue
     }
     
-    private let lockedObject: LockedObject
+    /**
+      
+
+      `lockedObject` may be accessed in `QueueLocked.swift` ONLY for allowing certain manipulations, 
+      e.g. not creating a dispatch boundaries between two objects on the same thread. 
+      **Every such exception reduces safety**, but some are necessary e.g. such when two objects are 
+      intended to be only manipulated on a single thread. 
+
+      See `QueueLockable.onSameQueue<T>(as:args:)` for an example of one such necessary extension. 
+     */
+    fileprivate let lockedObject: LockedObject
     public let queue: DispatchQueue
     
     public func sync<ReturnType>(block: (LockedObject) -> ReturnType) -> ReturnType {
@@ -72,5 +82,16 @@ public extension QueueLocked where LockedObject: AnyObject {
             guard let lockedObject = lockedObject else { return }
             block(lockedObject)
         }
+    }
+}
+
+public protocol QueueLockable {
+    associatedtype Args
+    associatedtype ObjectLockedToCommonQueue
+    init(args: Args, threadUnsafeObjectLockedToSameQueue: ObjectLockedToCommonQueue)
+}
+public extension QueueLockable {
+    static func onSameQueue(as queueLocked: QueueLocked<ObjectLockedToCommonQueue>, args: Args) -> QueueLocked<Self> {
+        return QueueLocked(lockedObject: Self.init(args: args, threadUnsafeObjectLockedToSameQueue: queueLocked.lockedObject), queue: queueLocked.queue)
     }
 }

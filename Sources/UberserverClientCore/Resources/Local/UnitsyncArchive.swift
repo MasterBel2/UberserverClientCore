@@ -9,14 +9,27 @@ import Foundation
 
 // MARK: - Maps
 
-final class UnitsyncMapArchive: UnitsyncArchive, MapArchive {
+final public class UnitsyncMapArchive: UnitsyncArchive, MapArchive, QueueLockable {
+
+	public struct Args {
+		let name: String
+		let index: CInt
+		let minimapLoadQueue: DispatchQueue
+	}
+
+	let minimapLoadQueue: DispatchQueue
+
+	public required init(args: Args, threadUnsafeObjectLockedToSameQueue: UnitsyncWrapper) {
+		self.minimapLoadQueue = args.minimapLoadQueue
+		super.init(archiveIndex: args.index, archiveName: args.name, unitsyncWrapper: threadUnsafeObjectLockedToSameQueue)
+	}
 
 	// MARK: Properties
 
-    private(set) lazy var heightRange: ClosedRange<Float> = { unitsyncWrapper.sync { $0.GetMapMinHeight(name.utf8CStringArray) }...unitsyncWrapper.sync { $0.GetMapMaxHeight(name.utf8CStringArray) } }()
+    public private(set) lazy var heightRange: ClosedRange<Float> = { unitsyncWrapper.GetMapMinHeight(name.utf8CStringArray)...unitsyncWrapper.GetMapMaxHeight(name.utf8CStringArray) }()
 
 	/// A value of 0 indicates a failure to load the value - which should never happen.
-    private(set) lazy var width: Int = {
+    public private(set) lazy var width: Int = {
 		guard let value = info.first(where: { $0.key == "width" })?.value,
 			  case let .integer(width) = value else {
 			return 0
@@ -24,38 +37,37 @@ final class UnitsyncMapArchive: UnitsyncArchive, MapArchive {
 		return width
 	}()
 	/// A value of 0 indicates a failure to load the value - which should never happen.
-    private(set) lazy var height: Int = {
+    public private(set) lazy var height: Int = {
 		guard let value = info.first(where: { $0.key == "height" })?.value,
 			  case let .integer(width) = value else {
 			return 0
 		}
 		return width
 	}()
-	private(set) lazy var grassMap: InfoMap = { InfoMap<UInt8>(name: .grass, loadSize: loadInfoMapSize(infoMapName:), loadPixels: loadInfoMapPixels(infoMapName:loadDestination:)) }()
-	private(set) lazy var heightMap: InfoMap = { InfoMap<UInt16>(name: .height, loadSize: loadInfoMapSize(infoMapName:), loadPixels: loadInfoMapPixels(infoMapName:loadDestination:)) }()
-	private(set) lazy var metalMap: InfoMap = { InfoMap<UInt8>(name: .metal, loadSize: loadInfoMapSize(infoMapName:), loadPixels: loadInfoMapPixels(infoMapName:loadDestination:)) }()
-	private(set) lazy var typeMap: InfoMap = { InfoMap<UInt8>(name: .type, loadSize: loadInfoMapSize(infoMapName:), loadPixels: loadInfoMapPixels(infoMapName:loadDestination:)) }()
-	private(set) lazy var miniMap: Minimap = { Minimap(loadPixels: loadMinimapPixels(mipLevel:count:)) }()
-    private(set) lazy var fileName: String = { String(cString: unitsyncWrapper.sync { $0.GetMapFileName(archiveIndex) } )}()
-    private(set) lazy var completeChecksum: Int32 = { unitsyncWrapper.sync { $0.GetMapChecksum(archiveIndex) } }()
+	public private(set) lazy var grassMap: InfoMap = { InfoMap<UInt8>(name: .grass, loadSize: loadInfoMapSize(infoMapName:), loadPixels: loadInfoMapPixels(infoMapName:loadDestination:)) }()
+	public private(set) lazy var heightMap: InfoMap = { InfoMap<UInt16>(name: .height, loadSize: loadInfoMapSize(infoMapName:), loadPixels: loadInfoMapPixels(infoMapName:loadDestination:)) }()
+	public private(set) lazy var metalMap: InfoMap = { InfoMap<UInt8>(name: .metal, loadSize: loadInfoMapSize(infoMapName:), loadPixels: loadInfoMapPixels(infoMapName:loadDestination:)) }()
+	public private(set) lazy var typeMap: InfoMap = { InfoMap<UInt8>(name: .type, loadSize: loadInfoMapSize(infoMapName:), loadPixels: loadInfoMapPixels(infoMapName:loadDestination:)) }()
+    public private(set) lazy var fileName: String = { String(cString: unitsyncWrapper.GetMapFileName(archiveIndex) )}()
+    public private(set) lazy var completeChecksum: Int32 = { unitsyncWrapper.GetMapChecksum(archiveIndex) }()
 
 	// MARK: Overrides
 
-	override var checksum: Int32 {
+	public override var checksum: Int32 {
 		return completeChecksum
 	}
 
 	override var optionCount: CInt {
-        return unitsyncWrapper.sync { $0.GetMapOptionCount(name.utf8CStringArray) }
+        return unitsyncWrapper.GetMapOptionCount(name.utf8CStringArray)
 	}
 	override func archiveDependencyName(at index: CInt) -> String {
-        String(cString: unitsyncWrapper.sync { $0.GetMapArchiveName(index) })
+        String(cString: unitsyncWrapper.GetMapArchiveName(index))
 	}
 	override var archiveDependencyCount: CInt {
-        return unitsyncWrapper.sync { $0.GetMapArchiveCount(name.utf8CStringArray) }
+        return unitsyncWrapper.GetMapArchiveCount(name.utf8CStringArray)
 	}
 	override var infoCount: CInt {
-        unitsyncWrapper.sync { $0.GetMapInfoCount(archiveIndex) }
+        unitsyncWrapper.GetMapInfoCount(archiveIndex)
 	}
 	
 	// MARK: Unitsync
@@ -65,7 +77,7 @@ final class UnitsyncMapArchive: UnitsyncArchive, MapArchive {
 		var height = CInt()
 		var width = CInt()
 		withUnsafePointer(to: cName[0]) { cNamePointer in
-            _ = unitsyncWrapper.sync { $0.GetInfoMapSize(name, cNamePointer, &width, &height) }
+            _ = unitsyncWrapper.GetInfoMapSize(name, cNamePointer, &width, &height)
 		}
 		return (width: Int(width), height: Int(height))
 	}
@@ -73,30 +85,58 @@ final class UnitsyncMapArchive: UnitsyncArchive, MapArchive {
 	private func loadInfoMapPixels<T>(infoMapName: InfoMap<T>.Name, loadDestination: UnsafeMutablePointer<UInt8>) {
 		let cName = infoMapName.rawValue.cString(using: .utf8)!
 		withUnsafePointer(to: cName[0]) { cName in
-            _ = unitsyncWrapper.sync { $0.GetInfoMap(name, cName, loadDestination, CInt(MemoryLayout<T>.size)) }
+            _ = unitsyncWrapper.GetInfoMap(name, cName, loadDestination, CInt(MemoryLayout<T>.size))
 		}
 	}
 	
 	private func loadMinimapPixels(mipLevel: Int, count: Int) -> [RGB565Color] {
-        let minimapPointer = unitsyncWrapper.sync { $0.GetMinimap(name, CInt(mipLevel)) }
+        let minimapPointer = unitsyncWrapper.GetMinimap(name, CInt(mipLevel))
 		return Array(UnsafeBufferPointer(start: minimapPointer, count: count))
 	}
+
+	private var mipLevels: [Int : [RGB565Color]] = [:]
+
+	public func minimap(for mipLevel: Int) -> [RGB565Color] {
+		guard mipLevel < 9 else {
+			fatalError("Cannot handle a mip level larger than 8")
+		}
+		if let data = mipLevels[mipLevel] {
+			return data
+		}
+		let factor = 1024 / Int(pow(2, Float(mipLevel)))
+		let data = loadMinimapPixels(mipLevel: mipLevel, count: factor * factor)
+		mipLevels[mipLevel] = data
+		return data
+	}
+    
+    public func loadMinimaps(mipLevels: Range<Int>, completionBlock: @escaping ((data: [UInt16], dimension: Int)?) -> Void) {
+        for mipLevel in mipLevels.reversed() {
+            minimapLoadQueue.async { [weak self] in
+                guard let self = self else { return }
+                completionBlock((self.minimap(for: mipLevel), 1024 / Int(pow(2, Float(mipLevel)))))
+            }
+        }
+    }
 }
 
 // MARK: - Mods
 
-final class UnitsyncModArchive: UnitsyncArchive, ModArchive {
+final public class UnitsyncModArchive: UnitsyncArchive, ModArchive, QueueLockable {
+
+	public required init(args: CInt, threadUnsafeObjectLockedToSameQueue: UnitsyncWrapper) {
+		super.init(archiveIndex: args, archiveName: nil, unitsyncWrapper: threadUnsafeObjectLockedToSameQueue)
+	}
 	
 	// MARK: Properties
 
-    private(set) lazy var completeChecksum: Int32 = { unitsyncWrapper.sync { $0.GetPrimaryModChecksum(archiveIndex) } }()
+    public private(set) lazy var completeChecksum: Int32 = { unitsyncWrapper.GetPrimaryModChecksum(archiveIndex) }()
 
-	private(set) lazy var factions: [Faction] = {
+	public private(set) lazy var factions: [Faction] = {
 		return executeOnVFS {
-            return (0..<unitsyncWrapper.sync { $0.GetSideCount() }).map({ index in
+            return (0..<unitsyncWrapper.GetSideCount()).map({ index in
 				return Faction(
-                    name: String(cString: unitsyncWrapper.sync { $0.GetSideName(index) }),
-                    startUnit: String(cString: unitsyncWrapper.sync { $0.GetSideStartUnit(index) })
+                    name: String(cString: unitsyncWrapper.GetSideName(index)),
+                    startUnit: String(cString: unitsyncWrapper.GetSideStartUnit(index))
 				)
 			})
 		}
@@ -104,7 +144,7 @@ final class UnitsyncModArchive: UnitsyncArchive, ModArchive {
 	
 	// MARK: Overrides
 
-	override var archiveName: String {
+	public override var archiveName: String {
 		switch info.first(where: { $0.key == "name" })?.value {
 		case .string(let string):
 			return string
@@ -114,40 +154,45 @@ final class UnitsyncModArchive: UnitsyncArchive, ModArchive {
 	}
 
 	override func archiveDependencyName(at index: CInt) -> String {
-        return String(cString: unitsyncWrapper.sync { $0.GetPrimaryModArchiveList(index) })
+        return String(cString: unitsyncWrapper.GetPrimaryModArchiveList(index))
 	}
 
 	override var archiveDependencyCount: CInt {
-        return unitsyncWrapper.sync { $0.GetPrimaryModArchiveCount(archiveIndex) }
+        return unitsyncWrapper.GetPrimaryModArchiveCount(archiveIndex)
 	}
 
 	override var infoCount: CInt {
-        return unitsyncWrapper.sync { $0.GetPrimaryModInfoCount(archiveIndex) }
+        return unitsyncWrapper.GetPrimaryModInfoCount(archiveIndex)
 	}
 
 	override var optionCount: CInt {
 		return executeOnVFS {
-            return unitsyncWrapper.sync { $0.GetModOptionCount() }
+            return unitsyncWrapper.GetModOptionCount()
 		}
 	}
 }
 
 // MARK: - Skirmish AIs
 
-final class UnitsyncSkirmishAIArchive: UnitsyncArchive, SkirmishAIArchive {
+final public class UnitsyncSkirmishAIArchive: UnitsyncArchive, SkirmishAIArchive, QueueLockable {
+	
+	public required init(args: CInt, threadUnsafeObjectLockedToSameQueue: UnitsyncWrapper) {
+		super.init(archiveIndex: args, archiveName: nil, unitsyncWrapper: threadUnsafeObjectLockedToSameQueue)
+	}
+	
 	override var archiveDependencyCount: CInt {
 		return 0
 	}
 
 	override var infoCount: CInt {
-        return unitsyncWrapper.sync { $0.GetSkirmishAIInfoCount(archiveIndex) }
+        return unitsyncWrapper.GetSkirmishAIInfoCount(archiveIndex)
 	}
 
 	override var optionCount: CInt {
-        return unitsyncWrapper.sync { $0.GetSkirmishAIOptionCount(archiveIndex) }
+        return unitsyncWrapper.GetSkirmishAIOptionCount(archiveIndex)
 	}
 
-	override var archiveName: String {
+	public override var archiveName: String {
 		switch info.first(where: { $0.key == "name" })?.value {
 		case .string(let string):
 			return string
@@ -160,22 +205,22 @@ final class UnitsyncSkirmishAIArchive: UnitsyncArchive, SkirmishAIArchive {
 // MARK: - Generic Archive
 
 public class UnitsyncArchive: Archive {
-	init(archiveIndex: CInt, archiveName: String, unitsyncWrapper: QueueLocked<UnitsyncWrapper>) {
-		self.unitsyncWrapper = unitsyncWrapper
+
+	public init(archiveIndex: CInt, archiveName: String?, unitsyncWrapper: UnitsyncWrapper) {
 		self.archiveIndex = archiveIndex
-		self.name = archiveName
-	}
-	init(archiveIndex: CInt, unitsyncWrapper: QueueLocked<UnitsyncWrapper>) {
 		self.unitsyncWrapper = unitsyncWrapper
-		self.archiveIndex = archiveIndex
+
+		if let archiveName = archiveName {
+			self.name = archiveName
+		}
 	}
 
-	let unitsyncWrapper: QueueLocked<UnitsyncWrapper>
+	fileprivate let unitsyncWrapper: UnitsyncWrapper
 
 	let archiveIndex: CInt
 	public private(set) lazy var name: String = archiveName
-    public private(set) lazy var path: String = { String(cString: unitsyncWrapper.sync { $0.GetArchivePath(name.utf8CStringArray) }) }()
-    public private(set) lazy var singleArchiveChecksum: Int32 = { unitsyncWrapper.sync { $0.GetArchiveChecksum(name.utf8CStringArray) } }()
+    public private(set) lazy var path: String = { String(cString: unitsyncWrapper.GetArchivePath(name.utf8CStringArray) ) }()
+    public private(set) lazy var singleArchiveChecksum: Int32 = { unitsyncWrapper.GetArchiveChecksum(name.utf8CStringArray) }()
 
 	public var checksum: Int32 { return singleArchiveChecksum }
 
@@ -188,8 +233,8 @@ public class UnitsyncArchive: Archive {
 	private func loadInfo() -> [ArchiveInfo] {
 		return (0..<infoCount).map({ index in
 			return ArchiveInfo(
-                key: String(cString: unitsyncWrapper.sync { $0.GetInfoKey(index) }),
-                description: String(cString: unitsyncWrapper.sync { $0.GetInfoDescription(index) }),
+                key: String(cString: unitsyncWrapper.GetInfoKey(index)),
+                description: String(cString: unitsyncWrapper.GetInfoDescription(index)),
 				value: infoValue(at: index)
 			)
 		})
@@ -198,11 +243,11 @@ public class UnitsyncArchive: Archive {
 	private func loadOptions() -> [ArchiveOption] {
 		return (0..<optionCount).map({ index in
 			ArchiveOption(
-                key: String(cString: unitsyncWrapper.sync { $0.GetOptionKey(index) }),
-                name: String(cString: unitsyncWrapper.sync { $0.GetOptionName(index) }),
-                description: String(cString: unitsyncWrapper.sync { $0.GetOptionDesc(index) }),
-                type: ArchiveOption.ValueType(rawValue: unitsyncWrapper.sync { $0.GetOptionType(index) }),
-                section: String(cString: unitsyncWrapper.sync { $0.GetOptionSection(index) })
+                key: String(cString: unitsyncWrapper.GetOptionKey(index)),
+                name: String(cString: unitsyncWrapper.GetOptionName(index)),
+                description: String(cString: unitsyncWrapper.GetOptionDesc(index)),
+                type: ArchiveOption.ValueType(rawValue: unitsyncWrapper.GetOptionType(index)),
+                section: String(cString: unitsyncWrapper.GetOptionSection(index))
 				// More TODO
 			)
 		})
@@ -212,7 +257,7 @@ public class UnitsyncArchive: Archive {
 		return (0..<archiveDependencyCount).map({ index in
 			UnitsyncArchive(
 				archiveIndex: index,
-				archiveName: archiveDependencyName(at: index),
+				archiveName: archiveDependencyName(at: index), 
 				unitsyncWrapper: unitsyncWrapper
 			)
 		})
@@ -221,9 +266,9 @@ public class UnitsyncArchive: Archive {
 	// MARK: - Private helpers
 
 	fileprivate func executeOnVFS<T>(_ block: () -> T) -> T {
-        unitsyncWrapper.sync { $0.AddAllArchives(name.utf8CStringArray) }
+        unitsyncWrapper.AddAllArchives(name.utf8CStringArray)
 		let result = block()
-        unitsyncWrapper.sync { $0.RemoveAllArchives() }
+        unitsyncWrapper.RemoveAllArchives()
 		return result
 	}
 
@@ -238,16 +283,16 @@ public class UnitsyncArchive: Archive {
 	// MARK: - Nested Types
 	
 	private func infoValue(at index: CInt) -> ArchiveInfo.Value? {
-        let typeString = String(cString: unitsyncWrapper.sync { $0.GetInfoType(index) })
+        let typeString = String(cString: unitsyncWrapper.GetInfoType(index))
 		switch typeString.lowercased() {
 		case "string":
-            return .string(String(cString: unitsyncWrapper.sync { $0.GetInfoValueString(index) }))
+            return .string(String(cString: unitsyncWrapper.GetInfoValueString(index)))
 		case "integer":
-            return .integer(Int(unitsyncWrapper.sync { $0.GetInfoValueInteger(index) }))
+            return .integer(Int(unitsyncWrapper.GetInfoValueInteger(index)))
 		case "float":
-            return .float(unitsyncWrapper.sync { $0.GetInfoValueFloat(index) })
+            return .float(unitsyncWrapper.GetInfoValueFloat(index))
 		case "bool":
-            return .boolean(unitsyncWrapper.sync { $0.GetInfoValueBool(index) })
+            return .boolean(unitsyncWrapper.GetInfoValueBool(index))
 		default:
 			return nil
 		}

@@ -15,7 +15,7 @@ import Foundation
 
  - Note: This class is *not thread safe*.
  */
-final class UnitsyncWrapper {
+public final class UnitsyncWrapper {
 
     static func url(for engineDirectory: URL) -> URL {
         #if os(macOS)

@@ -18,7 +18,7 @@ public protocol Archive {
 	var singleArchiveChecksum: Int32 { get }
 	
 	var info: [ArchiveInfo] { get }
-	var dependencies: [UnitsyncArchive] { get } // TODO
+	var dependencies: [UnitsyncArchive] { get }
 	var options: [ArchiveOption] { get }
 }
 
@@ -86,7 +86,6 @@ public protocol MapArchive: Archive {
 	var heightMap: InfoMap<UInt16> { get }
 	var metalMap: InfoMap<UInt8> { get }
 	var typeMap: InfoMap<UInt8> { get }
-	var miniMap: Minimap { get }
 	var fileName: String { get }
 	var completeChecksum: Int32 { get }
 }
@@ -120,39 +119,6 @@ public final class InfoMap<PixelType: UnsignedInteger> {
 		}
 		return pixels
 	}()
-}
-
-public final class Minimap {
-	private var mipLevels: [Int : [RGB565Color]] = [:]
-	
-	let loadPixels: (_ mipLevel: Int, _ count: Int) -> [RGB565Color]
-
-
-	public init(loadPixels: @escaping (_ mipLevel: Int, _ count: Int) -> [RGB565Color]) {
-		self.loadPixels = loadPixels
-	}
-
-	public func minimap(for mipLevel: Int) -> [RGB565Color] {
-		guard mipLevel < 9 else {
-			fatalError("Cannot handle a mip level larger than 8")
-		}
-		if let data = mipLevels[mipLevel] {
-			return data
-		}
-		let factor = 1024 / Int(pow(2, Float(mipLevel)))
-		let data = loadPixels(mipLevel, factor * factor)
-		mipLevels[mipLevel] = data
-		return data
-	}
-    
-    public func loadMinimaps(mipLevels: Range<Int>, queue: DispatchQueue, completionBlock: @escaping ((data: [UInt16], dimension: Int)?) -> Void) {
-        for mipLevel in mipLevels.reversed() {
-            queue.async { [weak self] in
-                guard let self = self else { return }
-                completionBlock((self.minimap(for: mipLevel), 1024 / Int(pow(2, Float(mipLevel)))))
-            }
-        }
-    }
 }
 
 // MARK: - Skirmish AIs
