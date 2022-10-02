@@ -151,6 +151,6 @@ struct SCLeftCommand: SCCommand {
         else {
             return
         }
-        channel.userlist.removeItem(withID: id)
+        channel.userlist.data.removeItem(withID: id)
     }
 }

@@ -34,7 +34,7 @@ struct CSLoginCommand: CSCommand {
     let compatabilityFlags: Set<CompatabilityFlag>
 
 	var payload: String {
-		let encodedPassword = password.md5().base64Encoded() // TODO: Error checking
+		let encodedPassword = password.md5().base64Encoded()
         return "\(username) \(encodedPassword) 0 * BelieveAndRise Alpha\t\(userID)\t" + (compatabilityFlags.map { $0.rawValue }).joined(separator: " ")
 	}
 }

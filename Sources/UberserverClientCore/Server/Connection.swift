@@ -9,8 +9,32 @@
 import Foundation
 import ServerAddress
 
-public protocol ReceivesConnectionUpdates {
+public protocol ReceivesConnectionUpdates: AnyObject {
     func connection(_ connection: ThreadUnsafeConnection, didIdentify lobby: Lobby)
+
+    func asAnyReceivesConnectionUpdates() -> AnyReceivesConnectionUpdates
+}
+
+public extension ReceivesConnectionUpdates {
+    func asAnyReceivesConnectionUpdates() -> AnyReceivesConnectionUpdates {
+        return AnyReceivesConnectionUpdates(wrapping: self)
+    }
+}
+
+public final class AnyReceivesConnectionUpdates: ReceivesConnectionUpdates, Box {
+    let wrapped: ReceivesConnectionUpdates
+    
+    public var wrappedAny: AnyObject {
+        return wrapped
+    }
+    
+    init(wrapping: ReceivesConnectionUpdates) {
+        self.wrapped = wrapping
+    }
+
+    public func connection(_ connection: ThreadUnsafeConnection, didIdentify lobby: Lobby) {
+        wrapped.connection(connection, didIdentify: lobby)
+    }
 }
 
 public typealias ThreadUnsafeConnection = Connection._Connection
@@ -51,7 +75,7 @@ public final class Connection: SocketDelegate {
 
         // MARK: - Update Notifier
 
-        public var objectsWithLinkedActions: [() -> ReceivesConnectionUpdates?] = []
+        public var objectsWithLinkedActions: [AnyReceivesConnectionUpdates] = []
 
         // MARK: - Dependencies
 

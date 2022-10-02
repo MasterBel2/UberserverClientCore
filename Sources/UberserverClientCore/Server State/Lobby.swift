@@ -15,8 +15,7 @@ final public class TachyonLobby: Lobby {
     public func connection(_ connection: ThreadUnsafeConnection, didReceive message: Data) {}
 }
 
-
-public protocol ReceivesTASServerLobbyUpdates {
+public protocol ReceivesTASServerLobbyUpdates: AnyObject {
     /// Indicates that the server has sent information about its protocol, which may be used to determine available features.
     func lobby(_ lobby: TASServerLobby, willUseCommandProtocolWithFeatureAvailability availability: ProtocolFeatureAvailability)
     /// Indicates the connection has become authenticated with the server, and provides
@@ -31,9 +30,53 @@ public protocol ReceivesTASServerLobbyUpdates {
 
     /// Indicates the interval since the last Ping and its responding Pong, in microseconds.
     func lobby(_ lobby: TASServerLobby, didReceivePongAfter delay: Int)
+
+    func asAnyReceivesTASServerLobbyUpdates() -> AnyReceivesTASServerLobbyUpdates
 }
+
+public extension ReceivesTASServerLobbyUpdates {
+    func asAnyReceivesTASServerLobbyUpdates() -> AnyReceivesTASServerLobbyUpdates {
+        return AnyReceivesTASServerLobbyUpdates(wrapping: self)
+    }
+}
+
+public class AnyReceivesTASServerLobbyUpdates: ReceivesTASServerLobbyUpdates, Box {
+    public let wrapped: ReceivesTASServerLobbyUpdates
+    public var wrappedAny: AnyObject {
+        return wrapped
+    }
+
+    public init(wrapping: ReceivesTASServerLobbyUpdates) {
+        self.wrapped = wrapping
+    }
+
+    public func lobby(_ lobby: TASServerLobby, willUseCommandProtocolWithFeatureAvailability availability: ProtocolFeatureAvailability) {
+        wrapped.lobby(lobby, willUseCommandProtocolWithFeatureAvailability: availability)
+    }
+
+    public func lobby(_ lobby: TASServerLobby, didBecomeAuthenticated authenticatedSession: AuthenticatedSession) {
+        wrapped.lobby(lobby, didBecomeAuthenticated: authenticatedSession)
+    }
+
+    public func lobby(_ lobby: TASServerLobby, didBecomeUnauthenticated unauthenticatedSession: UnauthenticatedSession) {
+        wrapped.lobby(lobby, didBecomeUnauthenticated: unauthenticatedSession)
+    }
+
+    public func lobby(_ lobby: TASServerLobby, didBecomePreAgreement preAgreementSession: PreAgreementSession) {
+        wrapped.lobby(lobby, didBecomePreAgreement: preAgreementSession)
+    }
+
+    public func lobby(_ lobby: TASServerLobby, didReceivePongAfter delay: Int) {
+        wrapped.lobby(lobby, didReceivePongAfter: delay)
+    }
+
+    public func asAnyReceivesTASServerLobbyUpdates() -> AnyReceivesTASServerLobbyUpdates {
+        return self
+    }
+}
+
 final public class TASServerLobby: Lobby, UpdateNotifier {
-    public var objectsWithLinkedActions: [() -> ReceivesTASServerLobbyUpdates?] = []
+    public var objectsWithLinkedActions: [AnyReceivesTASServerLobbyUpdates] = []
 
     unowned public internal(set) var connection: ThreadUnsafeConnection
 

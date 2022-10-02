@@ -23,7 +23,7 @@ public final class ReplayController {
 
     let demoDir: URL
 
-    public let replays = List<Replay>(title: "Replays", property: { $0.header.gameStartDate })
+    public let replays = List<Replay>()
 
     let fileManager =  FileManager.default
     let loadQueue = DispatchQueue(label: "com.believeandrise.replaycontroller.load", qos: .background, attributes: .concurrent)

@@ -7,13 +7,40 @@
 
 import Foundation
 
-public protocol RecievesPreAgreementSessionUpdates {
+public protocol RecievesPreAgreementSessionUpdates: AnyObject {
     func preAgreementSession(_ session: PreAgreementSession, didReceiveAgreement agreement: String)
+
+    func asAnyRecievesPreAgreementSessionUpdates() -> AnyRecievesPreAgreementSessionUpdates
+}
+
+public extension RecievesPreAgreementSessionUpdates {
+    func asAnyRecievesPreAgreementSessionUpdates() -> AnyRecievesPreAgreementSessionUpdates {
+        return AnyRecievesPreAgreementSessionUpdates(wrapping: self)
+    }
+}
+
+public final class AnyRecievesPreAgreementSessionUpdates: RecievesPreAgreementSessionUpdates, Box {
+    public let wrapped: RecievesPreAgreementSessionUpdates
+    public var wrappedAny: AnyObject {
+        return wrapped
+    }
+
+    public init(wrapping: RecievesPreAgreementSessionUpdates) {
+        self.wrapped = wrapping
+    }
+
+    public func preAgreementSession(_ session: PreAgreementSession, didReceiveAgreement agreement: String) {
+        wrapped.preAgreementSession(session, didReceiveAgreement: agreement)
+    }
+
+    public func asAnyRecievesPreAgreementSessionUpdates() -> AnyRecievesPreAgreementSessionUpdates {
+        return self
+    }
 }
 
 final public class PreAgreementSession: UpdateNotifier {
 
-    public var objectsWithLinkedActions: [() -> RecievesPreAgreementSessionUpdates?] = []
+    public var objectsWithLinkedActions: [AnyRecievesPreAgreementSessionUpdates] = []
 
     private let lobby: UnownedQueueLocked<TASServerLobby>
 

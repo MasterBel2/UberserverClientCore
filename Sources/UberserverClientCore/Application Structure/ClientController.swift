@@ -9,11 +9,38 @@
 import Foundation
 import ServerAddress
 
-public protocol ReceivesClientControllerUpdates {
+public protocol ReceivesClientControllerUpdates: AnyObject {
     func clientController(_ clientController: ClientController, didCreate client: Client)
+
+    /// Returns a type-erasing wrapper of self.
+    func asAnyReceivesClientControllerUpdates() -> AnyReceivesClientControllerUpdates
 }
 public extension ReceivesClientControllerUpdates {
     func clientController(_ clientController: ClientController, didCreate client: Client) {}
+
+    func asAnyReceivesClientControllerUpdates() -> AnyReceivesClientControllerUpdates {
+        return AnyReceivesClientControllerUpdates(wrapping: self)
+    }
+}
+
+public final class AnyReceivesClientControllerUpdates: ReceivesClientControllerUpdates, Box {
+    public let wrapped: ReceivesClientControllerUpdates
+    public var wrappedAny: AnyObject {
+        return wrapped
+    }
+    
+    public init(wrapping: ReceivesClientControllerUpdates) {
+        self.wrapped = wrapping
+    }
+
+    public func clientController(_ clientController: ClientController, didCreate client: Client) {
+        wrapped.clientController(clientController, didCreate: client)
+    }
+
+    /// Returns self, as we're already wrapped. Purely for protocol conformance reasons.
+    public func asAnyReceivesClientControllerUpdates() -> AnyReceivesClientControllerUpdates {
+        return self
+    }
 }
 
 /**
@@ -69,5 +96,5 @@ public final class ClientController: UpdateNotifier {
     
     // MARK: - UpdateNotifier
     
-    public var objectsWithLinkedActions: [() -> ReceivesClientControllerUpdates?] = []
+    public var objectsWithLinkedActions: [AnyReceivesClientControllerUpdates] = []
 }

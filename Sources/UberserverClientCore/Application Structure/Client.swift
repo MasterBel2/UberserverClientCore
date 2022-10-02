@@ -9,7 +9,7 @@
 import Foundation
 import ServerAddress
 
-public protocol ReceivesClientUpdates {
+public protocol ReceivesClientUpdates: AnyObject {
     /// Indicates that the client will attempt to establish a connection to the given address.
     func client(_ client: Client, willConnectTo address: ServerAddress)
     /// Indicates that the client has created a `Connection` object that it will use to connect to a server.
@@ -20,11 +20,55 @@ public protocol ReceivesClientUpdates {
     func client(_ client: Client, didSuccessfullyRedirectTo newConnection: Connection)
     /// Indicates that the client is about to destroy its connection object, usually directly after the connection disconnects from a server.
     func clientDisconnectedFromServer(_ client: Client)
+
+    /// Returns a type-erasing wrapper of self.
+    func asAnyReceivesClientUpdates() -> AnyReceivesClientUpdates
 }
 
 public extension ReceivesClientUpdates {
     func client(_ client: Client, didPrepare connection: Connection) {}
     func client(_ client: Client, willDestroy connection: Connection) {}
+
+    func asAnyReceivesClientUpdates() -> AnyReceivesClientUpdates {
+        return AnyReceivesClientUpdates(wrapping: self)
+    }
+}
+
+public final class AnyReceivesClientUpdates: ReceivesClientUpdates, Box {
+    public let wrapped: ReceivesClientUpdates
+
+    public var wrappedAny: AnyObject {
+        return wrapped
+    }
+
+    public init(wrapping: ReceivesClientUpdates) {
+        self.wrapped = wrapping
+    }
+
+    public func client(_ client: Client, willConnectTo address: ServerAddress) {
+        wrapped.client(client, willConnectTo: address)
+    }
+
+    public func client(_ client: Client, successfullyEstablishedConnection connection: Connection) {
+        wrapped.client(client, successfullyEstablishedConnection: connection)
+    }
+
+    public func client(_ client: Client, willRedirectFrom oldServerAddress: ServerAddress, to newServerAddress: ServerAddress) {
+        wrapped.client(client, willRedirectFrom: oldServerAddress, to: newServerAddress)
+    }
+
+    public func client(_ client: Client, didSuccessfullyRedirectTo newConnection: Connection) {
+        wrapped.client(client, didSuccessfullyRedirectTo: newConnection)
+    }
+
+    public func clientDisconnectedFromServer(_ client: Client) {
+        wrapped.clientDisconnectedFromServer(client)
+    }
+
+    /// Returns self, as we're already wrapped. Purely for protocol conformance reasons.
+    public func asAnyReceivesClientUpdates() -> AnyReceivesClientUpdates {
+        return self
+    }
 }
 
 /**
@@ -42,7 +86,7 @@ public final class Client: UpdateNotifier {
 
     // MARK: - Chaining Updates
     
-    public var objectsWithLinkedActions: [() -> ReceivesClientUpdates?] = []
+    public var objectsWithLinkedActions: [AnyReceivesClientUpdates] = []
 
     // MARK: -
 

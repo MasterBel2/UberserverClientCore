@@ -11,7 +11,7 @@ import SpringRTSStartScriptHandling
 
 // MARK: - Protocols
 
-public protocol ReceivesBattleroomUpdates {
+public protocol ReceivesBattleroomUpdates: AnyObject {
 
     // Map Options
     
@@ -29,6 +29,8 @@ public protocol ReceivesBattleroomUpdates {
     func display(isHostIngame: Bool, isPlayerIngame: Bool)
     /// Notifies the display that an updated ready state should be displayed.
     func displayReadySate(_ isReady: Bool)
+
+    func battleroom(_ battleroom: Battleroom, didReceive newStatus: Battleroom.UserStatus, for userID: Int)
     
     // Start Rect
     
@@ -42,9 +44,11 @@ public protocol ReceivesBattleroomUpdates {
     // Teams
     
     /// Notifiies the display that a new team was added.
-    func addedTeam(named teamName: String)
+    func addedName(_ teamName: String, forAllyTeam allyTeamNumber: Int)
     /// Notifies the display that a team was removed.
-    func removedTeam(named teamName: String)
+    func removedName(forAllyTeam allyTeamNumber: Int)
+
+    func asAnyReceivesBattleroomUpdates() -> AnyReceivesBattleroomUpdates
 }
 
 public extension ReceivesBattleroomUpdates {
@@ -61,14 +65,70 @@ public extension ReceivesBattleroomUpdates {
     func removeStartRect(for allyTeam: Int) {}
     func removeAllStartRects() {}
     
-    func addedTeam(named teamName: String) {}
-    func removedTeam(named teamName: String) {}
+    func addedName(_ teamName: String, forAllyTeam allyTeamNumber: Int) {}
+    func removedName(forAllyTeam allyTeamNumber: Int) {}
+
+    func asAnyReceivesBattleroomUpdates() -> AnyReceivesBattleroomUpdates {
+        return AnyReceivesBattleroomUpdates(wrapping: self)
+    }
+}
+
+public final class AnyReceivesBattleroomUpdates: ReceivesBattleroomUpdates, Box {
+    let wrapped: ReceivesBattleroomUpdates
+    public var wrappedAny: AnyObject {
+        return wrapped
+    }
+
+    public func removeCustomisedMapOption(_ option: String) {
+        wrapped.removeCustomisedGameOption(option)
+    }
+
+    public func addCustomisedGameOption(_ option: String, value: ArchiveOption.ValueType) {
+        wrapped.addCustomisedGameOption(option, value: value)
+    }
+    public func removeCustomisedGameOption(_ option: String) {
+        wrapped.removeCustomisedGameOption(option)
+    }
+    
+    public func display(isHostIngame: Bool, isPlayerIngame: Bool) {
+        wrapped.display(isHostIngame: isHostIngame, isPlayerIngame: isPlayerIngame)
+    }
+    public func displayReadySate(_ isReady: Bool) {
+        wrapped.displayReadySate(isReady)
+    }
+
+    public func battleroom(_ battleroom: Battleroom, didReceive newStatus: Battleroom.UserStatus, for userID: Int) {
+        wrapped.battleroom(battleroom, didReceive: newStatus, for: userID)
+    }
+    
+    public func addStartRect(_ rect: StartRect, for allyTeam: Int) {
+        wrapped.addStartRect(rect, for: allyTeam)
+    }
+    public func removeStartRect(for allyTeam: Int) {
+        wrapped.removeStartRect(for: allyTeam)
+    }
+    public func removeAllStartRects() {
+        wrapped.removeAllStartRects()
+    }
+    
+    public func addedName(_ teamName: String, forAllyTeam allyTeamNumber: Int) {
+        wrapped.addedName(teamName, forAllyTeam: allyTeamNumber)
+    }
+    public func removedName(forAllyTeam allyTeamNumber: Int) {
+        wrapped.removedName(forAllyTeam: allyTeamNumber)
+    }
+
+    public init(wrapping: ReceivesBattleroomUpdates) {
+        self.wrapped = wrapping
+    }
+
+    public func asAnyReceivesBattleroomUpdates() -> AnyReceivesBattleroomUpdates {
+        return self
+    }
 }
 
 public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdates {
 
-    // MARK: - Data
-    
     // MARK: - Dependencies
     
     /// The battleroom's associated battle.
@@ -79,8 +139,8 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
     // MARK: - Users
     
     public private(set) var allyNamesForAllyNumbers: [Int : String] = [:]
-    public let allyTeamLists: [List<User>]
-    public let spectatorList: List<User>
+    public let allyTeamLists: [ManualSublist<User>]
+    public let spectatorList: ManualSublist<User>
     var bots: [Bot] = []
     
     // MARK: - Game Attributes
@@ -144,7 +204,7 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
 
     private let sendCommandBlock: (CSCommand) -> Void
 
-    init(battle: Battle, channel: Channel, sendCommandBlock: @escaping (CSCommand) -> Void, hashCode: Int32, myID: Int) {
+    public init(battle: Battle, channel: Channel, sendCommandBlock: @escaping (CSCommand) -> Void, hashCode: Int32, myID: Int) {
         self.battle = battle
         self.hashCode = hashCode
         self.channel = channel
@@ -154,15 +214,12 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
 
         var battleroomSorter = BattleroomPlayerListSorter()
 
-        // + 1 – Users will count from 1, not from 0
-        allyTeamLists = (0...15).map({ List(title: "Ally \(String($0 + 1))", sorter: battleroomSorter, parent: battle.userList) })
-        spectatorList = List<User>(title: "Spectators", sorter: battleroomSorter, parent: battle.userList)
+        allyTeamLists = (0...15).map({ _ in ManualSublist(parent: battle.userList) })
+        spectatorList = ManualSublist(parent: battle.userList)
 
         battleroomSorter.battleroom = self
-        allyTeamLists.forEach({ $0.sorter = battleroomSorter })
-        spectatorList.sorter = battleroomSorter
-        battle.addObject(self)
-        battle.userList.addObject(self)
+        battle.addObject(self.anyReceivesBattleUpdates())
+        battle.userList.addObject(self.asAnyListDelegate())
         
         battle.shouldAutomaticallyDownloadMap = true
         
@@ -176,70 +233,127 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
     // MARK: - Updates
 
     /// Updates the status for a user, as specified by their ID.
-    func updateUserStatus(_ newUserStatus: UserStatus, forUserIdentifiedBy userID: Int) {
+    public func updateUserStatus(_ newUserStatus: UserStatus, forUserIdentifiedBy userID: Int) {
         // Ally/spectator
+        // fatalError()
         let previousUserStatus = userStatuses[userID]
-        Logger.log("Updating user status for \(userID): \(previousUserStatus?.description ?? "nil") -> \(newUserStatus.description)", tag: .BattleStatusUpdate)
-        let value = (previous: previousUserStatus?.isSpectator, new: newUserStatus.isSpectator)
-        // Only ally/spectator if the user's status has changed.
-        if !(value == (previous: true, new: true) ||
-             (value == (previous: false, new: false) && previousUserStatus?.allyNumber == newUserStatus.allyNumber)) {
-            if value.previous == true {
-                // The user is no longer a spectator.
-                spectatorList.removeItem(withID: userID)
-            } else if let previousAllyNumber = previousUserStatus?.allyNumber {
-                // The user is no longer a player on an allyteam.
-                let allyTeamList = allyTeamLists[previousAllyNumber]
-                allyTeamList.removeItem(withID: userID)
-                if allyTeamList.sortedItemCount == 0,
-                   let allyName = allyNamesForAllyNumbers[previousAllyNumber] {
-                    applyActionToChainedObjects({ $0.removedTeam(named: allyName) })
-                    allyNamesForAllyNumbers.removeValue(forKey: previousAllyNumber)
-                }
-            }
-            if value.new {
-                // The user is becoming a spectator.
-                spectatorList.addItemFromParent(id: userID)
-            } else {
-                // The user has changed to an ally team – I.e. joined a new ally.
-                let allyTeamList = allyTeamLists[newUserStatus.allyNumber]
-                allyTeamList.addItemFromParent(id: userID)
-                if allyTeamList.sortedItemCount == 1 {
-                    let allyName = String(newUserStatus.allyNumber + 1)
-                    allyNamesForAllyNumbers[newUserStatus.allyNumber] = allyName
-                    applyActionToChainedObjects({ $0.addedTeam(named: allyName) })
-                }
-            }
-        }
-
         // Update the data
         userStatuses[userID] = newUserStatus
 
-        if previousUserStatus?.allyNumber != newUserStatus.allyNumber {
-            if userID == myID {
-                allyTeamLists.forEach({ allyTeamList in
-                    allyTeamList.sortedItemsByID.forEach({
-                        allyTeamList.respondToUpdatesOnItem(identifiedBy: $0)
-                    })
-                })
-                allyTeamLists.reduce([], { $0 + $1.sortedItemsByID }).forEach({ id in
-                    channel.messageList.items.filter({ (key, value) in value.senderID == id })
-                        .forEach({
-                            channel.messageList.respondToUpdatesOnItem(identifiedBy: $0.key)
+        // print("Returning")
+        // return
+
+        Logger.log("Updating user status for \(userID): \(previousUserStatus?.description ?? "nil") -> \(newUserStatus.description)", tag: .BattleStatusUpdate)
+        // let value = (previous: previousUserStatus?.isSpectator, new: newUserStatus.isSpectator)
+        // Only ally/spectator if the user's status has changed.
+
+        if let previousUserStatus = previousUserStatus {
+            guard previousUserStatus != newUserStatus else { 
+                print("early exit!")
+                return
+            }
+
+            switch (previousUserStatus.isSpectator, newUserStatus.isSpectator) {
+            case (false, true):
+                spectatorList.addItemFromParent(id: userID)
+            case (true, false):
+                spectatorList.data.removeItem(withID: userID)
+            default:
+                if previousUserStatus.allyNumber != newUserStatus.allyNumber {
+                    allyTeamLists[previousUserStatus.allyNumber].data.removeItem(withID: userID)
+                    allyTeamLists[newUserStatus.allyNumber].addItemFromParent(id: userID)
+
+                    if userID == myID {
+                        allyTeamLists.forEach({ allyTeamList in
+                            allyTeamList.items.forEach({ (id, value) in
+                                allyTeamList.data.respondToUpdatesOnItem(identifiedBy: id)
+                            })
                         })
-                })
+                        allyTeamLists.reduce([], { $0 + $1.items }).forEach({ (id, value) in
+                            channel.messageList.items.filter({ (key, value) in value.senderID == id })
+                                .forEach({
+                                    channel.messageList.respondToUpdatesOnItem(identifiedBy: $0.key)
+                                })
+                        })
+                    } else {
+                        channel.messageList.items.filter({ (key, value) in value.senderID == userID })
+                            .forEach({ channel.messageList.respondToUpdatesOnItem(identifiedBy: $0.key) })
+                    }
+                }
+            }
+
+        } else {
+            if newUserStatus.isSpectator {
+                spectatorList.addItemFromParent(id: userID)
             } else {
-                channel.messageList.items.filter({ (key, value) in value.senderID == userID })
-                    .forEach({ channel.messageList.respondToUpdatesOnItem(identifiedBy: $0.key) })
+                allyTeamLists[newUserStatus.allyNumber].addItemFromParent(id: userID)
             }
         }
 
-        if userID == myID {
-            applyActionToChainedObjects({ $0.displayReadySate(newUserStatus.isReady) })
-        }
+        // print("Returning")
+        // return
+
+        // if !(value == (previous: true, new: true) ||
+        //      (value == (previous: false, new: false) && previousUserStatus?.allyNumber == newUserStatus.allyNumber)) {
+        //     if value.previous == true {
+        //         // The user is no longer a spectator.
+        //         spectatorList.data.removeItem(withID: userID)
+        //     } else if let previousAllyNumber = previousUserStatus?.allyNumber {
+        //         // The user is no longer a player on an allyteam.
+        //         let allyTeamList = allyTeamLists[previousAllyNumber]
+        //         allyTeamList.data.removeItem(withID: userID)
+        //         print("Removed \(userID) from allyTeamList \(previousAllyNumber)")
+        //         if allyTeamList.items.count == 0,
+        //            let allyName = allyNamesForAllyNumbers[previousAllyNumber] {
+        //             applyActionToChainedObjects({ $0.removedName(forAllyTeam: previousAllyNumber) })
+        //             allyNamesForAllyNumbers.removeValue(forKey: previousAllyNumber)
+        //         }
+        //     }
+        //     if value.new {
+        //         // The user is becoming a spectator.
+        //         spectatorList.addItemFromParent(id: userID)
+        //     } else {
+        //         // The user has changed to an ally team – I.e. joined a new ally.
+        //         let allyTeamList = allyTeamLists[newUserStatus.allyNumber]
+        //         print("Added \(userID) to allyTeamList \(newUserStatus.allyNumber)")
+        //         allyTeamList.addItemFromParent(id: userID)
+        //         if allyTeamList.items.count == 1 {
+        //             let allyName = String(newUserStatus.allyNumber + 1)
+        //             allyNamesForAllyNumbers[newUserStatus.allyNumber] = allyName
+        //             applyActionToChainedObjects({ $0.addedName(allyName, forAllyTeam: newUserStatus.allyNumber) })
+        //         }
+        //     }
+        // }
+
+        // if previousUserStatus?.allyNumber != newUserStatus.allyNumber {
+        //     if userID == myID {
+        //         allyTeamLists.forEach({ allyTeamList in
+        //             allyTeamList.items.forEach({ (id, value) in
+        //                 allyTeamList.data.respondToUpdatesOnItem(identifiedBy: id)
+        //             })
+        //         })
+        //         allyTeamLists.reduce([], { $0 + $1.items }).forEach({ (id, value) in
+        //             channel.messageList.items.filter({ (key, value) in value.senderID == id })
+        //                 .forEach({
+        //                     channel.messageList.respondToUpdatesOnItem(identifiedBy: $0.key)
+        //                 })
+        //         })
+        //     } else {
+        //         channel.messageList.items.filter({ (key, value) in value.senderID == userID })
+        //             .forEach({ channel.messageList.respondToUpdatesOnItem(identifiedBy: $0.key) })
+        //     }
+        // }
+
+        // print("Returning")
+        // return
+
+        print("Returning")
+        return
+
 
         // Update the view
         battle.userList.respondToUpdatesOnItem(identifiedBy: userID)
+        applyActionToChainedObjects({ $0.battleroom(self, didReceive: newUserStatus, for: userID) })
     }
 
     /// Adds a start rect.
@@ -453,7 +567,7 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
     
     // MARK: - UpdateNotifier
     
-    public var objectsWithLinkedActions: [() -> ReceivesBattleroomUpdates?] = []
+    public var objectsWithLinkedActions: [AnyReceivesBattleroomUpdates] = []
     
     // MARK: - Battle Updates
     
@@ -469,19 +583,17 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
     // MARK: - ListDelegate
     // The Battleroom needs to update when the battle updates.
 
-    public func list(_ list: ListProtocol, didAddItemWithID id: Int, at index: Int) {}
+    public func list(_ list: List<User>, didAddItemWithID id: Int) {}
 
-    public func list(_ list: ListProtocol, didMoveItemFrom index1: Int, to index2: Int) {}
+    public func list(_ list: List<User>, didRemoveItemIdentifiedBy id: Int) {}
 
-    public func list(_ list: ListProtocol, didRemoveItemAt index: Int) {}
-
-    public func list(_ list: ListProtocol, itemWasUpdatedAt index: Int) {
-        if list.sortedItemsByID[index] == myID || list.sortedItemsByID[index] == battle.founderID {
-            applyActionToChainedObjects({ $0.display(isHostIngame: isHostIngame, isPlayerIngame: isPlayerIngame)})
+    public func list(_ list: List<User>, itemWithIDWasUpdated id: Int) {
+        if id == myID || id == battle.founderID {
+            applyActionToChainedObjects({ $0.display(isHostIngame: isHostIngame, isPlayerIngame: isPlayerIngame) })
         }
     }
 
-    public func listWillClear(_ list: ListProtocol) {}
+    public func listWillClear(_ list: List<User>) {}
 
     // MARK: - Nested Types
 
@@ -499,7 +611,7 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
         }
     }
 
-    public struct UserStatus {
+    public struct UserStatus: Equatable {
         public let isReady: Bool
         public let teamNumber: Int
         /// The alliance the user is a part of.

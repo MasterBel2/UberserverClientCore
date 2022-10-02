@@ -9,7 +9,7 @@
 import Foundation
 import ServerAddress
 
-public protocol ReceivesBattleUpdates {
+public protocol ReceivesBattleUpdates: AnyObject {
     
     // Map
     
@@ -22,6 +22,8 @@ public protocol ReceivesBattleUpdates {
     // Host
     
     func hostIsInGameChanged(to hostIsIngame: Bool)
+
+    func anyReceivesBattleUpdates() -> AnyReceivesBattleUpdates
 }
 
 public extension ReceivesBattleUpdates {
@@ -32,6 +34,45 @@ public extension ReceivesBattleUpdates {
     func loadedEngine(_ engine: Engine) {}
     
     func hostIsInGameChanged(to hostIsIngame: Bool) {}
+
+    func anyReceivesBattleUpdates() -> AnyReceivesBattleUpdates {
+        return AnyReceivesBattleUpdates(wrapping: self)
+    }
+}
+
+public final class AnyReceivesBattleUpdates: ReceivesBattleUpdates, Box {
+    let wrapped: ReceivesBattleUpdates
+    public var wrappedAny: AnyObject {
+        return wrapped
+    }
+
+    public init(wrapping: ReceivesBattleUpdates) {
+        self.wrapped = wrapping
+    }
+
+    public func mapDidUpdate(to map: Battle.MapIdentification) {
+        wrapped.mapDidUpdate(to: map)
+    }
+
+    public func loadedMapArchive(_ mapArchive: QueueLocked<UnitsyncMapArchive>, checksumMatch: Bool, usedPreferredEngineVersion: Bool) {
+        wrapped.loadedMapArchive(mapArchive, checksumMatch: checksumMatch, usedPreferredEngineVersion: usedPreferredEngineVersion)
+    }
+
+    public func loadedGameArchive(_ gameArchive: QueueLocked<UnitsyncModArchive>) {
+        wrapped.loadedGameArchive(gameArchive)
+    }
+
+    public func loadedEngine(_ engine: Engine) {
+        wrapped.loadedEngine(engine)
+    }
+
+    public func hostIsInGameChanged(to hostIsIngame: Bool) {
+        wrapped.hostIsInGameChanged(to: hostIsIngame)
+    }
+
+    public func anyReceivesBattleUpdates() -> AnyReceivesBattleUpdates {
+        return self
+    }
 }
 
 public final class Battle: UpdateNotifier {
@@ -55,7 +96,7 @@ public final class Battle: UpdateNotifier {
     }
 
     public var playerCount: Int {
-        return userList.sortedItemCount - spectatorCount
+        return userList.items.count - spectatorCount
 	}
 	
     public let title: String
@@ -184,7 +225,7 @@ public final class Battle: UpdateNotifier {
         
         self.resourceManager = resourceManager
 		
-        userList = List<User>(title: "", property: { $0.status.rank }, parent: serverUserList)
+        userList = List<User>()
         
         myScriptPassword = {
             let directory = scriptPasswordCacheDirectory.appendingPathComponent(String(founderID))
@@ -199,7 +240,8 @@ public final class Battle: UpdateNotifier {
         
         // Additional Setup
 		
-        userList.addItemFromParent(id: founderID)
+        // TODO! the dangers of this are listed elsewhere
+        userList.addItem(serverUserList.items[founderID]!, with: founderID)
         
         loadEngine()
         loadGame()
@@ -214,5 +256,5 @@ public final class Battle: UpdateNotifier {
     
     // MARK: - UpdateNotifier
     
-    public var objectsWithLinkedActions: [() -> ReceivesBattleUpdates?] = []
+    public var objectsWithLinkedActions: [AnyReceivesBattleUpdates] = []
 }

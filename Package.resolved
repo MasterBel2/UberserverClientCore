@@ -42,7 +42,7 @@
         "repositoryURL": "https://github.com/MasterBel2/SpringRTSStartScriptHandling",
         "state": {
           "branch": "master",
-          "revision": "10508af9fb293f6fa3257711fa3b3b744c53fc0f",
+          "revision": "22a3d2b806f7612c6c6b9f38bac4d6b59572dd0d",
           "version": null
         }
       },
@@ -51,8 +51,17 @@
         "repositoryURL": "https://github.com/tsolomko/SWCompression",
         "state": {
           "branch": null,
-          "revision": "4ad6940f2990f2d9f27b39d013c7a64b602d9c50",
-          "version": "4.8.0"
+          "revision": "0714d4421e1fa1e02af51cd8e615417a95f0d230",
+          "version": "4.8.1"
+        }
+      },
+      {
+        "package": "swift-atomics",
+        "repositoryURL": "https://github.com/apple/swift-atomics.git",
+        "state": {
+          "branch": null,
+          "revision": "919eb1d83e02121cdb434c7bfc1f0c66ef17febe",
+          "version": "1.0.2"
         }
       },
       {
@@ -69,8 +78,8 @@
         "repositoryURL": "https://github.com/apple/swift-nio",
         "state": {
           "branch": null,
-          "revision": "124119f0bb12384cef35aa041d7c3a686108722d",
-          "version": "2.40.0"
+          "revision": "b4e0a274f7f34210e97e2f2c50ab02a10b549250",
+          "version": "2.41.1"
         }
       },
       {
@@ -78,8 +87,8 @@
         "repositoryURL": "https://github.com/apple/swift-nio-ssl",
         "state": {
           "branch": null,
-          "revision": "1750873bce84b4129b5303655cce2c3d35b9ed3a",
-          "version": "2.19.0"
+          "revision": "0265283d3539ced108b9b8287eb3328c9d85acdc",
+          "version": "2.21.0"
         }
       }
     ]

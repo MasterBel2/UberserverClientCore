@@ -591,7 +591,7 @@ struct SCSetScriptTagsCommand: SCCommand {
                     continue
                 }
                 battleroom.trueSkills[playerID] = tag.value
-                (battleroom.allyTeamLists + [battleroom.spectatorList]).filter({ $0.sortedItemsByID.contains(playerID)}).forEach({ $0.respondToUpdatesOnItem(identifiedBy: playerID) })
+                (battleroom.allyTeamLists + [battleroom.spectatorList]).filter({ $0.items[playerID] != nil }).forEach({ $0.data.respondToUpdatesOnItem(identifiedBy: playerID) })
             case "modoptions":
                 battleroom.modOptions[tag.path[1]] = tag.value
             default:
@@ -808,10 +808,13 @@ struct SCJoinedBattleCommand: SCCommand {
     func execute(on lobby: TASServerLobby) {
         guard case let .authenticated(authenticatedSession) = lobby.session,
               let battle = authenticatedSession.battleList.items[battleID],
-              let userID = authenticatedSession.id(forPlayerNamed: username) else {
+              let userID = authenticatedSession.id(forPlayerNamed: username),
+			  
+			  let user = authenticatedSession.userList.items[userID] else {
             return
         }
-        battle.userList.addItemFromParent(id: userID)
+		// TODO: AddItemFromParent was a cleaner pattern, but current ManagedLists are... weird with nesting and terminology. This is a placeholder until that's sorted out. Probelm with this model is that updates will NOT be chained to sublist.
+        battle.userList.addItem(user, with: userID)
         if let battleroom = authenticatedSession.battleroom {
             battleroom.scriptPasswords[userID] = scriptPassword
         }

@@ -11,12 +11,12 @@ import Foundation
 public final class Channel {
 
     public let title: String
-    public let userlist: List<User>
+    public let userlist: ManualSublist<User>
 	public var topic: String = ""
     /// Describes how the channel should send a message.
     private let sendAction: (Channel, String) -> ()
 
-    public private(set) var messageList: List<ChatMessage>
+    public let messageList: List<ChatMessage>
 
     // MARK: - Lifecycle
 
@@ -31,15 +31,17 @@ public final class Channel {
         topic = title
         self.title = title
         self.sendAction = sendAction
-        userlist = List<User>(title: title, property: { $0.status.rank }, parent: rootList)
-        messageList = List<ChatMessage>(title: title, property: { $0.time })
-        messageList.sortDirection = .ascending
+        userlist = ManualSublist<User>(parent: rootList)
+        messageList = List<ChatMessage>()
     }
 
     // MARK: - Messages
 
+    private var messageCount = 0
+
     public func receivedNewMessage(_ message: ChatMessage) {
-        messageList.addItem(message, with: messageList.sortedItemCount)
+        messageList.addItem(message, with: messageCount)
+        messageCount = messageCount + 1
     }
 
     /// Sends a message in this battle.

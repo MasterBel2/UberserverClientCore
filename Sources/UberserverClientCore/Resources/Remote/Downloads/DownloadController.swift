@@ -26,15 +26,8 @@ public final class DownloadController: DownloaderDelegate, DownloadItemViewDeleg
 	/// Since download ID is assigned from 0, increasing every time a downloader is added, the ID of a download is also the index of its downloader.
     var downloaders: [Downloader] = []
 	/// The controller's list of download operations.
-    public let downloadList = List<DownloadInfo>(title: "Downloads", property: { $0.dateBegan })
+    public let downloadList = List<DownloadInfo>()
     private var nextID = 0
-
-	/// The display for the information about the download operations.
-    public weak var display: ListDisplay? {
-        didSet {
-            display?.addSection(downloadList)
-        }
-    }
 
     private let system: System
 

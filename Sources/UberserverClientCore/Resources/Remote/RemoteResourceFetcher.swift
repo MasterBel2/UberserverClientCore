@@ -10,9 +10,38 @@ import Foundation
 import FoundationNetworking
 
 /// A set of functions called by a `RemoteResourceFetcher` to allow updates in response to a change in its state.
-public protocol ReceivesRemoteResourceFetcherUpdates {
+public protocol ReceivesRemoteResourceFetcherUpdates: AnyObject {
     /// Indicates that a download task is about to commence.
     func remoteResourceFetcher(_ remoteResourceFetcher: RemoteResourceFetcher, willBeginDownloadOf resource: Resource)
+
+    /// Returns a type-erasing wrapper of self.
+    func asAnyReceivesRemoteResourceFetcherUpdates() -> ReceivesRemoteResourceFetcherUpdates
+}
+
+public extension ReceivesRemoteResourceFetcherUpdates {
+    func asAnyReceivesRemoteResourceFetcherUpdates() -> ReceivesRemoteResourceFetcherUpdates {
+        return AnyReceivesRemoteResourceFetcherUpdates(wrapping: self)
+    }
+}
+
+public final class AnyReceivesRemoteResourceFetcherUpdates: ReceivesRemoteResourceFetcherUpdates, Box {
+    public let wrapped: ReceivesRemoteResourceFetcherUpdates
+    public var wrappedAny: AnyObject {
+        return wrapped
+    }
+
+    public init(wrapping: ReceivesRemoteResourceFetcherUpdates) {
+        wrapped = wrapping
+    }
+
+    public func remoteResourceFetcher(_ remoteResourceFetcher: RemoteResourceFetcher, willBeginDownloadOf resource: Resource) {
+        wrapped.remoteResourceFetcher(remoteResourceFetcher, willBeginDownloadOf: resource)
+    }
+
+    /// Returns self, as we're already wrapped. Purely for protocol conformance reasons.
+    public func asAnyReceivesRemoteResourceFetcherUpdates() -> ReceivesRemoteResourceFetcherUpdates {
+        return self
+    }
 }
 
 // For downloading from rapid:
@@ -33,7 +62,7 @@ public final class RemoteResourceFetcher: DownloaderDelegate, UpdateNotifier {
 
     private let downloadController: DownloadController
 
-    public var objectsWithLinkedActions: [() -> ReceivesRemoteResourceFetcherUpdates?] = []
+    public var objectsWithLinkedActions: [AnyReceivesRemoteResourceFetcherUpdates] = []
 
     /// In-progress download task cache.
     private var tasks: [UUID : URLSessionDownloadTask] = [:]

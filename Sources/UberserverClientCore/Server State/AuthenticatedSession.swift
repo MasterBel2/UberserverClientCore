@@ -8,16 +8,45 @@
 import Foundation
 
 /// A set of functions called by an `AuthenticatedSession` when it updates.
-public protocol ReceivesAuthenticatedClientUpdates {
+public protocol ReceivesAuthenticatedClientUpdates: AnyObject {
     /// Indicates that the user has joined a battleroom.
     func authenticatedClient(_ authenticatedSession: AuthenticatedSession, didJoin battleroom: Battleroom)
     /// Indicates that the user has left the joined battleroom.
     func authenticatedClientDidLeaveBattleroom(_ authenticatedSession: AuthenticatedSession)
+
+    func anyReceivesAuthenticatedClientUpdates() -> ReceivesAuthenticatedClientUpdates
 }
 
 public extension ReceivesAuthenticatedClientUpdates {
     func authenticatedClient(_ authenticatedSession: AuthenticatedSession, didJoin battleroom: Battleroom) {}
     func authenticatedClientDidLeaveBattleroom(_ authenticatedSession: AuthenticatedSession) {}
+
+    func anyReceivesAuthenticatedClientUpdates() -> ReceivesAuthenticatedClientUpdates {
+        return AnyReceivesAuthenticatedClientUpdates(wrapping: self)
+    }
+}
+
+public final class AnyReceivesAuthenticatedClientUpdates: ReceivesAuthenticatedClientUpdates, Box {
+    public let wrapped: ReceivesAuthenticatedClientUpdates
+    public var wrappedAny: AnyObject {
+        return wrapped
+    }
+
+    public init(wrapping: ReceivesAuthenticatedClientUpdates) {
+        self.wrapped = wrapping
+    }
+
+    public func authenticatedClient(_ authenticatedSession: AuthenticatedSession, didJoin battleroom: Battleroom) {
+        wrapped.authenticatedClient(authenticatedSession, didJoin: battleroom)
+    }
+
+    public func authenticatedClientDidLeaveBattleroom(_ authenticatedSession: AuthenticatedSession) {
+        wrapped.authenticatedClientDidLeaveBattleroom(authenticatedSession)
+    }
+
+    public func anyReceivesAuthenticatedClientUpdates() -> ReceivesAuthenticatedClientUpdates {
+        return self
+    }
 }
 
 /// Describes the state of the server that an authenticated user has access to.
@@ -27,7 +56,7 @@ public class AuthenticatedSession: UpdateNotifier {
 
     /// The server connection this object is associated with.
     private unowned let lobby: TASServerLobby
-    public var objectsWithLinkedActions: [() -> ReceivesAuthenticatedClientUpdates?] = []
+    public var objectsWithLinkedActions: [AnyReceivesAuthenticatedClientUpdates] = []
 
     // MARK: - Data
 
@@ -39,15 +68,15 @@ public class AuthenticatedSession: UpdateNotifier {
     internal let password: String
 
     /// The channels the user is participating in.
-    public let channelList = List<Channel>(title: "All Channels", property: { $0.title })
+    public let channelList = List<Channel>()
     /// The private message conversations the user is engaging in.
-    public let privateMessageList = List<Channel>(title: "Private Messages", property: { $0.title })
+    public let privateMessageList = List<Channel>()
     /// The set of forwarded conversations the user is receiving.
-    public let forwardedMessageList = List<Channel>(title: "Forwarded Messages", property: { $0.title })
+    public let forwardedMessageList = List<Channel>()
     /// The users that are authenticated on the server.
-    public let userList = List<User>(title: "All Users", property: { $0.status.rank })
+    public let userList = List<User>()
     /// The battles currently published on the server.
-    public let battleList = List<Battle>(title: "All Battles", property: { $0.playerCount })
+    public let battleList = List<Battle>()
 
     /// The battleroom the user has joined.
     public internal(set) var battleroom: Battleroom? {
