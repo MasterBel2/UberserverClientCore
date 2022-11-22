@@ -26,9 +26,6 @@ public protocol ReceivesClientUpdates: AnyObject {
 }
 
 public extension ReceivesClientUpdates {
-    func client(_ client: Client, didPrepare connection: Connection) {}
-    func client(_ client: Client, willDestroy connection: Connection) {}
-
     func asAnyReceivesClientUpdates() -> AnyReceivesClientUpdates {
         return AnyReceivesClientUpdates(wrapping: self)
     }

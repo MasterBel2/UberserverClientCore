@@ -155,9 +155,7 @@ public struct SCOpenBattleCommand: SCCommand {
 		self.battleID = battleID
 	}
 	
-    public func execute(on lobby: TASServerLobby) {
-		#warning("TODO")
-	}
+    public func execute(on lobby: TASServerLobby) {}
 	
     public var payload: String {
 		return String(battleID)

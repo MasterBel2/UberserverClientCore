@@ -68,7 +68,7 @@ public struct QueueLocked<LockedObject> {
 
 /// Provides weak capture for reference types on async calls.
 public extension QueueLocked where LockedObject: AnyObject {
-    public func asyncAfter(deadline: DispatchTime, qos: DispatchQoS, execute block: @escaping (LockedObject) -> Void) -> DispatchWorkItem {
+    func asyncAfter(deadline: DispatchTime, qos: DispatchQoS, execute block: @escaping (LockedObject) -> Void) -> DispatchWorkItem {
         let workItem = DispatchWorkItem(qos: qos, flags: .enforceQoS, block: { [weak lockedObject] in
             guard let lockedObject = lockedObject else { return }
             block(lockedObject)
@@ -77,7 +77,7 @@ public extension QueueLocked where LockedObject: AnyObject {
         return workItem
     }
 
-    public func async(block: @escaping (LockedObject) -> Void) {
+    func async(block: @escaping (LockedObject) -> Void) {
         queue.async { [weak lockedObject] in
             guard let lockedObject = lockedObject else { return }
             block(lockedObject)

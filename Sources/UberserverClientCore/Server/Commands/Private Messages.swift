@@ -129,7 +129,6 @@ public struct SCSaidPrivateCommand: SCCommand {
 
         if handleSaidEncodedCommand(authenticatedClient: authenticatedSession, lobby: lobby, senderID: senderID, sender: sender, message: message, availableCommands: saidPrivateEncodableCommands) { return }
 
-
         channel.receivedNewMessage(
             ChatMessage(
                 time: Date(),
