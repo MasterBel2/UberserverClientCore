@@ -38,7 +38,7 @@ public class AnyListOrderDelegate<ListItem>: ListOrderDelegate, Box {
     public init<T: ListOrderDelegate>(valueToWrap: T) where T.ListItem == ListItem {
         _didAddItem = valueToWrap.listOrder(_:didAddItemWithID:at:)   
         _didMoveItem = valueToWrap.listOrder(_:didMoveItemIdentifiedBy:from:to:)
-        _didUpdateItem = valueToWrap.listOrder(_:didAddItemWithID:at:)
+        _didUpdateItem = valueToWrap.listOrder(_:itemIdentifiedBy:wasUpdatedAt:)
         _didRemoveItem = valueToWrap.listOrder(_:didRemoveItemIdentifiedBy:at:)
         _willClear = valueToWrap.listWillClear(_:)
         _didSort = valueToWrap.listDidSort(_:)
@@ -180,7 +180,7 @@ public final class ListOrder<ListItem>: ListDelegate, UpdateNotifier {
         applyActionToChainedObjects({ $0.listOrder(self, didAddItemWithID: id, at: index)})
     }
 
-    public func list(_ list: List<ListItem>, didAddItemWithID id: Int) {
+    public func list(_ list: List<ListItem>, didAdd item: ListItem, identifiedBy id: Int) {
         guard list === listToSort, let item = listToSort.items[id] else { return }
 
         for (index, idAtIndex) in sortedItemsByID.enumerated() {

@@ -583,7 +583,7 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
     // MARK: - ListDelegate
     // The Battleroom needs to update when the battle updates.
 
-    public func list(_ list: List<User>, didAddItemWithID id: Int) {}
+    public func list(_ list: List<User>, didAdd user: User, identifiedBy id: Int) {}
 
     public func list(_ list: List<User>, didRemoveItemIdentifiedBy id: Int) {}
 

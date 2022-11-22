@@ -23,7 +23,7 @@ public final class ManualSublist<ListItem>: ListDelegate {
 
     // MARK: - ListDelegate
 
-    public func list(_ list: List<ListItem>, didAddItemWithID id: Int) {}
+    public func list(_ list: List<ListItem>, didAdd item: ListItem, identifiedBy id: Int) {}
 
     public func list(_ list: List<ListItem>, didRemoveItemIdentifiedBy id: Int) {
         guard list === parentList else { return }

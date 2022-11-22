@@ -16,7 +16,7 @@ public final class FilteredSublist<ListItem>: ListDelegate {
 
     // MARK: - ListDelegate
 
-    public func list(_ list: List<ListItem>, didAddItemWithID id: Int) {
+    public func list(_ list: List<ListItem>, didAdd user: ListItem, identifiedBy id: Int) {
         guard list === parentList, let item = parentList?.items[id] else { return }
         if filter(id, item) {
             data.addItem(item, with: id)

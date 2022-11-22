@@ -12,7 +12,7 @@ public protocol ListDelegate: AnyObject {
     associatedtype ListItem
 
     /// Notifies the delegate that the list added an item with the given ID at the given index.
-    func list(_ list: List<ListItem>, didAddItemWithID id: Int)
+    func list(_ list: List<ListItem>, didAdd item: ListItem, identifiedBy id: Int)
     /// Notifies the delegate that the list removed an item at the given index.
     func list(_ list: List<ListItem>, didRemoveItemIdentifiedBy id: Int)
     /// Informs the delegate that an item was updated and its view should be reloaded.
@@ -30,8 +30,8 @@ extension ListDelegate {
 }
 
 public class AnyListDelegate<ListItem>: ListDelegate, Box {
-    public func list(_ list: List<ListItem>, didAddItemWithID id: Int) {
-        _didAddItem(list, id)
+    public func list(_ list: List<ListItem>, didAdd item: ListItem, identifiedBy id: Int) {
+        _didAddItem(list, item, id)
     }
 
     public func list(_ list: List<ListItem>, didRemoveItemIdentifiedBy id: Int) {
@@ -46,7 +46,7 @@ public class AnyListDelegate<ListItem>: ListDelegate, Box {
         _willClear(list)
     }
 
-    private let _didAddItem: (List<ListItem>, Int) -> Void
+    private let _didAddItem: (List<ListItem>, ListItem, Int) -> Void
     private let _didRemoveItem: (List<ListItem>, Int) -> Void
     private let _didUpdateItem: (List<ListItem>, Int) -> Void
     private let _willClear: (List<ListItem>) -> Void
@@ -54,7 +54,7 @@ public class AnyListDelegate<ListItem>: ListDelegate, Box {
     public let wrappedAny: AnyObject
 
     public init<T: ListDelegate>(valueToWrap: T) where T.ListItem == ListItem {
-        self._didAddItem = valueToWrap.list(_:didAddItemWithID:)
+        self._didAddItem = valueToWrap.list(_:didAdd:identifiedBy:)
         self._didRemoveItem = valueToWrap.list(_:didRemoveItemIdentifiedBy:)
         self._didUpdateItem = valueToWrap.list(_:itemWithIDWasUpdated:)
         self._willClear = valueToWrap.listWillClear
@@ -85,8 +85,7 @@ public final class List<ListItem>: UpdateNotifier {
     public func addItem(_ item: ListItem, with id: Int) {
         guard items[id] == nil else { return }
         items[id] = item
-
-        applyActionToChainedObjects({ $0.list(self, didAddItemWithID: id) })
+        applyActionToChainedObjects({ $0.list(self, didAdd: item, identifiedBy: id) })
     }
 
     public func respondToUpdatesOnItem(identifiedBy id: Int) {
