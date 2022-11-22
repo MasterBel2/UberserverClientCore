@@ -118,8 +118,11 @@ public final class ListOrder<ListItem>: ListDelegate, UpdateNotifier {
         self.sortRule = sortRule
         self.listToSort = listToSort
 
+        for (id, item) in listToSort.items {
+            list(listToSort, didAdd: item, identifiedBy: id)
+        }
+
         listToSort.addObject(self.asAnyListDelegate())
-        sortFromScratch()
     }
 
     public convenience init<T: Comparable>(listToSort: List<ListItem>, property: @escaping (ListItem) -> T) {
