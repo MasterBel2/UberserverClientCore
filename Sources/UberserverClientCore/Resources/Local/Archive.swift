@@ -112,11 +112,11 @@ public final class InfoMap<PixelType: UnsignedInteger> {
 	
 	public private(set) lazy var pixels: [PixelType] = {
 		var pixels: [PixelType] = Array<PixelType>(repeating: PixelType(), count: size.width * size.height)
-		withUnsafePointer(to: &pixels) { pixelPointer in
-			pixelPointer.withMemoryRebound(to: UInt8.self, capacity: 1) { bytePointer in
-				loadPixels(name, UnsafeMutablePointer(mutating: bytePointer))
-			}
-		}
+		pixels.withUnsafeBufferPointer({ (pointer: UnsafeBufferPointer<PixelType>) -> Void in
+			pointer.baseAddress?.withMemoryRebound(to: UInt8.self, capacity: size.width * size.height * MemoryLayout<PixelType>.size, {
+				loadPixels(name, UnsafeMutablePointer(mutating: $0))
+			})
+		})
 		return pixels
 	}()
 }

@@ -82,7 +82,7 @@ public final class ResourceManager {
     public func loadMap(named mapName: String, checksum: Int32, preferredVersion: String, shouldDownload: Bool, completionHandler: @escaping (MapLoadResult) -> Void) {
         let matches = archiveLoader.mapArchives.filter({ $0.sync { $0.name } == mapName })
         if let match = matches.first {
-            completionHandler(.success((match, match.sync { $0.singleArchiveChecksum } == checksum, false)))
+            completionHandler(.success((match, match.sync { $0.completeChecksum } == checksum, false)))
         } else if shouldDownload {
             remoteResourceFetcher.retrieve(.map(name: mapName), dataDirectory: archiveLoader.url) { [weak self] successful in
                 guard let self = self else {

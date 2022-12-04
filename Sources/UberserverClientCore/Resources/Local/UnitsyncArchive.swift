@@ -76,17 +76,15 @@ final public class UnitsyncMapArchive: UnitsyncArchive, MapArchive, QueueLockabl
 		let cName = infoMapName.rawValue.cString(using: .utf8)!
 		var height = CInt()
 		var width = CInt()
-		withUnsafePointer(to: cName[0]) { cNamePointer in
-            _ = unitsyncWrapper.GetInfoMapSize(name, cNamePointer, &width, &height)
+		_ = unitsyncWrapper.GetInfoMapSize(name, cName, &width, &height)
+		if width == 0 {
+			print(String(cString: unitsyncWrapper.GetNextError()))
 		}
 		return (width: Int(width), height: Int(height))
 	}
 	
 	private func loadInfoMapPixels<T>(infoMapName: InfoMap<T>.Name, loadDestination: UnsafeMutablePointer<UInt8>) {
-		let cName = infoMapName.rawValue.cString(using: .utf8)!
-		withUnsafePointer(to: cName[0]) { cName in
-            _ = unitsyncWrapper.GetInfoMap(name, cName, loadDestination, CInt(MemoryLayout<T>.size))
-		}
+		_ = unitsyncWrapper.GetInfoMap(name, infoMapName.rawValue, loadDestination, CInt(MemoryLayout<T>.size))
 	}
 	
 	private func loadMinimapPixels(mipLevel: Int, count: Int) -> [RGB565Color] {
@@ -110,12 +108,21 @@ final public class UnitsyncMapArchive: UnitsyncArchive, MapArchive, QueueLockabl
 	}
     
     public func loadMinimaps(mipLevels: Range<Int>, completionBlock: @escaping ((data: [UInt16], dimension: Int)?) -> Void) {
-        for mipLevel in mipLevels.reversed() {
-            minimapLoadQueue.async { [weak self] in
-                guard let self = self else { return }
-                completionBlock((self.minimap(for: mipLevel), 1024 / Int(pow(2, Float(mipLevel)))))
-            }
-        }
+		for (index, mipLevel) in mipLevels.enumerated() {
+			if let data = self.mipLevels[mipLevel] {
+				completionBlock((data, 1024 / Int(pow(2, Float(mipLevel)))))
+				let invertedIndex = mipLevels.count - index
+				guard index != 0 else {
+					break
+				}
+				
+				for mipLevel in mipLevels[invertedIndex..<mipLevels.count] {
+					completionBlock((minimap(for: mipLevel), 1024 / Int(pow(2, Float(mipLevel)))))
+				}
+
+				break
+			}
+		}
     }
 }
 
@@ -133,7 +140,10 @@ final public class UnitsyncModArchive: UnitsyncArchive, ModArchive, QueueLockabl
 
 	public private(set) lazy var factions: [Faction] = {
 		return executeOnVFS {
-            return (0..<unitsyncWrapper.GetSideCount()).map({ index in
+			let sideCount = unitsyncWrapper.GetSideCount()
+
+			guard sideCount > 0 else { return [] }
+            return (0..<sideCount).map({ index in
 				return Faction(
                     name: String(cString: unitsyncWrapper.GetSideName(index)),
                     startUnit: String(cString: unitsyncWrapper.GetSideStartUnit(index))
