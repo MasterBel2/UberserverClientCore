@@ -60,7 +60,7 @@ public final class RemoteResourceFetcher: DownloaderDelegate, UpdateNotifier {
 
     // MARK: - Dependencies
 
-    private let downloadController: DownloadController
+    public let downloadController: DownloadController
 
     public var objectsWithLinkedActions: [AnyReceivesRemoteResourceFetcherUpdates] = []
 

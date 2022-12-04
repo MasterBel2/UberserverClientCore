@@ -93,7 +93,7 @@ public final class Connection: SocketDelegate {
         // MARK: - Socket connection
 
         /// The socket that connects to the remote server.
-        let socket: Socket
+        public let socket: Socket
 
         /// A message was received over the socket.
         func socket(_ socket: Socket, didReceive message: Data) {

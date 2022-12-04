@@ -454,6 +454,13 @@ public struct StartRect {
 	public let top: Int
 	public let right: Int
 	public let bottom: Int
+
+	public init(left: Int, top: Int, right: Int, bottom: Int) {
+		self.left = left
+		self.top = top
+		self.right = right
+		self.bottom = bottom
+	}
 	
 	public func scaled<F: FloatingPoint>() -> (x: F, y: F, width: F, height: F) {
 //		let floatLeft = F(left)

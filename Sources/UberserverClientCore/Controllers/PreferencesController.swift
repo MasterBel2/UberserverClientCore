@@ -40,12 +40,12 @@ public class PreferencesController {
     }
 
     /// Records the username as most recently used to log in to the server.
-    func setLastUsername(_ username: String, for serverName: String) {
+    public func setLastUsername(_ username: String, for serverName: String) {
         let key = serverAttributeKey(for: serverName, attributeKey: .lastUsername)
         userDefaults.set(username, forKey: key)
     }
     /// Returns the username most recently used to log in to the server.
-    func lastUsername(for serverName: String) -> String? {
+    public func lastUsername(for serverName: String) -> String? {
         let key = serverAttributeKey(for: serverName, attributeKey: .lastUsername)
         return userDefaults.object(forKey: key) as? String
     }

@@ -8,7 +8,7 @@
 
 import Foundation
 
-enum ServerError {
+public enum ServerError: Error {
     case joinFailed(channel: String, reason: String)
     case joinBattleFailed(reason: String)
     case resetPasswordDenied(errorMessage: String)

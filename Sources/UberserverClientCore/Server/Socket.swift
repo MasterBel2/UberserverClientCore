@@ -20,15 +20,15 @@ protocol SocketDelegate: AnyObject {
     func socket(_ socket: Socket, didFailWithError error: Error?)
 }
 
-typealias Socket = TCPClientSocket
-final class TCPClientSocket: TCPClientDelegate {
+public typealias Socket = TCPClientSocket
+public final class TCPClientSocket: TCPClientDelegate {
     weak var delegate: SocketDelegate?
 
-    let address: ServerAddress
+    public let address: ServerAddress
 
     private(set) var client: TCPClient?
 
-    var tlsEnabled: Bool { return client?.tlsEnabled == true }
+    public var tlsEnabled: Bool { return client?.tlsEnabled == true }
 
     init?(address: ServerAddress) {
         self.address = address

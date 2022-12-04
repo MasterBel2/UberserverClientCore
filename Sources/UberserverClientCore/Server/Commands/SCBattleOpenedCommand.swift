@@ -13,24 +13,24 @@ public struct SCBattleOpenedCommand: SCCommand {
 
     public static let title = "BATTLEOPENED"
 
-    private let battleID: Int
+    public let battleID: Int
 
-    private let isReplay: Bool
-    private let natType: Battle.NATType
-    private let founder: String
-    private let ip: String
-    private let port: Int
-    private let maxPlayers: Int
-    private let passworded: Bool
-    private let rank: Int
-    private let mapHash: Int32
+    public let isReplay: Bool
+    public let natType: Battle.NATType
+    public let founder: String
+    public let ip: String
+    public let port: Int
+    public let maxPlayers: Int
+    public let passworded: Bool
+    public let rank: Int
+    public let mapHash: Int32
 
-    private let engineName: String
-    private let engineVersion: String
-    private let mapName: String
-    private let title: String
-    private let gameName: String
-    private let channel: String
+    public let engineName: String
+    public let engineVersion: String
+    public let mapName: String
+    public let title: String
+    public let gameName: String
+    public let channel: String
 
     // MARK: - Lifecycle
     

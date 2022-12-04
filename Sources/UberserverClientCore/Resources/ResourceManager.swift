@@ -15,6 +15,10 @@ public final class ResourceManager {
     public let replayController: ReplayController
     private let remoteResourceFetcher: RemoteResourceFetcher
 
+    public var downloadController: DownloadController {
+        return remoteResourceFetcher.downloadController
+    }
+
     private let queue = DispatchQueue(label: "com.believeandrise.resourcemanager")
     
     // MARK: - Creating a Resource Manager

@@ -55,7 +55,7 @@ public class AuthenticatedSession: UpdateNotifier {
     // MARK: - Associated Objects
 
     /// The server connection this object is associated with.
-    private unowned let lobby: TASServerLobby
+    public unowned let lobby: TASServerLobby
     public var objectsWithLinkedActions: [AnyReceivesAuthenticatedClientUpdates] = []
 
     // MARK: - Data
