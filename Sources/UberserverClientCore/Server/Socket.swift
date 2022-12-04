@@ -26,20 +26,33 @@ public final class TCPClientSocket: TCPClientDelegate {
 
     public let address: ServerAddress
 
-    private(set) var client: TCPClient?
+    private(set) var client: TCPClient<Data>?
 
     public var tlsEnabled: Bool { return client?.tlsEnabled == true }
+
+
+    private(set) var bufferedMessages: [Data] = []
+
+    public var shouldBuffer = false {
+        didSet {
+            if !shouldBuffer { flush() }
+        }
+    }
 
     init?(address: ServerAddress) {
         self.address = address
     }
 
     func open() {
-        client = try? TCPClient.run(
+        client = try? TCPClient<Data>.run(
             host: address.location,
             port: address.port,
             delegate: self
         )
+    }
+
+    func flush() {
+        bufferedMessages.forEach({ send(message: $0, force: true) })
     }
 
     func close() {
@@ -47,19 +60,22 @@ public final class TCPClientSocket: TCPClientDelegate {
         client = nil
     }
 
-    func send(message: Data) {
-        guard let channel = client?.channel else {
-            return
+    // parameter force: if true, message buffering is bypassed
+    func send(message: Data, force: Bool = false) {
+        if shouldBuffer && !force {
+            bufferedMessages.append(message)
+        } else {
+            client?.channel.writeAndFlush(message, promise: nil)
         }
-
-        channel.writeAndFlush(ByteBuffer(bytes: message), promise: nil)
     }
 
     // MARK: - TCPClientDelegate
 
     func socketError(_ error: Error) {
         delegate?.socket(self, didFailWithError: error)
-        client = nil
+        // Crashing here: apparently when stop() is called, that loops back to here and so you have a client = nil inside a client.stop() - creating a double access. 
+        // Weird? Yes. Know how to fix it? ... Async? 
+        // client = nil
     }
 
     func received(_ data: Data) {

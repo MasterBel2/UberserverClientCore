@@ -42,6 +42,12 @@ public struct TASServerCommand: SCCommand {
     }
     
     public func execute(on lobby: TASServerLobby) {
+        // Clean up buffering created by configuration switches (e.g. TLS)
+        lobby.connection.socket.shouldBuffer = false
+        lobby.connection.socket.flush()
+        
+        lobby.setVersion(protocolVersion)
+
         guard !lobby.connection.socket.tlsEnabled,
               case let .tasServer(version: protocolFloat) = lobby.featureAvailability?.serverProtocol else {
             return
@@ -62,5 +68,7 @@ public struct TASServerCommand: SCCommand {
                 return false
             })
         }
+        // Will reset when server tells us we've successfully reconnected to the server.
+        lobby.connection.socket.shouldBuffer = true
     }
 }

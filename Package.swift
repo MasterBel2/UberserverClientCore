@@ -40,7 +40,8 @@ let package = Package(
                 "SWCompression",
                 .product(name: "Crypto", package: "swift-crypto"),
                 .product(name: "NIO", package: "swift-nio"),
-                .product(name: "NIOSSL", package: "swift-nio-ssl")
+                .product(name: "NIOFoundationCompat", package: "swift-nio"),
+                .product(name: "NIOSSL", package: "swift-nio-ssl"),
             ]),
         .testTarget(
             name: "UberserverClientCoreTests",

@@ -237,10 +237,9 @@ final public class TASServerLobby: Lobby, UpdateNotifier {
         }
 
         let featureAvailability = ProtocolFeatureAvailability(serverProtocol: .tasServer(version: protocolFloat))
+        self.featureAvailability = featureAvailability
 
         applyActionToChainedObjects({ $0.lobby(self, willUseCommandProtocolWithFeatureAvailability: featureAvailability) })
-
-        self.featureAvailability = featureAvailability
     }
 
     /// A set of commands expected to be received when using the TASServer protocol.
