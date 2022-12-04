@@ -146,11 +146,14 @@ struct SCLeftCommand: SCCommand {
         guard case let .authenticated(authenticatedSession) = lobby.session else { return }
         
         let channelID = authenticatedSession.id(forChannelnamed: channelName)
-        guard let channel = authenticatedSession.channelList.items[channelID],
-              let id = authenticatedSession.id(forPlayerNamed: username)
-        else {
+        guard let id = authenticatedSession.id(forPlayerNamed: username) else {
             return
         }
-        channel.userlist.data.removeItem(withID: id)
+
+        if id == authenticatedSession.myID {
+            authenticatedSession.channelList.removeItem(withID: channelID)
+        } else if let channel = authenticatedSession.channelList.items[channelID] {
+            channel.userlist.data.removeItem(withID: id)
+        }
     }
 }
