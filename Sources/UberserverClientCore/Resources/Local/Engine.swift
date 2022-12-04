@@ -67,6 +67,7 @@ public struct Engine {
         }
 
         do {
+            try FileManager.default.createDirectory(at: scriptFileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
             try script.launchScript(shouldRecordDemo: doRecordDemo).write(toFile: scriptFileURL.path, atomically: true, encoding: .utf8)
             system.launchApplication(at: engineURL.path, with: args, completionHandler: {
                 completionHandler?()
