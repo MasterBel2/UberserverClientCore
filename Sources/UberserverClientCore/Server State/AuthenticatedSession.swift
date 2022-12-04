@@ -238,7 +238,7 @@ public class AuthenticatedSession: UpdateNotifier {
             //     return true
             guard let self = self else { return true }
             if let successCommand = command as? SCBattleOpenedCommand {
-                guard let founderID = self.id(forPlayerNamed: successCommand.founder) else { return true }
+                guard let founderID = self.id(forPlayerNamed: successCommand.founder) else { return false }
                 let battle = Battle(
                     serverUserList: self.userList, 
                     isReplay: successCommand.isReplay, 

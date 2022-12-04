@@ -100,8 +100,8 @@ struct SCLoginAcceptedCommand: SCCommand {
 
     /// Uberserver does not handle command IDs properly, so this hacks around that (since we know that we don't send a second command handler before login completes).
     public func execute(on lobby: TASServerLobby) {
-        _ = lobby.specificCommandHandlers.first?.value(self)
-        lobby.specificCommandHandlers = [:]
+        _ = lobby.specificCommandHandlers[1]?(self)
+        lobby.specificCommandHandlers[1] = nil
     }
 }
 
