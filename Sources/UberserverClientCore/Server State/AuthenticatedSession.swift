@@ -14,14 +14,14 @@ public protocol ReceivesAuthenticatedClientUpdates: AnyObject {
     /// Indicates that the user has left the joined battleroom.
     func authenticatedClientDidLeaveBattleroom(_ authenticatedSession: AuthenticatedSession)
 
-    func anyReceivesAuthenticatedClientUpdates() -> ReceivesAuthenticatedClientUpdates
+    func asAnyReceivesAuthenticatedClientUpdates() -> AnyReceivesAuthenticatedClientUpdates
 }
 
 public extension ReceivesAuthenticatedClientUpdates {
     func authenticatedClient(_ authenticatedSession: AuthenticatedSession, didJoin battleroom: Battleroom) {}
     func authenticatedClientDidLeaveBattleroom(_ authenticatedSession: AuthenticatedSession) {}
 
-    func anyReceivesAuthenticatedClientUpdates() -> ReceivesAuthenticatedClientUpdates {
+    func asAnyReceivesAuthenticatedClientUpdates() -> AnyReceivesAuthenticatedClientUpdates {
         return AnyReceivesAuthenticatedClientUpdates(wrapping: self)
     }
 }
@@ -44,7 +44,7 @@ public final class AnyReceivesAuthenticatedClientUpdates: ReceivesAuthenticatedC
         wrapped.authenticatedClientDidLeaveBattleroom(authenticatedSession)
     }
 
-    public func anyReceivesAuthenticatedClientUpdates() -> ReceivesAuthenticatedClientUpdates {
+    public func asAnyReceivesAuthenticatedClientUpdates() -> AnyReceivesAuthenticatedClientUpdates {
         return self
     }
 }
@@ -206,6 +206,83 @@ public class AuthenticatedSession: UpdateNotifier {
         battleroom = nil
 
         lobby.send(CSLeaveBattleCommand())
+    }
+
+    public func hostBattle(title: String, password: String?, maxPlayers: Int, minRank: Int, port: Int, engine: Engine, gameArchive: QueueLocked<UnitsyncModArchive>, mapArchive: QueueLocked<UnitsyncMapArchive>, resultHandler: @escaping (Result<Int, ServerError>) -> Void) {
+        guard battleroom == nil else { return }
+
+        Logger.log("About to send...", tag: .General)
+
+        let (gameName, gameHash) = gameArchive.sync(block: { return ($0.name, $0.completeChecksum) })
+        let (mapName, mapHash) = mapArchive.sync(block: { return ($0.name, $0.completeChecksum) })
+
+        Logger.log("Got map/game info...", tag: .General)
+
+        lobby.send(CSOpenBattleCommand(
+            isReplay: false,
+            natType: .none,
+            password: password,
+            port: port,
+            maxPlayers: maxPlayers,
+            gameHash: gameHash,
+            rank: minRank,
+            mapHash: mapHash,
+            engineName: "Spring",
+            engineVersion: engine.syncVersion,
+            mapName: mapName,
+            title: title,
+            gameName: gameName
+        ), specificHandler: { [weak self] command in
+            // if let successCommand = command as? SCOpenBattleCommand {
+            //     resultHandler(.success(successCommand.battleID))
+            //     return true
+            guard let self = self else { return true }
+            if let successCommand = command as? SCBattleOpenedCommand {
+                guard let founderID = self.id(forPlayerNamed: successCommand.founder) else { return true }
+                let battle = Battle(
+                    serverUserList: self.userList, 
+                    isReplay: successCommand.isReplay, 
+                    natType: successCommand.natType, 
+                    founder: successCommand.founder, 
+                    founderID: founderID, 
+                    ip: successCommand.ip, 
+                    port: successCommand.port, 
+                    maxPlayers: successCommand.maxPlayers, 
+                    hasPassword: successCommand.passworded, 
+                    rank: successCommand.rank, 
+                    mapHash: successCommand.mapHash, 
+                    engineName: successCommand.engineName, 
+                    engineVersion: successCommand.engineVersion, 
+                    mapName: successCommand.mapName, 
+                    title: successCommand.title, 
+                    gameName: successCommand.gameName, 
+                    channel: successCommand.channel, 
+                    scriptPasswordCacheDirectory: self.lobby.connection.cacheDirectory.appendingPathComponent("Script Passwords"), 
+                    resourceManager: self.lobby.connection.resourceManager
+                )
+                self.battleList.addItem(battle, with: successCommand.battleID)
+
+                guard let myID = self.myID else { return true }
+
+                #warning("Dummy value for hash code; value received in a separate command, which is too difficult so I just gave up")
+                self.battleroom = Battleroom(
+                    battle: battle,
+                    channel: Channel(title: successCommand.channel, rootList: self.userList, sendAction: { [weak self] channel, message in
+                        self?.lobby.send(CSSayCommand(channelName: channel.title, message: message))
+                    }),
+                    sendCommandBlock: { [weak self] command in self?.lobby.send(command) },
+                    hashCode: 0, 
+                    myID: myID,
+                    hostAPI: HostAPI(session: self, engine: engine, mapArchive: mapArchive, gameArchive: gameArchive)
+                )
+                return true
+            } else if let failureCommand = command as? SCOpenBattleFailedCommand {
+                resultHandler(.failure(.openBattleFailed(reason: failureCommand.reason)))
+                return true
+            }
+            return false
+        })
+        Logger.log("sent!", tag: .General)
     }
 
     // MARK: - Interacting with Other Users

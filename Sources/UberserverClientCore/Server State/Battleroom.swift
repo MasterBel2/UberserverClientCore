@@ -8,6 +8,7 @@
 
 import Foundation
 import SpringRTSStartScriptHandling
+import ServerAddress
 
 // MARK: - Protocols
 
@@ -129,6 +130,10 @@ public final class AnyReceivesBattleroomUpdates: ReceivesBattleroomUpdates, Box 
 
 public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdates {
 
+    // MARK: - Hosting
+
+    public let hostAPI: HostAPI?
+
     // MARK: - Dependencies
     
     /// The battleroom's associated battle.
@@ -202,9 +207,9 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
 
     // MARK: - Lifecycle
 
-    private let sendCommandBlock: (CSCommand) -> Void
+    internal let sendCommandBlock: (CSCommand) -> Void
 
-    public init(battle: Battle, channel: Channel, sendCommandBlock: @escaping (CSCommand) -> Void, hashCode: Int32, myID: Int) {
+    public init(battle: Battle, channel: Channel, sendCommandBlock: @escaping (CSCommand) -> Void, hashCode: Int32, myID: Int, hostAPI: HostAPI?) {
         self.battle = battle
         self.hashCode = hashCode
         self.channel = channel
@@ -212,14 +217,17 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
         self.myID = myID
         self.sendCommandBlock = sendCommandBlock
 
-        var battleroomSorter = BattleroomPlayerListSorter()
+        self.hostAPI = hostAPI
 
-        allyTeamLists = (0...15).map({ _ in ManualSublist(parent: battle.userList) })
-        spectatorList = ManualSublist(parent: battle.userList)
+        allyTeamLists = (0...15).map({ _ in ManualSublist(parent: battle.userList.data ) })
+        spectatorList = ManualSublist(parent: battle.userList.data)
 
-        battleroomSorter.battleroom = self
-        battle.addObject(self.anyReceivesBattleUpdates())
-        battle.userList.addObject(self.asAnyListDelegate())
+        // Init done
+
+        hostAPI?.battleroom = self
+
+        battle.addObject(self.asAnyReceivesBattleUpdates())
+        battle.userList.data.addObject(self.asAnyListDelegate())
         
         battle.shouldAutomaticallyDownloadMap = true
         
@@ -248,19 +256,21 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
         // Only ally/spectator if the user's status has changed.
 
         if let previousUserStatus = previousUserStatus {
-            guard previousUserStatus != newUserStatus else { 
-                print("early exit!")
+            guard previousUserStatus != newUserStatus else {
                 return
             }
 
             switch (previousUserStatus.isSpectator, newUserStatus.isSpectator) {
             case (false, true):
+                allyTeamLists[previousUserStatus.allyNumber].data.removeItem(withID: userID)
                 spectatorList.addItemFromParent(id: userID)
             case (true, false):
                 spectatorList.data.removeItem(withID: userID)
+                allyTeamLists[newUserStatus.allyNumber].addItemFromParent(id: userID)
             default:
                 if previousUserStatus.allyNumber != newUserStatus.allyNumber {
                     allyTeamLists[previousUserStatus.allyNumber].data.removeItem(withID: userID)
+                    print("Moving player from ally \(previousUserStatus.allyNumber) to \(newUserStatus.allyNumber)")
                     allyTeamLists[newUserStatus.allyNumber].addItemFromParent(id: userID)
 
                     if userID == myID {
@@ -280,6 +290,7 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
                             .forEach({ channel.messageList.respondToUpdatesOnItem(identifiedBy: $0.key) })
                     }
                 }
+                break
             }
 
         } else {
@@ -344,15 +355,9 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
         //     }
         // }
 
-        // print("Returning")
-        // return
-
-        print("Returning")
-        return
-
 
         // Update the view
-        battle.userList.respondToUpdatesOnItem(identifiedBy: userID)
+        battle.userList.data.respondToUpdatesOnItem(identifiedBy: userID)
         applyActionToChainedObjects({ $0.battleroom(self, didReceive: newUserStatus, for: userID) })
     }
 
@@ -367,36 +372,43 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
         startRects.removeValue(forKey: allyTeam)
         applyActionToChainedObjects({ $0.removeStartRect(for: allyTeam) })
     }
-    
-    // MARK: - User Actions
+
+    /// Informs the server that the user's status updated.
+    public func setBattleStatus(_ newBattleStatus: Battleroom.UserStatus) {
+        sendCommandBlock(CSMyBattleStatusCommand(battleStatus: newBattleStatus, color: myColor))
+    }
 
     enum GameStartError: Error {
         case missingUserStats(user: User)
         case missingEngine(name: String, version: String)
         case missingUser(id: Int)
         case missingGame(name: String)
+        case missingMap(name: String)
     }
-    
-        #warning("Consider moving this to Battle")
-    public func startGame() throws {
+
+    /**
+      - paramater autohostPort: Used to flag whether the host is an autohost or . Unused if connecting as a client. 
+     */
+    public func startGame(engineFlavor: Engine.Flavor = .full, autohostPort: Int? = nil, completionHandler: (() -> Void)? = nil) throws {
+        let battle = battle
         guard let myAccount = battle.userList.items[myID] else {
             throw GameStartError.missingUser(id: myID)
         }
         guard let engine = battle.engine else {
             throw GameStartError.missingEngine(name: battle.engineName, version: battle.engineVersion)
         }
-        guard let gameArchive = battle.gameArchive else {
+        guard battle.loadedMap != nil else { 
+            throw GameStartError.missingMap(name: battle.mapIdentification.name)
+        }
+        guard let gameArchive = battle.gameArchive else { 
             throw GameStartError.missingGame(name: battle.gameName)
         }
-        guard let mapArchive = battle.loadedMap else {
-            throw GameStartError.missingGame(name: battle.gameName)
-        }
+
+        // Capture here for completion handler
+        let sendCommandBlock = self.sendCommandBlock
 
         sendCommandBlock(CSMyStatusCommand(status: myAccount.status.changing(isIngame: true)))
         setBattleStatus(myBattleStatus.changing(isReady: false))
-
-        // Capture here to avoid depending on the battleroom's existence to change the status.
-        let sendCommandBlock = self.sendCommandBlock
 
 
         let specification: LaunchScriptConvertible
@@ -509,12 +521,14 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
                 })
                 return SpringRTSStartScriptHandling.AllyTeam(scriptID: allyTeamIndex, teams: scriptTeams)
             }).filter({ $0.teams.count > 0 })
+
+            let hostType: HostConfig.HostType = autohostPort.map({ .autohost((programName: "BelieveAndRise Alpha", port: $0)) }) ?? .user(lobbyName: "BelieveAndRise Alpha")
             
             let hostConfig = HostConfig(
                 userID: myID,
                 username: myAccount.profile.fullUsername,
-                type: .user(lobbyName: myAccount.profile.lobbyID),
-                address: nil,
+                type: hostType,
+                address: ServerAddress(location: "0.0.0.0", port: 8452),
                 rank: myAccount.status.rank,
                 countryCode: myAccount.profile.country
             )
@@ -555,14 +569,10 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
             specification = ClientSpecification(ip: battle.ip, port: battle.port, username: myAccount.profile.username, scriptPassword: battle.myScriptPassword)
         }
 
-        try engine.launchGame(script: specification, doRecordDemo: true) {
+        try engine.launchGame(script: specification, doRecordDemo: true, flavor: engineFlavor) {
             sendCommandBlock(CSMyStatusCommand(status: myAccount.status.changing(isIngame: false)))
+            completionHandler?()
         }
-    }
-
-    /// Informs the server that the user's status updated.
-    public func setBattleStatus(_ newBattleStatus: Battleroom.UserStatus) {
-        sendCommandBlock(CSMyBattleStatusCommand(battleStatus: newBattleStatus, color: myColor))
     }
     
     // MARK: - UpdateNotifier
@@ -655,8 +665,8 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
         public static var `default`: UserStatus {
             return UserStatus(
                 isReady: false,
-                teamNumber: 1,
-                allyNumber: 1,
+                teamNumber: 0,
+                allyNumber: 0,
                 isSpectator: true,
                 handicap: 0,
                 syncStatus: .unknown,

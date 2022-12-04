@@ -300,6 +300,7 @@ final public class TASServerLobby: Lobby, UpdateNotifier {
             SCJoinCommand.self,
             SCJoinedCommand.self,
             SCJoinFailedCommand.self,
+            SCLeftCommand.self,
             SCClientsCommand.self,
             SCChannelTopicCommand.self,
             SCChannelMessageCommand.self,

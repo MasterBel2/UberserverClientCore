@@ -194,6 +194,10 @@ struct SCJoinBattleCommand: SCCommand {
             return
         }
 
+		guard battle.founderID != myID else {
+			return // This will be handled in a specificHandler, not here
+		}
+
         // Must use client.userlist instead of battle.userlist because the client is added to the channel before he receives notification of a successful join of the battle.
         let battleroomChannel = Channel(title: battle.channel, rootList: authenticatedSession.userList, sendAction: { [weak lobby] channel, message in
             lobby?.send(CSSayCommand(channelName: battle.channel, message: message))
@@ -206,8 +210,10 @@ struct SCJoinBattleCommand: SCCommand {
                 lobby?.send(command)
             },
             hashCode: hashCode,
-            myID: myID
+            myID: myID,
+			hostAPI: nil
         )
+		
         authenticatedSession.battleroom = battleroom
     }
 }
@@ -815,13 +821,10 @@ struct SCJoinedBattleCommand: SCCommand {
     func execute(on lobby: TASServerLobby) {
         guard case let .authenticated(authenticatedSession) = lobby.session,
               let battle = authenticatedSession.battleList.items[battleID],
-              let userID = authenticatedSession.id(forPlayerNamed: username),
-			  
-			  let user = authenticatedSession.userList.items[userID] else {
+              let userID = authenticatedSession.id(forPlayerNamed: username) else {
             return
         }
-		// TODO: AddItemFromParent was a cleaner pattern, but current ManagedLists are... weird with nesting and terminology. This is a placeholder until that's sorted out. Probelm with this model is that updates will NOT be chained to sublist.
-        battle.userList.addItem(user, with: userID)
+        battle.userList.addItemFromParent(id: userID)
         if let battleroom = authenticatedSession.battleroom {
             battleroom.scriptPasswords[userID] = scriptPassword
         }
@@ -871,7 +874,7 @@ struct SCLeftBattleCommand: SCCommand {
               let userID = authenticatedSession.id(forPlayerNamed: username) else {
             return
         }
-        battle.userList.removeItem(withID: userID)
+        battle.userList.data.removeItem(withID: userID)
         authenticatedSession.battleList.respondToUpdatesOnItem(identifiedBy: battleID)
     }
 	

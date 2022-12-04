@@ -23,7 +23,7 @@ public protocol ReceivesBattleUpdates: AnyObject {
     
     func hostIsInGameChanged(to hostIsIngame: Bool)
 
-    func anyReceivesBattleUpdates() -> AnyReceivesBattleUpdates
+    func asAnyReceivesBattleUpdates() -> AnyReceivesBattleUpdates
 }
 
 public extension ReceivesBattleUpdates {
@@ -35,7 +35,7 @@ public extension ReceivesBattleUpdates {
     
     func hostIsInGameChanged(to hostIsIngame: Bool) {}
 
-    func anyReceivesBattleUpdates() -> AnyReceivesBattleUpdates {
+    func asAnyReceivesBattleUpdates() -> AnyReceivesBattleUpdates {
         return AnyReceivesBattleUpdates(wrapping: self)
     }
 }
@@ -70,7 +70,7 @@ public final class AnyReceivesBattleUpdates: ReceivesBattleUpdates, Box {
         wrapped.hostIsInGameChanged(to: hostIsIngame)
     }
 
-    public func anyReceivesBattleUpdates() -> AnyReceivesBattleUpdates {
+    public func asAnyReceivesBattleUpdates() -> AnyReceivesBattleUpdates {
         return self
     }
 }
@@ -83,7 +83,7 @@ public final class Battle: UpdateNotifier {
 
     // MARK: - Server State
     
-    public let userList: List<User>
+    public let userList: ManualSublist<User>
     public internal(set) var spectatorCount: Int = 0
     public var mapIdentification: MapIdentification {
         didSet {
@@ -225,7 +225,7 @@ public final class Battle: UpdateNotifier {
         
         self.resourceManager = resourceManager
 		
-        userList = List<User>()
+        userList = ManualSublist<User>(parent: serverUserList)
         
         myScriptPassword = {
             let directory = scriptPasswordCacheDirectory.appendingPathComponent(String(founderID))
@@ -237,11 +237,10 @@ public final class Battle: UpdateNotifier {
                 return password
             }
         }()
+
+        userList.addItemFromParent(id: founderID)
         
         // Additional Setup
-		
-        // TODO! the dangers of this are listed elsewhere
-        userList.addItem(serverUserList.items[founderID]!, with: founderID)
         
         loadEngine()
         loadGame()
