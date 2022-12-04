@@ -25,7 +25,7 @@ public protocol Archive {
 public struct ArchiveInfo {
 	public let key: String
 	public let description: String
-	public let value: Value?
+	public let value: Value
 	public enum Value: CustomStringConvertible {
 		case string(String)
 		case integer(Int)
@@ -46,7 +46,7 @@ public struct ArchiveInfo {
 		}
 	}
 	public var fullDescription: String {
-		return "\(key) = \(value!.description) ; \(description)"
+		return "\(key) = \(value.description) ; \(description)"
 	}
 }
 

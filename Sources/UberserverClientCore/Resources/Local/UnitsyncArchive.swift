@@ -231,11 +231,12 @@ public class UnitsyncArchive: Archive {
 	// MARK: - Loading data
 
 	private func loadInfo() -> [ArchiveInfo] {
-		return (0..<infoCount).map({ index in
+		return (0..<infoCount).compactMap({ index in
+			guard let value = infoValue(at: index) else { return nil }
 			return ArchiveInfo(
                 key: String(cString: unitsyncWrapper.GetInfoKey(index)),
                 description: String(cString: unitsyncWrapper.GetInfoDescription(index)),
-				value: infoValue(at: index)
+				value: value
 			)
 		})
 	}
