@@ -30,11 +30,15 @@ public final class FilteredSublist<ListItem>: ListDelegate {
 
     public func list(_ list: List<ListItem>, itemWithIDWasUpdated id: Int) {
         guard list === parentList, let item = parentList?.items[id] else { return }
-        if filter(id, item) {
+        let shouldInclude = filter(id, item)
+        let isIncluded = data.items[id] != nil
+
+        if shouldInclude && !isIncluded {
             data.addItem(item, with: id)
-        } else {
+        } else if !shouldInclude && isIncluded {
             data.removeItem(withID: id)
         }
+        
         data.respondToUpdatesOnItem(identifiedBy: id)
     }
 
