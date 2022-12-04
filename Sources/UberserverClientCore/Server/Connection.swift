@@ -178,7 +178,6 @@ public final class Connection: SocketDelegate {
         self.cacheDirectory = baseCacheDirectory.appendingPathComponent(address.description)
 
         socket.delegate = self
-        socket.open()
     }
 
     // MARK: - Socket Events

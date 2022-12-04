@@ -11,7 +11,7 @@ import ServerAddress
 
 public protocol ReceivesClientUpdates: AnyObject {
     /// Indicates that the client will attempt to establish a connection to the given address.
-    func client(_ client: Client, willConnectTo address: ServerAddress)
+    func client(_ client: Client, willEstablish connection: Connection)
     /// Indicates that the client has created a `Connection` object that it will use to connect to a server.
     func client(_ client: Client, successfullyEstablishedConnection connection: Connection)
     ///
@@ -42,8 +42,8 @@ public final class AnyReceivesClientUpdates: ReceivesClientUpdates, Box {
         self.wrapped = wrapping
     }
 
-    public func client(_ client: Client, willConnectTo address: ServerAddress) {
-        wrapped.client(client, willConnectTo: address)
+    public func client(_ client: Client, willEstablish connection: Connection) {
+        wrapped.client(client, willEstablish: connection)
     }
 
     public func client(_ client: Client, successfullyEstablishedConnection connection: Connection) {
@@ -121,6 +121,14 @@ public final class Client: UpdateNotifier {
         ) else {
             return
         }
+
+        // I'd prefer an architecture where the connection only exists when it's open, and never exists in a closed state.
+        // However, we need to create it separately from opening the socket to ensure that listeners can subscribe before 
+        // anything happens on the socket.
+        applyActionToChainedObjects({ $0.client(self, willEstablish: connection) })
+        connection._connection.sync(block: { $0.socket.open() })
+        // This call is now probably redundant, but probably going to leave it here for backwards compatability
+        // (even if I've trashed every other point of backwards compatability, lol)
         applyActionToChainedObjects({ $0.client(self, successfullyEstablishedConnection: connection) })
 
         self.connection = connection
