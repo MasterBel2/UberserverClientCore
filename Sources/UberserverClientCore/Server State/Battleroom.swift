@@ -413,19 +413,6 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
 
         let specification: LaunchScriptConvertible
         if myID == battle.founderID {
-            let gameSpecificationSpectators = spectatorList.items.map({ id, spectator in
-                SpringRTSStartScriptHandling.Player(
-                    scriptID: 0,
-                    userID: id,
-                    username: spectator.profile.fullUsername,
-                    scriptPassword: "",
-                    skill: trueSkills[id],
-                    rank: spectator.status.rank,
-                    countryCode: spectator.profile.country,
-                    isFromDemo: false
-                )
-            })
-
             enum TeamMember {
                 case ai(SpringRTSStartScriptHandling.AI)
                 case player(SpringRTSStartScriptHandling.Player)
@@ -521,6 +508,21 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
                 })
                 return SpringRTSStartScriptHandling.AllyTeam(scriptID: allyTeamIndex, teams: scriptTeams)
             }).filter({ $0.teams.count > 0 })
+
+            let gameSpecificationSpectators = spectatorList.items.map({ id, spectator in
+                let player = SpringRTSStartScriptHandling.Player(
+                    scriptID: playerCount,
+                    userID: id,
+                    username: spectator.profile.fullUsername,
+                    scriptPassword: scriptPasswords[id],
+                    skill: trueSkills[id],
+                    rank: spectator.status.rank,
+                    countryCode: spectator.profile.country,
+                    isFromDemo: false
+                )
+                playerCount += 1
+                return player
+            })
 
             let hostType: HostConfig.HostType = autohostPort.map({ .autohost((programName: "BelieveAndRise Alpha", port: $0)) }) ?? .user(lobbyName: "BelieveAndRise Alpha")
             
