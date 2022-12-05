@@ -39,6 +39,10 @@ public struct Engine {
         return String(cString: unitsyncWrapper.sync(block: { $0.GetSpringVersion() }))
 	}
 
+    public var serverDemosDirectory: URL {
+        return location.appendingPathComponent("demos-server")
+    }
+
     public let executableURL: URL
 
     public let dedicatedURL: URL
