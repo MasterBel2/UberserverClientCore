@@ -51,6 +51,28 @@ public struct Engine {
 	public let location: URL
 	let unitsyncWrapper: QueueLocked<UnitsyncWrapper>
     
+    /// Launches a replay at the given URL. 
+    public func launchReplay(fileURL: URL, flavor: Flavor = .full, completionHandler: (() -> Void)?) throws {
+        let engineURL: URL
+        let args: [String]
+        switch flavor {
+        case .dedicated:
+            engineURL = dedicatedURL
+            args = [fileURL.path]
+        case .headless:
+            engineURL = headlessURL
+            args = [fileURL.path]
+            // args = [fileURL.path, "--write-dir=\(location.deletingLastPathComponent().deletingLastPathComponent().path)", "--isolation"]
+        case .full:
+            engineURL = executableURL
+            args = [fileURL.path, "--write-dir=\(location.deletingLastPathComponent().deletingLastPathComponent().path)", "--isolation"]
+        }
+        
+        system.launchApplication(at: engineURL.path, with: args, completionHandler: {
+            completionHandler?()
+        })
+    }
+
     /// Launches spring.
     ///
     /// - parameter willRecordDemo: whether the script contains an isntruction to record a demo. If true, the replay controller will be instructed to reload replays after the game is done, to detect the new file.

@@ -207,7 +207,7 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
 
     // MARK: - Lifecycle
 
-    internal let sendCommandBlock: (CSCommand) -> Void
+    public let sendCommandBlock: (CSCommand) -> Void
 
     public init(battle: Battle, channel: Channel, sendCommandBlock: @escaping (CSCommand) -> Void, hashCode: Int32, myID: Int, hostAPI: HostAPI?) {
         self.battle = battle

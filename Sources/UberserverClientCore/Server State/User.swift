@@ -81,7 +81,7 @@ public final class User {
         not as part of the continually-updating status.
         """)
 
-        func changing(
+        public func changing(
             isAway: Bool? = nil,
             isIngame: Bool? = nil
         ) -> Status {

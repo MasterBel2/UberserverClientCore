@@ -21,7 +21,7 @@ public struct CSMyStatusCommand: CSCommand {
 
     let status: User.Status
 
-    init(status: User.Status) {
+    public init(status: User.Status) {
         self.status = status
     }
 

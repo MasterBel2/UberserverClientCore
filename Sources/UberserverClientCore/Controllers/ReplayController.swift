@@ -15,10 +15,17 @@ import CoreFoundation
 public final class ReplayController {
 
     /**
-    - Parameter dataDirectory: Maps to the replays from a given data directory - e.g. for `~/.config/spring`, we'll look in  `~/.config/spring/demos`.
+     - Parameter dataDirectory: Maps to the replays from a given data directory - e.g. given `~/.config/spring`, we'll look in  `~/.config/spring/demos`.
      */
     public init(dataDirectory: URL) {
         demoDir = dataDirectory.appendingPathComponent("demos", isDirectory: true)
+    }
+
+    /**
+     - Parameter demoDir: the directory directly enclosing replays - e.g. given `~/.config/spring/demos`, we'll expect demo files such as `~/.config/spring/demos/example.sdfz`.
+     */ 
+    public init(demoDir: URL) {
+        self.demoDir = demoDir
     }
 
     let demoDir: URL
@@ -37,8 +44,8 @@ public final class ReplayController {
             loadQueue.async { [weak self] in
                 do {
                     if let self = self,
-                       let compressedData = self.fileManager.contents(atPath: replayURL.path),
-                       let data = try? GzipArchive.unarchive(archive: compressedData) {
+                       let compressedData = self.fileManager.contents(atPath: replayURL.path) {
+                        let data = try GzipArchive.unarchive(archive: compressedData)
                         let replay = try Replay(data: data, fileURL: replayURL)
                         // Concurrently updating the list is a sure fire way to corrupt it. So we'll
                         self.updateQueue.async { [weak self] in
