@@ -33,7 +33,7 @@ public final class ReplayController {
     public let replays = List<Replay>()
 
     let fileManager =  FileManager.default
-    let loadQueue = DispatchQueue(label: "com.believeandrise.replaycontroller.load", qos: .background, attributes: .concurrent)
+    let loadQueue = DispatchQueue(label: "com.believeandrise.replaycontroller.load", qos: .background)
     let updateQueue = DispatchQueue(label: "com.believeandrise.replaycontroller.update", qos: .userInteractive)
 
     /// Asynchronously loads replays from disk.
