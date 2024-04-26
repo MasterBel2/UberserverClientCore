@@ -22,10 +22,15 @@ final class Logger {
 
         enum Tag: String {
             case General
+            case GeneralError
 
             case BattleStatusUpdate
             case StatusUpdate
 
+            case RawProtocolMessage
+
+            case MOTD
+            case ServerMessage
             case ServerError
             
             case ClientStateError
@@ -54,7 +59,7 @@ final class Logger {
         logger.messages.append(newMessage)
 
         let newEntry = newMessage.description
-        print(newEntry)
+        // print(newEntry)
         let newWrite = logger.previousWrite + "\n" + newEntry
         write(newWrite)
         logger.previousWrite = newWrite

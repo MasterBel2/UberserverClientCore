@@ -61,10 +61,7 @@ public final class UnitsyncArchiveLoader {
                     system: system,
                     unitsyncWrapper: QueueLocked(lockedObject: wrapper, queue: DispatchQueue(label: "Unitsync Wrapper", qos: .userInteractive))
                 ))
-                print("Loaded engine candidate: \(candidate)")
-            } catch {
-                print("Failed to load candidate engine at: \(candidate): \(error)")
-            }
+            } catch {}
         }
 	}
 
@@ -73,7 +70,6 @@ public final class UnitsyncArchiveLoader {
 		guard !archivesAreLoaded else { return }
 		
         autodetectSpringVersions()
-        print("\(Date()): Loaded Engines!")
 
 		guard let unitsyncWrapper = mostRecentUnitsync else { return }
 

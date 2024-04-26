@@ -102,7 +102,7 @@ public struct Engine {
 //                }
             })
         } catch {
-            print("Failed to start engine! \(error)")
+            Logger.log("Failed to start engine! \(error)", tag: .GeneralError)
             completionHandler?()
         }
     }

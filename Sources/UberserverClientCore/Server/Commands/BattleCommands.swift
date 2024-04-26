@@ -608,7 +608,7 @@ struct SCSetScriptTagsCommand: SCCommand {
             case "modoptions":
                 battleroom.modOptions[tag.path[1]] = tag.value
             default:
-                print("Unrecognised script tag: \(tag)")
+                Logger.log("Unrecognised script tag: \(tag)", tag: .General)
             }
         }
     }

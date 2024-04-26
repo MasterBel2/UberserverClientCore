@@ -78,7 +78,7 @@ final public class UnitsyncMapArchive: UnitsyncArchive, MapArchive, QueueLockabl
 		var width = CInt()
 		_ = unitsyncWrapper.GetInfoMapSize(name, cName, &width, &height)
 		if width == 0 {
-			print(String(cString: unitsyncWrapper.GetNextError()))
+			Logger.log(String(cString: unitsyncWrapper.GetNextError()), tag: .GeneralError)
 		}
 		return (width: Int(width), height: Int(height))
 	}

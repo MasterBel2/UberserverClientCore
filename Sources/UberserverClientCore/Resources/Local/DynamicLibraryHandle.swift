@@ -15,7 +15,7 @@ final class DynamicLibraryHandle {
 
     init?(libraryPath: String) {
         guard let handle = dlopen(libraryPath, RTLD_LAZY + RTLD_LOCAL) else {
-            print("Failed to open library at \(libraryPath): \(String(cString: dlerror(), encoding: .utf8) ?? "Unknown Error")")
+            Logger.log("Failed to open library at \(libraryPath): \(String(cString: dlerror(), encoding: .utf8) ?? "Unknown Error")", tag: .GeneralError)
             return nil
         }
         self.handle = handle

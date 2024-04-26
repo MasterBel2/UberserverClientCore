@@ -271,7 +271,7 @@ public final class ListOrder<ListItem>: ListDelegate, UpdateNotifier {
         })
 
         if !valid {
-            debugOnlyPrint("Internal inconsistency detected in list sorter for \(listToSort): \(self)")
+            Logger.log("Internal inconsistency detected in list sorter for \(listToSort): \(self)", tag: .ClientStateError)
             listToSort.items.map({
                 let key = $0.key
                 if let position = itemIndices[$0.key] {
@@ -280,7 +280,7 @@ public final class ListOrder<ListItem>: ListDelegate, UpdateNotifier {
                 } else {
                     return "Item \($0.key): Position: nil, valid: false"
                 }
-            }).forEach({ debugOnlyPrint($0)})
+            }).forEach({ Logger.log($0, tag: .ClientStateError) })
         }
     }
 }

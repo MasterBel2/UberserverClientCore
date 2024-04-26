@@ -81,7 +81,7 @@ public struct SCBattleOpenedCommand: SCCommand {
             gameName = sentences[4]
             channel = sentences[5]
         } catch {
-            print(error)
+            Logger.log("Failed to parse battle from payload \"\(payload)\": \(error.localizedDescription)", tag: .GeneralError)
             return nil
         }
     }

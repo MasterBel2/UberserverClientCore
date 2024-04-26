@@ -11,7 +11,7 @@ open class AutohostInterface: TCPClientDelegate {
         self.socket = socket // Allow assigning port 0
         return socket.channel.localAddress!.port!
 
-        print("Autohost interface: opened socket!")
+        Logger.log("Autohost interface: opened socket!", tag: .General)
     }
 
     public func close() {
@@ -27,7 +27,7 @@ open class AutohostInterface: TCPClientDelegate {
         
     }
 
-    open func serverStarted() { print("Server started!") }
+    open func serverStarted() { Logger.log("AutohostInterface: server started!", tag: .General) }
     open func serverQuit() {}
     open func gameStarted(gameID: [UInt8], demoName: String?) {}
     open func gameOver(winningAllyTeams: [Int]) {}

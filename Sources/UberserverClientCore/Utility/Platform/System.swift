@@ -64,7 +64,7 @@ public final class MacOS: System {
 
     public func launchApplication(_ application: String, with arguments: [String]?, completionHandler: (() -> Void)?) -> Process {
         guard let path = NSWorkspace.shared.fullPath(forApplication: application) else {
-            debugPrint("Non-Fatal Error: could not find \(application)")
+            Logger.log("Non-Fatal Error: could not find \(application)", tag: .GeneralError)
             completionHandler?()
             return
         }
@@ -73,7 +73,7 @@ public final class MacOS: System {
 
     public func launchApplication(at path: String, with arguments: [String]?, completionHandler: (() -> Void)?) -> Process {
         guard let bundle = Bundle(path: path) else {
-            debugPrint("Non-Fatal Error: could not create bundle object at \(path)")
+            Logger.log("Non-Fatal Error: could not create bundle object at \(path)", tag: .GeneralError)
             return
         }
 
@@ -122,7 +122,7 @@ public class Linux: System {
         do {
             try process.run()
         } catch {
-            print("Failed to run application at \(path): \(error)")
+            Logger.log("Failed to run application at \(path): \(error)", tag: .GeneralError)
         }
         
         processes.append(process)

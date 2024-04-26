@@ -134,12 +134,12 @@ final public class RapidClient: Downloader, DownloaderDelegate {
     /// Parses a package and retrieves the resources it specifies.
     private func downloadResourceData(_ packageURL: URL) throws {
         guard let data = FileManager.default.contents(atPath: packageURL.path) else {
-            print("Failed to retrieve data from downloaded file")
+            Logger.log("Failed to retrieve data from downloaded file", tag: .GeneralError)
 			delegate?.downloader(self, downloadDidFailWithError: nil)
             return
         }
         guard let unzippedData = try? GzipArchive.unarchive(archive: data) else {
-            print("Failed to unzip file")
+            Logger.log("Failed to unzip file", tag: .GeneralError)
 			delegate?.downloader(self, downloadDidFailWithError: nil)
             return
         }

@@ -153,7 +153,7 @@ final public class TASServerLobby: Lobby, UpdateNotifier {
         previousTail = messages.removeLast()
 
         for message in messages where message != "" {
-            Logger.log("Received: " + message, tag: .General)
+            Logger.log("Received: " + message, tag: .RawProtocolMessage)
             let components = message.components(separatedBy: " ")
             let messageID = components.first.flatMap({ (id: String) -> Int? in
                 if id.first == "#" {
@@ -358,6 +358,8 @@ final public class UnknownLobby: Lobby {
 
     public func connection(_ connection: ThreadUnsafeConnection, didReceive data: Data) {
         guard let line = String(data: data, encoding: .utf8) else { return }
+
+        Logger.log(line, tag: .RawProtocolMessage)
 
         if let first = line.firstIndex(of: " "),
            line[..<first] == TASServerCommand.title,

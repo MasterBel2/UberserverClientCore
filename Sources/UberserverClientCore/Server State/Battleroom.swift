@@ -248,7 +248,6 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
         // Update the data
         userStatuses[userID] = newUserStatus
 
-        // print("Returning")
         // return
 
         Logger.log("Updating user status for \(userID): \(previousUserStatus?.description ?? "nil") -> \(newUserStatus.description)", tag: .BattleStatusUpdate)
@@ -270,7 +269,6 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
             default:
                 if previousUserStatus.allyNumber != newUserStatus.allyNumber {
                     allyTeamLists[previousUserStatus.allyNumber].data.removeItem(withID: userID)
-                    print("Moving player from ally \(previousUserStatus.allyNumber) to \(newUserStatus.allyNumber)")
                     allyTeamLists[newUserStatus.allyNumber].addItemFromParent(id: userID)
 
                     if userID == myID {
@@ -301,7 +299,6 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
             }
         }
 
-        // print("Returning")
         // return
 
         // if !(value == (previous: true, new: true) ||
@@ -313,7 +310,6 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
         //         // The user is no longer a player on an allyteam.
         //         let allyTeamList = allyTeamLists[previousAllyNumber]
         //         allyTeamList.data.removeItem(withID: userID)
-        //         print("Removed \(userID) from allyTeamList \(previousAllyNumber)")
         //         if allyTeamList.items.count == 0,
         //            let allyName = allyNamesForAllyNumbers[previousAllyNumber] {
         //             applyActionToChainedObjects({ $0.removedName(forAllyTeam: previousAllyNumber) })
@@ -326,7 +322,6 @@ public final class Battleroom: UpdateNotifier, ListDelegate, ReceivesBattleUpdat
         //     } else {
         //         // The user has changed to an ally team – I.e. joined a new ally.
         //         let allyTeamList = allyTeamLists[newUserStatus.allyNumber]
-        //         print("Added \(userID) to allyTeamList \(newUserStatus.allyNumber)")
         //         allyTeamList.addItemFromParent(id: userID)
         //         if allyTeamList.items.count == 1 {
         //             let allyName = String(newUserStatus.allyNumber + 1)

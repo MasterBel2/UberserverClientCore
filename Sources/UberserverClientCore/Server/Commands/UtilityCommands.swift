@@ -36,7 +36,7 @@ public struct SCCompFlagsCommand: SCCommand {
 	}
 	
     public func execute(on lobby: TASServerLobby) {
-		debugOnlyPrint("Unrecognised flags: \(unrecognisedFlags.joined(separator: " "))")
+		Logger.log("Unrecognised flags: \(unrecognisedFlags.joined(separator: " "))", tag: .General)
 	}
 	
     public var payload: String {

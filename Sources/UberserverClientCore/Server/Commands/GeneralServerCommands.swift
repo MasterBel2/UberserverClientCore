@@ -23,7 +23,7 @@ public struct MOTDCommand: SCCommand {
     }
 
     public func execute(on lobby: TASServerLobby) {
-        print(payload)
+        Logger.log(payload, tag: .MOTD)
     }
 }
 
@@ -57,7 +57,7 @@ public struct SCServerMessageCommand: SCCommand {
 	
     public func execute(on lobby: TASServerLobby) {
 //        client.didReceiveMessageFromServer(message)
-        print(message)
+        Logger.log(message, tag: .ServerMessage)
         #warning("TODO")
 	}
 	

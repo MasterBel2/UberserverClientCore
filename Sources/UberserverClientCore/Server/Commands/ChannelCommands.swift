@@ -435,8 +435,6 @@ public struct RoutedPrivateMessage: SaidEncodableCommand {
             channel.userlist.addItemFromParent(id: senderID)
         }
         
-        print("Received message from \(channelName): \(message)")
-        
         channel.receivedNewMessage(
             ChatMessage(
                 time: Date(),

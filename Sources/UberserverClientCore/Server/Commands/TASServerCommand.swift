@@ -61,7 +61,7 @@ public struct TASServerCommand: SCCommand {
                     do {
                         try lobby.connection.socket.client?.enableTLS()
                     } catch {
-                        print(error)
+                        Logger.log("Failed to enable TLS! \(error.localizedDescription)", tag: .GeneralError)
                     }
                     return true
                 }

@@ -155,7 +155,7 @@ public final class RemoteResourceFetcher: DownloaderDelegate, UpdateNotifier {
     }
 
     public func downloader(_ downloader: Downloader, downloadDidFailWithError error: Error?) {
-        print("Download failed!")
+        Logger.log("Download failed with error: \(error?.localizedDescription ?? "no description available")", tag: .GeneralError)
 		downloader.finalizeDownload(false)
 		if downloader is RapidClient {
 			#warning("This makes assumptions about the use of RapidClient to only download games. A more robust system should be put in place for determining the resource to be downloaded.")
@@ -168,7 +168,6 @@ public final class RemoteResourceFetcher: DownloaderDelegate, UpdateNotifier {
     }
 
     public func downloader(_ downloader: Downloader, successfullyCompletedDownloadTo tempUrls: [URL]) {
-        print("Download completed!")
 		downloader.finalizeDownload(true)
         completionHandler?(true)
         downloaders.removeAll(where: { $0 === downloader})

@@ -68,7 +68,7 @@ func wordsAndSentences(for commandPayload: String, wordCount: Int, sentenceCount
     #warning("This will likely not correctly decode multiple optionals: maybe use \"separators\" rather than \"separator\"?")
 
 	if remainingCharacters != "" {
-		print("Command payload incorrectly parsed: remaning text was \"\(remainingCharacters)\"")
+            Logger.log("Command payload incorrectly parsed: remaning text was \"\(remainingCharacters)\"", tag: .GeneralError)
 	}
     return (words: words, sentences: sentences, optionalWords: optionalWords, optionalSentences: optionalSentences)
 }

@@ -53,7 +53,7 @@ public final class ReplayController {
                         }
                     }
                 } catch {
-                    print(error)
+                    Logger.log("Failed to process replay file at \(replayURL.path): \(error.localizedDescription)", tag: .GeneralError)
                 }
             }
         }

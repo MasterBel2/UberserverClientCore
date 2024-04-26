@@ -88,7 +88,7 @@ final class TCPClient<DataType> {
 
         func errorCaught(context: ChannelHandlerContext, error: Error) {
             delegate?.socketError(error)
-            print(error)
+            Logger.log("Socket error: \(error.localizedDescription)", tag: .GeneralError)
         }
 
         func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
@@ -115,7 +115,7 @@ final class TCPClient<DataType> {
 
         func errorCaught(context: ChannelHandlerContext, error: Error) {
             delegate?.socketError(error)
-            print(error)
+            Logger.log("Socket error: \(error.localizedDescription)", tag: .GeneralError)
         }
 
         func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
