@@ -86,7 +86,8 @@ public struct Engine {
             args = [scriptFileURL.path]
         case .headless:
             engineURL = headlessURL
-            args = [scriptFileURL.path, "--write-dir=\(location.deletingLastPathComponent().deletingLastPathComponent().path)", "--isolation"]
+            args = [scriptFileURL.path]
+            //args = [scriptFileURL.path, "--write-dir=\(location.deletingLastPathComponent().deletingLastPathComponent().path)", "--isolation"]
         case .full:
             engineURL = executableURL
             args = [scriptFileURL.path, "--write-dir=\(location.deletingLastPathComponent().deletingLastPathComponent().path)", "--isolation"]

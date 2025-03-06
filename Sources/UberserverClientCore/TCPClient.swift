@@ -99,6 +99,8 @@ final class TCPClient<DataType> {
 
         func channelRead(context: ChannelHandlerContext, data: NIOAny) {
             var readBuffer = unwrapInboundIn(data)
+            
+//            Logger.log("\(try? context.channel.pipeline.syncOperations.nioSSL_tlsVersion())", tag: .General)
 
             if let data = readBuffer.readBytes(length: readBuffer.readableBytes) {
                 delegate?.received(Data(data))

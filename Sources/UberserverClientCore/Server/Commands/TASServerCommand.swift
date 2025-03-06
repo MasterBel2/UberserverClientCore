@@ -9,6 +9,16 @@
 import Foundation
 import NIOSSL
 
+public struct CSListCompFlagsCommand: CSCommand {
+    public init?(payload: String) {}
+    public init() {}
+
+    public static let title = "LISTCOMPFLAGS"
+
+    public var payload: String { return "" }
+    public func execute(on server: LobbyServer) { /* TODO */ }
+}
+
 public struct TASServerCommand: SCCommand {
 
     public static let title = "TASSERVER"
@@ -42,6 +52,9 @@ public struct TASServerCommand: SCCommand {
     }
     
     public func execute(on lobby: TASServerLobby) {
+
+        lobby.send(CSListCompFlagsCommand())
+
         // Clean up buffering created by configuration switches (e.g. TLS)
         lobby.connection.socket.shouldBuffer = false
         lobby.connection.socket.flush()

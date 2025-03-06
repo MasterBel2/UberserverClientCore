@@ -1,106 +1,113 @@
 {
-  "object": {
-    "pins": [
-      {
-        "package": "BitByteData",
-        "repositoryURL": "https://github.com/tsolomko/BitByteData",
-        "state": {
-          "branch": null,
-          "revision": "b4b41619522aacd7aae7b02fa8360833e796a03d",
-          "version": "2.0.2"
-        }
-      },
-      {
-        "package": "CountryCode",
-        "repositoryURL": "https://github.com/MasterBel2/CountryCode",
-        "state": {
-          "branch": "master",
-          "revision": "432180c3c33c8ef7effe359d47436763452c1399",
-          "version": null
-        }
-      },
-      {
-        "package": "ServerAddress",
-        "repositoryURL": "https://github.com/MasterBel2/ServerAddress",
-        "state": {
-          "branch": "master",
-          "revision": "f323c45475ddad09ea74f1ecc53cdfc5691868d5",
-          "version": null
-        }
-      },
-      {
-        "package": "SpringRTSReplayHandling",
-        "repositoryURL": "https://github.com/MasterBel2/SpringRTSReplayHandling",
-        "state": {
-          "branch": "master",
-          "revision": "36beb2c1fcf29268633ecba3073ec79f3708478d",
-          "version": null
-        }
-      },
-      {
-        "package": "SpringRTSStartScriptHandling",
-        "repositoryURL": "https://github.com/MasterBel2/SpringRTSStartScriptHandling",
-        "state": {
-          "branch": "master",
-          "revision": "22a3d2b806f7612c6c6b9f38bac4d6b59572dd0d",
-          "version": null
-        }
-      },
-      {
-        "package": "SWCompression",
-        "repositoryURL": "https://github.com/tsolomko/SWCompression",
-        "state": {
-          "branch": null,
-          "revision": "6fe73cb9a0d2e70a80ec892724ac19b683f398e0",
-          "version": "4.8.3"
-        }
-      },
-      {
-        "package": "swift-atomics",
-        "repositoryURL": "https://github.com/apple/swift-atomics.git",
-        "state": {
-          "branch": null,
-          "revision": "919eb1d83e02121cdb434c7bfc1f0c66ef17febe",
-          "version": "1.0.2"
-        }
-      },
-      {
-        "package": "swift-collections",
-        "repositoryURL": "https://github.com/apple/swift-collections.git",
-        "state": {
-          "branch": null,
-          "revision": "f504716c27d2e5d4144fa4794b12129301d17729",
-          "version": "1.0.3"
-        }
-      },
-      {
-        "package": "swift-crypto",
-        "repositoryURL": "https://github.com/apple/swift-crypto",
-        "state": {
-          "branch": null,
-          "revision": "f652300628eb2003449e627f1f394a27ea2af9a8",
-          "version": "2.2.0"
-        }
-      },
-      {
-        "package": "swift-nio",
-        "repositoryURL": "https://github.com/apple/swift-nio",
-        "state": {
-          "branch": null,
-          "revision": "edfceecba13d68c1c993382806e72f7e96feaa86",
-          "version": "2.44.0"
-        }
-      },
-      {
-        "package": "swift-nio-ssl",
-        "repositoryURL": "https://github.com/apple/swift-nio-ssl",
-        "state": {
-          "branch": null,
-          "revision": "4fb7ead803e38949eb1d6fabb849206a72c580f3",
-          "version": "2.23.0"
-        }
+  "pins" : [
+    {
+      "identity" : "bitbytedata",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/tsolomko/BitByteData",
+      "state" : {
+        "revision" : "cdcdc5177ad536cfb11b95c620f926a81014b7fe",
+        "version" : "2.0.4"
       }
-    ]
-  },
-  "version": 1
+    },
+    {
+      "identity" : "countrycode",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/MasterBel2/CountryCode",
+      "state" : {
+        "branch" : "master",
+        "revision" : "432180c3c33c8ef7effe359d47436763452c1399"
+      }
+    },
+    {
+      "identity" : "serveraddress",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/MasterBel2/ServerAddress",
+      "state" : {
+        "branch" : "master",
+        "revision" : "f0c15b59b5e0919276cbbb6b4f14a730ef36c40a"
+      }
+    },
+    {
+      "identity" : "springrtsreplayhandling",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/MasterBel2/SpringRTSReplayHandling",
+      "state" : {
+        "branch" : "master",
+        "revision" : "126d82428b92b97f0f79da50d842dbcc44ab3047"
+      }
+    },
+    {
+      "identity" : "springrtsstartscripthandling",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/MasterBel2/SpringRTSStartScriptHandling",
+      "state" : {
+        "branch" : "master",
+        "revision" : "9518641ca931e4a171219dc586f924d50f44ff59"
+      }
+    },
+    {
+      "identity" : "swcompression",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/tsolomko/SWCompression",
+      "state" : {
+        "revision" : "390e0b0af8dd19a600005a242a89e570ff482e09",
+        "version" : "4.8.6"
+      }
+    },
+    {
+      "identity" : "swift-atomics",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-atomics.git",
+      "state" : {
+        "revision" : "cd142fd2f64be2100422d658e7411e39489da985",
+        "version" : "1.2.0"
+      }
+    },
+    {
+      "identity" : "swift-collections",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-collections.git",
+      "state" : {
+        "revision" : "94cf62b3ba8d4bed62680a282d4c25f9c63c2efb",
+        "version" : "1.1.0"
+      }
+    },
+    {
+      "identity" : "swift-crypto",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-crypto",
+      "state" : {
+        "revision" : "60f13f60c4d093691934dc6cfdf5f508ada1f894",
+        "version" : "2.6.0"
+      }
+    },
+    {
+      "identity" : "swift-nio",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-nio",
+      "state" : {
+        "revision" : "fc63f0cf4e55a4597407a9fc95b16a2bc44b4982",
+        "version" : "2.64.0"
+      }
+    },
+    {
+      "identity" : "swift-nio-ssl",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-nio-ssl",
+      "state" : {
+        "revision" : "7c381eb6083542b124a6c18fae742f55001dc2b5",
+        "version" : "2.26.0"
+      }
+    },
+    {
+      "identity" : "swift-system",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-system.git",
+      "state" : {
+        "revision" : "025bcb1165deab2e20d4eaba79967ce73013f496",
+        "version" : "1.2.1"
+      }
+    }
+  ],
+  "version" : 2
 }
